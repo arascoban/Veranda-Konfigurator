@@ -32,6 +32,8 @@ export type ProductAssemblySpec = {
   gutterBeyondPostMm: number;
   gutterDepthMm: number;
   wallProfileDepthMm: number;
+  /** Wall profile height; Gesamthöhe (C) = rear height + this. */
+  wallProfileHeightMm: number;
   /** Post top above the gutter underside (post reaches into the gutter). */
   postIntoGutterMm: number;
   postSectionMm: { alongGutter: number; towardsGarden: number };
@@ -57,6 +59,7 @@ export const primeAssemblySpec: ProductAssemblySpec = {
   gutterBeyondPostMm: 26,
   gutterDepthMm: 165,
   wallProfileDepthMm: 55,
+  wallProfileHeightMm: 160,
   postIntoGutterMm: 15,
   postSectionMm: { alongGutter: 110, towardsGarden: 135 },
   rafterFront: { zFromPostFaceMm: 53 },
@@ -75,6 +78,7 @@ export const premiumAssemblySpec: ProductAssemblySpec = {
   gutterBeyondPostMm: 32,
   gutterDepthMm: 204,
   wallProfileDepthMm: 63,
+  wallProfileHeightMm: 190,
   postIntoGutterMm: 16,
   postSectionMm: { alongGutter: 130, towardsGarden: 135 },
   rafterFront: { zFromPostFaceMm: 132 },

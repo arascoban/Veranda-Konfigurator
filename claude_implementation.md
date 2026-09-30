@@ -135,6 +135,21 @@ Doğrulama: 95 test; tarayıcıda varsayılan açılış (500/300/273,2/230, 8°
 
 Açık: alan (Feld) üzerine gelince "+" arayüzü (Glasschiebewand vb.) ve ayakların terasın içine 1 m'ye kadar kaydırılması (destek profili gelince).
 
+## 5. İş — Bemaßungen, model içi etkileşim, boru/ayak dilimleme (30 Eylül, üçüncü tur)
+
+| Konu | Uygulama |
+| --- | --- |
+| Tıklayınca ayak kayması | Sürükleme 4 px eşikten sonra başlar (`drag.started`); salt tıklama sadece seçer. |
+| Seçim işareti | Yerde düz halka + iki düz ok (RAL 7016 yönünde antrasit, `createSelectionMarker`); eski 3D silindir oklar kaldırıldı. Seçili/hover ayak emissive vurgu. |
+| Feld hover/seçim | Alan düzlemi antrasit yarı saydam parlar, adı ("Front n", bahçeden soldan) ve "+" rozeti çıkar (`markSelectedOpening`, sprite). "+" şimdilik işlevsiz; Ausstattung ürünleri gelince menü olacak. |
+| Bemaßungen | Sol üst araç çubuğu: geri/ileri/reset/**Bemaßungen** aç-kapa. `assembly/dimensions.ts` saf ölçü çizgisi listesi (Breite B, Tiefe A, Höhe hinten D, Gesamthöhe C, Durchgangshöhe E, her Feld için yüzden yüze "Breite Front n"), `extraLines` ile ileride diğer parçalar eklenebilir; `annotations.ts` çizgi + tik + canvas sprite etiket. |
+| Ayak boru/kapak | `prepare_models.py` her ayak varyantını üç dilime böler (alt 25 cm, orta 50 cm, üst 25 cm); yalnız orta dilim esner → ablauf ağzı ve kapak bozulmaz (`post*Bottom/Mid/Top`). |
+| Premium panel | Panel uzunluğu = taşıyıcı kapağı uzunluğu (önde 5 cm, arkada 2 cm taşkınlık dahil). |
+| Prime uç taşıyıcılar | Oluk kapaklarının içine 4 mm alındı. |
+| Sol panel | A–E ölçü görseli (`public/images/masse-abcde.jpg`, kullanıcının kendi render'ı) genişlik/derinliğin üstünde; etiketler Breite (B), Tiefe (A), Höhe hinten (D), Höhe vorne (E); salt okunur **Gesamthöhe (C)** = arka yükseklik + duvar profili (Prime 16, Premium 19 cm). |
+
+Doğrulama: 95 test, derleme; tarayıcıda ölçü katmanı ve Feld etiketi ("Front 1"), boru ağzı bozulmadan, panel ucu kapakla hizalı, uç taşıyıcı kapak içinde; salt tıklama ayağı kaydırmıyor. Hata kaydı: `CLAUDE-K03-005` (üç dilimli ayak → alan düzlemleri üçe katlanmıştı).
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

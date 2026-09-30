@@ -1,5 +1,5 @@
 import {
-  ConeGeometry, CylinderGeometry, DoubleSide, GridHelper, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
+  CylinderGeometry, DoubleSide, GridHelper, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
   MeshStandardMaterial, Object3D, PlaneGeometry, Vector3, type Material,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -7,6 +7,7 @@ import type { RoofMaterialId } from '../../catalog/catalog';
 import { millimetresToMetres } from '../../domain/units';
 import { basisDeterminant, type AssemblyLayout, type PartPlacement } from './placements';
 import { assemblySpecs, type PartRole } from './spec';
+import { createSelectionMarker } from './annotations';
 
 /** Loads each GLB once; clones share geometry, so clones are flagged `sharedAsset` and never dispose it. */
 export class PartLibrary {
@@ -83,36 +84,16 @@ function applyPlacement(object: Object3D, placement: PartPlacement, offsetMm: re
 }
 
 /**
- * Editing helpers for one post, positioned relative to the post centre: an invisible hit cylinder, a
- * selection halo and the move arrows shown while the post is selected (left/right along the gutter).
+ * Editing helpers for one post, positioned relative to the post centre: an invisible hit cylinder plus
+ * the ground marker (ring and flat move arrows) shown while the post is selected.
  */
-export function createPostControls(postIndex: number, frontHeightM: number, depthM: number, towardsGardenM: number): Object3D[] {
+export function createPostControls(postIndex: number, frontHeightM: number, depthM: number, towardsGardenM: number, alongGutterM = 0.13): Object3D[] {
   const zCentre = -depthM + towardsGardenM / 2;
   const hitArea = new Mesh(new CylinderGeometry(0.14, 0.14, frontHeightM, 12),
     new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
   hitArea.position.set(0, frontHeightM / 2, zCentre);
   hitArea.userData.postIndex = postIndex;
-  const halo = new Mesh(new CylinderGeometry(0.16, 0.16, 0.01, 24),
-    new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0.55 }));
-  halo.position.set(0, 0.01, zCentre);
-  halo.userData.postIndex = postIndex;
-  halo.userData.selectionHalo = true;
-  halo.visible = false;
-  const arrows = new Group();
-  arrows.userData.postIndex = postIndex;
-  arrows.userData.moveArrows = true;
-  arrows.visible = false;
-  const arrowMaterial = new MeshBasicMaterial({ color: 0x20272b });
-  for (const direction of [1, -1]) {
-    const shaft = new Mesh(new CylinderGeometry(0.02, 0.02, 0.22, 10), arrowMaterial);
-    shaft.rotation.z = Math.PI / 2;
-    shaft.position.set(direction * 0.27, 0.35, zCentre - towardsGardenM / 2 - 0.08);
-    const head = new Mesh(new ConeGeometry(0.06, 0.12, 14), arrowMaterial);
-    head.rotation.z = direction > 0 ? -Math.PI / 2 : Math.PI / 2;
-    head.position.set(direction * 0.44, 0.35, zCentre - towardsGardenM / 2 - 0.08);
-    arrows.add(shaft, head);
-  }
-  return [hitArea, halo, arrows];
+  return [hitArea, createSelectionMarker(postIndex, zCentre, alongGutterM / 2)];
 }
 
 /** Builds the product model from loaded parts. Editing helpers mirror the schematic so the viewer code is shared. */
@@ -130,6 +111,7 @@ export function createAssemblyGroup(
   const depthM = millimetresToMetres(layout.depthMm);
   const frontHeightM = millimetresToMetres(layout.frontHeightMm);
   const postCentersM: number[] = [];
+  const controlsAdded = new Set<number>();
 
   for (const placement of layout.placements) {
     const source = parts.get(placement.partId);
@@ -155,10 +137,12 @@ export function createAssemblyGroup(
       holder.userData.postMovable = true;
       applyPlacement(clone, placement, [centreMm, 0, 0]);
       holder.add(clone);
-      if (options.includePostControls) {
-        holder.add(...createPostControls(placement.postIndex, frontHeightM, depthM, millimetresToMetres(spec.postSectionMm.towardsGarden)));
+      if (options.includePostControls && !controlsAdded.has(placement.postIndex)) {
+        controlsAdded.add(placement.postIndex);
+        holder.add(...createPostControls(placement.postIndex, frontHeightM, depthM, millimetresToMetres(spec.postSectionMm.towardsGarden), millimetresToMetres(spec.postSectionMm.alongGutter)));
       }
-      postCentersM.push(millimetresToMetres(centreMm));
+      // Posts come in three slices; register each post centre once.
+      if (!postCentersM.includes(millimetresToMetres(centreMm))) postCentersM.push(millimetresToMetres(centreMm));
       group.add(holder);
     } else {
       applyPlacement(clone, placement);

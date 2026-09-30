@@ -808,3 +808,13 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/assembly/assemblyScene.ts`.
 - Tek çözüm denemesi: Determinant negatifse z ekseni ters çevrilmiş uygun dönüş + negatif z ölçeği uygulandı (three.js negatif ölçekte yüzey yönünü kendisi düzeltir).
 - Doğrulama: Yeni ekran görüntüsünde sol yan taşıyıcı diğerleriyle aynı; `placements.test.ts` sol yan taşıyıcı için det −1, diğer parçalar için +1 bekliyor; 95 test geçti.
+
+## CLAUDE-K03-005 — Üç dilimli ayaklardan sonra Feld düzlemleri üçe katlandı ("Front -3")
+
+- Durum: Çözüldü
+- Tarih: 30 Eylül 2026.
+- Bildiren / çözen: Claude; model içi Feld etiketi.
+- Kanıt: Feld etiketi "Front -3"/"Front 3" gösterdi. Neden: `createAssemblyGroup` ayak merkezlerini her yerleşimden topluyordu; ayaklar üç dilime bölününce her merkez üç kez eklendi, sıfır genişlikli fazladan alan düzlemleri ve üç kat kontrol nesnesi oluştu.
+- Etkilenen dosya: `src/features/assembly/assemblyScene.ts`.
+- Tek çözüm denemesi: Merkezler tekilleştirildi; kontrol nesneleri ayak başına bir kez eklendi; etiket sayısı gruptaki gerçek düzlem sayısından hesaplanıyor.
+- Doğrulama: Ekran görüntüsünde "Front 1"; 95 test.

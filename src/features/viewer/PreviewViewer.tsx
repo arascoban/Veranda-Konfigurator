@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AmbientLight, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshStandardMaterial,
-  PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer,
+  PerspectiveCamera, Plane, Raycaster, Scene, Sprite, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary, preloadProductParts } from '../assembly/assemblyScene';
+import { createDimensionGroup, createTextSprite, disposeAnnotations } from '../assembly/annotations';
+import { buildDimensionLines, fieldName } from '../assembly/dimensions';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import type { PostCenter } from '../../domain/geometry/posts';
 import { millimetresToCentimetres } from '../../domain/units';
@@ -26,9 +28,11 @@ type ViewerRuntime = {
 
 export type ProductModelStatus = 'loading' | 'ready' | 'missing' | 'error';
 
-export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostId = null, onSelectPost, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
+export function PreviewViewer({ configuration, resetViewToken = 0, showDimensions = false, selectedPostId = null, onSelectPost, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
   configuration: ConfigurationV1;
   resetViewToken?: number;
+  /** Bemaßungen layer: main measurements plus the clear width of every field. */
+  showDimensions?: boolean;
   /** Selection is shared with the settings panel; posts are edited directly in the model. */
   selectedPostId?: string | null;
   onSelectPost?: (postId: string | null) => void;
@@ -43,6 +47,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostI
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const setSelectedPostId = (postId: string | null) => onSelectPost?.(postId);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
+  const [hoveredOpening, setHoveredOpening] = useState(-1);
   const [selectedOpening, setSelectedOpening] = useState<OpeningSelection | null>(null);
   const dimensions = useMemo(() => previewDimensions(configuration), [configuration]);
   const layout = useMemo(() => assemblyLayoutFromConfiguration(configuration), [configuration]);
@@ -160,7 +165,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostI
         runtime.scene.add(group);
         runtime.group = group;
         markSelectedPost(group, selectedIndexRef.current, -1);
-        markSelectedOpening(group, selectedOpeningIndexRef.current);
+        markSelectedOpening(group, selectedOpeningIndexRef.current, -1, openingSpans.length);
       }
       runtime.render();
     };
@@ -204,9 +209,18 @@ export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostI
     const runtime = runtimeRef.current;
     if (!runtime?.group) return;
     markSelectedPost(runtime.group, selectedIndex, hoveredIndex);
-    markSelectedOpening(runtime.group, activeOpening?.index ?? null);
+    markSelectedOpening(runtime.group, activeOpening?.index ?? null, hoveredOpening, openingSpans.length);
     runtime.render();
-  }, [activeOpening?.index, dimensions, selectedIndex, hoveredIndex, modelStatus]);
+  }, [activeOpening?.index, dimensions, selectedIndex, hoveredIndex, hoveredOpening, modelStatus, openingSpans.length]);
+
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+    if (!runtime) return;
+    const previous = runtime.scene.getObjectByName('Bemaßungen');
+    if (previous instanceof Group) { runtime.scene.remove(previous); disposeAnnotations(previous); }
+    if (showDimensions && dimensions) runtime.scene.add(createDimensionGroup(buildDimensionLines(configuration)));
+    runtime.render();
+  }, [showDimensions, configuration, dimensions]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -223,7 +237,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostI
     const pointer = new Vector2();
     // Posts move along the gutter in the plane of their garden-facing faces (z = −depth).
     const dragPlane = new Plane(new Vector3(0, 0, 1), dimensions.depthM);
-    let drag: { pointerId: number; index: number; initialMm: number; currentMm: number } | null = null;
+    let drag: { pointerId: number; index: number; initialMm: number; currentMm: number; started: boolean; startX: number } | null = null;
     let press: { x: number; y: number } | null = null;
     const setRay = (event: PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
@@ -261,7 +275,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostI
       setSelectedOpening(null);
       markSelectedPost(runtime.group, index, -1);
       runtime.render();
-      drag = { pointerId: event.pointerId, index, initialMm: post.xMm, currentMm: post.xMm };
+      drag = { pointerId: event.pointerId, index, initialMm: post.xMm, currentMm: post.xMm, started: false, startX: event.clientX };
       runtime.controls.enabled = false;
       canvas.setPointerCapture(event.pointerId);
       event.preventDefault();
@@ -270,16 +284,23 @@ export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostI
     const onPointerMove = (event: PointerEvent) => {
       if (!runtime.group) return;
       if (!drag) {
-        // Hover feedback: the post under the pointer is highlighted and the cursor shows it can be moved.
+        // Hover feedback: a post or a field under the pointer is highlighted.
         setRay(event);
-        const hover = raycaster.intersectObjects(runtime.group.children, true)
-          .find((entry) => Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows);
+        const hits = raycaster.intersectObjects(runtime.group.children, true);
+        const hover = hits.find((entry) => Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows);
         const index = hover ? (hover.object.userData.postIndex as number) : -1;
-        canvas.style.cursor = index >= 0 ? 'ew-resize' : '';
+        const openingHit = index < 0 ? hits.find((entry) => Number.isInteger(entry.object.userData.openingIndex)) : undefined;
+        canvas.style.cursor = index >= 0 ? 'ew-resize' : openingHit ? 'pointer' : '';
         setHoveredIndex(index);
+        setHoveredOpening(openingHit ? (openingHit.object.userData.openingIndex as number) : -1);
         return;
       }
       if (event.pointerId !== drag.pointerId) return;
+      // A click must not nudge the post: dragging starts only after a small pointer movement.
+      if (!drag.started) {
+        if (Math.abs(event.clientX - drag.startX) < 4) return;
+        drag.started = true;
+      }
       setRay(event);
       const hit = raycaster.ray.intersectPlane(dragPlane, new Vector3());
       const range = postMoveRange(configuration.productId, widthMm, posts, drag.index);
@@ -325,7 +346,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostI
     canvas.addEventListener('pointerup', onPointerUp, true);
     canvas.addEventListener('pointercancel', onPointerCancel, true);
     canvas.addEventListener('lostpointercapture', onLostPointerCapture, true);
-    const onLeave = () => { if (!drag) { canvas.style.cursor = ''; setHoveredIndex(-1); } };
+    const onLeave = () => { if (!drag) { canvas.style.cursor = ''; setHoveredIndex(-1); setHoveredOpening(-1); } };
     canvas.addEventListener('pointerleave', onLeave);
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { setSelectedPostId(null); setSelectedOpening(null); } };
     window.addEventListener('keydown', onKey);
@@ -382,10 +403,32 @@ function markSelectedPost(group: Group, selectedIndex: number, hoveredIndex: num
   });
 }
 
-function markSelectedOpening(group: Group, selectedIndex: number | null): void {
+/** Highlights the hovered/selected field and shows its name ("Front n") with a "+" for future equipment. */
+function markSelectedOpening(group: Group, selectedIndex: number | null, hoveredIndex: number, _fieldCount: number): void {
+  // Count the field planes in the group itself so the names stay right whatever the caller knows.
+  let fieldCount = 0;
+  group.traverse((object) => { if (Number.isInteger(object.userData.openingIndex)) fieldCount += 1; });
   group.traverse((object) => {
     if (object.userData.openingIndex === undefined || !(object instanceof Mesh) || !(object.material instanceof MeshBasicMaterial)) return;
-    object.material.opacity = object.userData.openingIndex === selectedIndex ? 0.16 : 0;
+    const index = object.userData.openingIndex as number;
+    const active = index === selectedIndex || index === hoveredIndex;
+    object.material.color.setHex(0x383e42);
+    object.material.opacity = index === selectedIndex ? 0.22 : index === hoveredIndex ? 0.14 : 0;
+    const labels = (object.userData.labels ??= {}) as { name?: Sprite; plus?: Sprite; text?: string };
+    const text = fieldName(index, fieldCount);
+    if (labels.name && labels.text !== text) { object.remove(labels.name); labels.name = undefined; }
+    if (active && !labels.name) {
+      labels.text = text;
+      const name = createTextSprite(text, { heightM: 0.24, background: 'rgba(56,62,66,0.95)', color: '#ffffff', bold: true });
+      name.position.set(0, 0.32, 0.02);
+      const plus = createTextSprite('+', { heightM: 0.34, background: 'rgba(255,255,255,0.96)', color: '#383E42', bold: true });
+      plus.position.set(0, -0.1, 0.02);
+      object.add(name);
+      if (!labels.plus) { object.add(plus); labels.plus = plus; }
+      labels.name = name;
+    }
+    if (labels.name) labels.name.visible = active;
+    if (labels.plus) labels.plus.visible = active;
   });
 }
 

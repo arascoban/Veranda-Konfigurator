@@ -165,6 +165,93 @@
         "M_1k_Aluminium"
       ]
     },
+    "postBottom": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitGeradeDeckel.fbx",
+      "sourceSha256": "d92132ae2148bfea5f8e554e54d0ec9ebdff6ceef517ecf2d155e8532adf0810",
+      "derivedFrom": "post",
+      "glb": "models/prime/postBottom.glb",
+      "glbBytes": 1184,
+      "glbSha256": "8a1732f46769d9b28fd455f91b771e0e05fda2a9888f8d7467dc2fe9e0dadf59",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        11.0,
+        25.0,
+        0.0
+      ],
+      "sizeCm": [
+        11.0,
+        25.0,
+        11.0
+      ],
+      "triangles": 12,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "postMid": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitGeradeDeckel.fbx",
+      "sourceSha256": "d92132ae2148bfea5f8e554e54d0ec9ebdff6ceef517ecf2d155e8532adf0810",
+      "derivedFrom": "post",
+      "glb": "models/prime/postMid.glb",
+      "glbBytes": 1464,
+      "glbSha256": "da70fe0d0da6d99082e2293545e83fbc90c634b8f2d64b8c5495c7bae203c34e",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        25.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        11.0,
+        75.0,
+        0.0
+      ],
+      "sizeCm": [
+        11.0,
+        50.0,
+        11.0
+      ],
+      "triangles": 20,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "postTop": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitGeradeDeckel.fbx",
+      "sourceSha256": "d92132ae2148bfea5f8e554e54d0ec9ebdff6ceef517ecf2d155e8532adf0810",
+      "derivedFrom": "post",
+      "glb": "models/prime/postTop.glb",
+      "glbBytes": 1368,
+      "glbSha256": "c998f26d39445b30c14c17b7665d57114ecbbfc08b1c27f53c3d9c3f4fa50a3d",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        75.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        11.0,
+        100.0,
+        0.0
+      ],
+      "sizeCm": [
+        11.0,
+        25.0,
+        11.0
+      ],
+      "triangles": 20,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
     "postHalb": {
       "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitHalbDeckel.fbx",
       "sourceSha256": "9a333150b08e324d06a69321348f3508103d9bf22e7b4cbbbbeca8f46df44ef3",
@@ -192,6 +279,93 @@
         11.0
       ],
       "triangles": 156,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "postHalbBottom": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitHalbDeckel.fbx",
+      "sourceSha256": "9a333150b08e324d06a69321348f3508103d9bf22e7b4cbbbbeca8f46df44ef3",
+      "derivedFrom": "postHalb",
+      "glb": "models/prime/postHalbBottom.glb",
+      "glbBytes": 5096,
+      "glbSha256": "027a9069a6524f6cdfb592ce2d91d08b7beb1c0c166f709e0b6a4d5897a0953a",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        1.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        14.5,
+        25.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.5,
+        25.0,
+        11.0
+      ],
+      "triangles": 120,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "postHalbMid": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitHalbDeckel.fbx",
+      "sourceSha256": "9a333150b08e324d06a69321348f3508103d9bf22e7b4cbbbbeca8f46df44ef3",
+      "derivedFrom": "postHalb",
+      "glb": "models/prime/postHalbMid.glb",
+      "glbBytes": 7968,
+      "glbSha256": "c671fdcf783912ec9a0af0a2322e6682ff3956c302e155d3632719dcdc3e2fa2",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        1.0,
+        25.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        14.5,
+        75.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.5,
+        50.0,
+        11.0
+      ],
+      "triangles": 200,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "postHalbTop": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitHalbDeckel.fbx",
+      "sourceSha256": "9a333150b08e324d06a69321348f3508103d9bf22e7b4cbbbbeca8f46df44ef3",
+      "derivedFrom": "postHalb",
+      "glb": "models/prime/postHalbTop.glb",
+      "glbBytes": 6888,
+      "glbSha256": "e59e0ea8c34ce96bef34cebe9833fb9cccdf4dfaf58ec3a1eca8ed73a4393980",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        1.0,
+        75.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        14.5,
+        100.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.5,
+        25.0,
+        11.0
+      ],
+      "triangles": 196,
       "meshes": 1,
       "materials": [
         "M_1k_Aluminium"
@@ -231,6 +405,97 @@
         "M_1k_Aluminium"
       ]
     },
+    "postRohrBottom": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitGeradeDeckel.fbx",
+      "sourceSha256": "3385290ae7c511f492d1a7516a3e3a16f3183caf986fa24e7c46f1b4f976d013",
+      "derivedFrom": "postRohr",
+      "glb": "models/prime/postRohrBottom.glb",
+      "glbBytes": 19908,
+      "glbSha256": "686e77321636d9d76080823f08a5fabca13766938994a6d3e1b9bd5b00867786",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        15.924,
+        25.0,
+        0.0
+      ],
+      "sizeCm": [
+        15.924,
+        25.0,
+        11.0
+      ],
+      "triangles": 588,
+      "meshes": 2,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M_1k_Aluminium"
+      ]
+    },
+    "postRohrMid": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitGeradeDeckel.fbx",
+      "sourceSha256": "3385290ae7c511f492d1a7516a3e3a16f3183caf986fa24e7c46f1b4f976d013",
+      "derivedFrom": "postRohr",
+      "glb": "models/prime/postRohrMid.glb",
+      "glbBytes": 14984,
+      "glbSha256": "63766c8e17886df5102af85de65c74de6ba2df67a60d9ccf553472bd45b10f6e",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        25.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        11.0,
+        75.0,
+        0.0
+      ],
+      "sizeCm": [
+        11.0,
+        50.0,
+        11.0
+      ],
+      "triangles": 380,
+      "meshes": 2,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M_1k_Aluminium"
+      ]
+    },
+    "postRohrTop": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitGeradeDeckel.fbx",
+      "sourceSha256": "3385290ae7c511f492d1a7516a3e3a16f3183caf986fa24e7c46f1b4f976d013",
+      "derivedFrom": "postRohr",
+      "glb": "models/prime/postRohrTop.glb",
+      "glbBytes": 23260,
+      "glbSha256": "12967fd6357ffbb900446d4e43d6eb87fc599b5d84c6ae6da2938bab593b1b39",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        75.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        11.0,
+        100.4,
+        0.0
+      ],
+      "sizeCm": [
+        11.0,
+        25.4,
+        11.0
+      ],
+      "triangles": 668,
+      "meshes": 3,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M08_Obsidian_Black",
+        "M_1k_Aluminium"
+      ]
+    },
     "postRohrHalb": {
       "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitHalbDeckel.fbx",
       "sourceSha256": "b82d9c200903a50ba6105772930b2bbb5fdc70a1db1faf08401e50380fd8b13f",
@@ -258,6 +523,97 @@
         11.0
       ],
       "triangles": 1092,
+      "meshes": 3,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M08_Obsidian_Black",
+        "M_1k_Aluminium"
+      ]
+    },
+    "postRohrHalbBottom": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitHalbDeckel.fbx",
+      "sourceSha256": "b82d9c200903a50ba6105772930b2bbb5fdc70a1db1faf08401e50380fd8b13f",
+      "derivedFrom": "postRohrHalb",
+      "glb": "models/prime/postRohrHalbBottom.glb",
+      "glbBytes": 23384,
+      "glbSha256": "ac1cf4adb652e0b27c7f45b5f9e57637250232f11b3e6423b50180ba724a7bf9",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        15.924,
+        25.0,
+        0.0
+      ],
+      "sizeCm": [
+        15.924,
+        25.0,
+        11.0
+      ],
+      "triangles": 696,
+      "meshes": 2,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M_1k_Aluminium"
+      ]
+    },
+    "postRohrHalbMid": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitHalbDeckel.fbx",
+      "sourceSha256": "b82d9c200903a50ba6105772930b2bbb5fdc70a1db1faf08401e50380fd8b13f",
+      "derivedFrom": "postRohrHalb",
+      "glb": "models/prime/postRohrHalbMid.glb",
+      "glbBytes": 21472,
+      "glbSha256": "55560153ec4dc3c757455389b9d7146eb32efaba5e7fec2624645a09e38ded3f",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        25.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        13.5,
+        75.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.5,
+        50.0,
+        11.0
+      ],
+      "triangles": 560,
+      "meshes": 2,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M_1k_Aluminium"
+      ]
+    },
+    "postRohrHalbTop": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitHalbDeckel.fbx",
+      "sourceSha256": "b82d9c200903a50ba6105772930b2bbb5fdc70a1db1faf08401e50380fd8b13f",
+      "derivedFrom": "postRohrHalb",
+      "glb": "models/prime/postRohrHalbTop.glb",
+      "glbBytes": 28348,
+      "glbSha256": "bab7da94a1109ffacb745c088c9711cbe6ac8d3e8c2148a52e38f0e629405683",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        75.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        13.5,
+        100.4,
+        0.0
+      ],
+      "sizeCm": [
+        13.5,
+        25.4,
+        11.0
+      ],
+      "triangles": 844,
       "meshes": 3,
       "materials": [
         "M03_Pewter_Shine",

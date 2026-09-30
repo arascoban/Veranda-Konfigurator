@@ -18,6 +18,7 @@ export function ConfiguratorApp() {
   const history = useRef(createConfigurationHistory());
   const [, refreshHistory] = useState(0);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [showDimensions, setShowDimensions] = useState(false);
   const [resetViewToken, setResetViewToken] = useState(0);
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
   const [productModelStatus, setProductModelStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('missing');
@@ -95,7 +96,7 @@ export function ConfiguratorApp() {
 
   return <ConfiguratorShell configuration={configuration} revision={revision} quote={quote}
     scene={<Suspense fallback={<p role="status">3D-Vorschau wird geladen …</p>}><PreviewViewer
-      configuration={configuration} resetViewToken={resetViewToken} selectedPostId={selectedPostId} onSelectPost={setSelectedPostId}
+      configuration={configuration} resetViewToken={resetViewToken} showDimensions={showDimensions} selectedPostId={selectedPostId} onSelectPost={setSelectedPostId}
       onSceneStatusChange={setSceneStatus} onProductModelStatusChange={setProductModelStatus}
       onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
     </Suspense>}
@@ -105,7 +106,8 @@ export function ConfiguratorApp() {
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}
     selectedPostId={selectedPostId} onSelectPost={setSelectedPostId} onUndo={history.current.canUndo() ? undo : undefined}
     onRedo={history.current.canRedo() ? redo : undefined}
-    onResetView={() => setResetViewToken((value) => value + 1)} />;
+    onResetView={() => setResetViewToken((value) => value + 1)}
+    showDimensions={showDimensions} onToggleDimensions={() => setShowDimensions((value) => !value)} />;
 }
 
 function preserveAutomaticPostLayout(previous: ConfigurationV1, candidate: ConfigurationV1): ConfigurationV1 {

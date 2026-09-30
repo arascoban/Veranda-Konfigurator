@@ -145,9 +145,14 @@ function primePlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: Der
       ? (input.postCapStyle === 'halb' ? 'postRohrHalb' : 'postRohr')
       : (input.postCapStyle === 'halb' ? 'postHalb' : 'post');
     const bounds = mmBounds(spec.parts[partId]);
-    // Local z (−110..0) → scene x, local x max = garden face → −D. Scale the 1 m body (local y) to the post height.
-    out.push(placeAt(partId, 'post', postTowardsGarden, [1, (Hf + spec.postIntoGutterMm) / 1000, 1],
-      [postFaceX(partId, bounds), 0, bounds.min[2]], [xc - spec.postSectionMm.alongGutter / 2, 0, -D], { postIndex: index }));
+    // Local z (−110..0) → scene x, local x max = garden face → −D. The post is three slices: the bottom
+    // 25 cm (drain outlet) and top 25 cm (cover) keep their size, only the middle slice is stretched.
+    const faceX = postFaceX(partId, bounds);
+    const heightMm = Hf + spec.postIntoGutterMm;
+    const at = (yMm: number): Vec3 => [xc - spec.postSectionMm.alongGutter / 2, yMm, -D];
+    out.push(placeAt(`${partId}Bottom`, 'post', postTowardsGarden, [1, 1, 1], [faceX, 0, bounds.min[2]], at(0), { postIndex: index }));
+    out.push(placeAt(`${partId}Mid`, 'post', postTowardsGarden, [1, Math.max(0.01, (heightMm - 500) / 500), 1], [faceX, 250, bounds.min[2]], at(250), { postIndex: index }));
+    out.push(placeAt(`${partId}Top`, 'post', postTowardsGarden, [1, 1, 1], [faceX, 750, bounds.min[2]], at(heightMm - 250), { postIndex: index }));
   });
 
   const gutterFrontZ = -D - spec.gutterBeyondPostMm;
@@ -165,9 +170,12 @@ function primePlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: Der
   const rafterScale: Vec3 = [1, 1, length / 1000];
   const towardsWall = { x: neg(X), y: nrm, z: neg(d) };   // extrudes from the garden end up to the wall
   const towardsGarden = { x: X, y: nrm, z: d };           // extrudes from the wall end down to the garden
+  // Side rafters stay inside the gutter caps (user correction 30 Sep 2026): their outer lip (local x = −2 mm)
+  // sits 2 mm inside the gutter end.
+  const sideInset = 4;
   for (let i = 0; i <= n; i += 1) {
-    if (i === 0) out.push(placeAt('rafterSide', 'rafter', towardsGarden, rafterScale, [0, 0, 0], [0, rear.y, rear.z]));
-    else if (i === n) out.push(placeAt('rafterSide', 'rafter', towardsWall, rafterScale, [0, 0, 0], [W, front.y, front.z]));
+    if (i === 0) out.push(placeAt('rafterSide', 'rafter', towardsGarden, rafterScale, [0, 0, 0], [sideInset, rear.y, rear.z]));
+    else if (i === n) out.push(placeAt('rafterSide', 'rafter', towardsWall, rafterScale, [0, 0, 0], [W - sideInset, front.y, front.z]));
     else out.push(placeAt('rafterMiddle', 'rafter', towardsWall, rafterScale, [0, 0, 0], [supportLeft(i) + spec.supportWidthMm, front.y, front.z]));
   }
 
@@ -204,8 +212,13 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
     const partId = drains.has(index) ? 'postRohr' : 'post';
     const bounds = mmBounds(spec.parts[partId]);
     // Body x 0..130, z −135..0 with the garden face at z = 0; turned 180° like the reference assembly.
-    out.push(placeAt(partId, 'post', turned, [1, (Hf + spec.postIntoGutterMm) / 1000, 1],
-      [bounds.min[0] + spec.postSectionMm.alongGutter, 0, 0], [xc - spec.postSectionMm.alongGutter / 2, 0, -D], { postIndex: index }));
+    // Three slices: fixed bottom (outlet) and top (fittings), stretched middle.
+    const heightMm = Hf + spec.postIntoGutterMm;
+    const localX = bounds.min[0] + spec.postSectionMm.alongGutter;
+    const at = (yMm: number): Vec3 => [xc - spec.postSectionMm.alongGutter / 2, yMm, -D];
+    out.push(placeAt(`${partId}Bottom`, 'post', turned, [1, 1, 1], [localX, 0, 0], at(0), { postIndex: index }));
+    out.push(placeAt(`${partId}Mid`, 'post', turned, [1, Math.max(0.01, (heightMm - 500) / 500), 1], [localX, 250, 0], at(250), { postIndex: index }));
+    out.push(placeAt(`${partId}Top`, 'post', turned, [1, 1, 1], [localX, 750, 0], at(heightMm - 250), { postIndex: index }));
   });
 
   const gutterFrontZ = -D - spec.gutterBeyondPostMm;
@@ -248,9 +261,13 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
       [xL, Hf + spec.coverAtGutter.aboveGutterUndersideMm, -D + spec.coverAtGutter.zFromPostFaceMm], { bayIndex: i }));
     out.push(placeAt('cover', 'cover', turned, [c / 1000, 1, 1], [cover.min[0], cover.min[1], cover.min[2]],
       [xL + c, Hr + spec.coverAtWall.aboveWallUndersideMm, -spec.coverAtWall.zFromWallFaceMm], { bayIndex: i }));
+    // The roof panel is always as long as the rafter cover: 5 cm beyond the body at the gutter, 2 cm at the wall.
     const lift = spec.rafterHeightMm - spec.panelBelowRafterTopMm;
-    out.push(placeAt('panel', 'panel', { x: X, y: nrm, z: d }, [(c + allowance) / 1000, 1, length / 1000], [0, 0, 0],
-      [xL - allowance / 2, rear.y + nrm[1] * lift, rear.z + nrm[2] * lift], { bayIndex: i }));
+    const overFront = rafterBody.min[0] - mmBounds(spec.parts.rafterMiddleTopFront).min[0];
+    const overRear = mmBounds(spec.parts.rafterMiddleTopRear).max[0] - rafterBody.max[0];
+    const rearEnd: Vec3 = [xL - allowance / 2, rear.y + nrm[1] * lift + d[1] * overRear, rear.z + nrm[2] * lift + d[2] * overRear];
+    out.push(placeAt('panel', 'panel', { x: X, y: nrm, z: d }, [(c + allowance) / 1000, 1, (length + overFront + overRear) / 1000], [0, 0, 0],
+      rearEnd, { bayIndex: i }));
   }
   return out;
 }

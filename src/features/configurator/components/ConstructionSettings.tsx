@@ -1,4 +1,5 @@
 import { DRAIN_BOTH_SIDES_ABOVE_MM, postSections } from '../../../catalog/catalog';
+import { assemblySpecs } from '../../../features/assembly/spec';
 import { dimensionRange, withDimension, type DimensionKey } from '../../../domain/adjustDimensions';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import type { ConfigurationEvaluation } from '../../../domain/evaluateConfiguration';
@@ -40,6 +41,10 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
   return (
     <section aria-labelledby="construction-heading">
       <h3 id="construction-heading" className="section-heading">Maße der Überdachung</h3>
+      <figure className="measure-figure">
+        <img src={`${import.meta.env.BASE_URL}images/masse-abcde.jpg`} alt="Maßskizze: A Tiefe, B Breite, C Gesamthöhe, D Höhe hinten, E Höhe vorne" />
+        <figcaption>A Tiefe · B Breite · C Gesamthöhe · D Höhe hinten · E Höhe vorne</figcaption>
+      </figure>
       <div className="form-grid">
         {fields.map((field, index) => {
           const range = dimensionRange(configuration, field);
@@ -47,6 +52,12 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
             help={de.dimensions[field].help} error={fieldError(field)} minimumMm={range?.minMm} maximumMm={range?.maxMm}
             wide onValueChange={(value) => setDimension(field, value)} />;
         })}
+      </div>
+      <div className="total-height" aria-live="polite">
+        <span className="total-height__label">Gesamthöhe (C)</span>
+        <span className="total-height__value">{configuration.dimensionsMm.rearHeight === null ? '–'
+          : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`}</span>
+        <span className="field-hint">Höhe hinten + Wandprofil ({assemblySpecs[configuration.productId].wallProfileHeightMm / 10} cm); wird nicht eingegeben.</span>
       </div>
       <div className="slope-status">
         {evaluation.slope?.status === 'calculated'

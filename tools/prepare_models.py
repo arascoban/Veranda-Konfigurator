@@ -107,6 +107,40 @@ def measure(path: Path) -> dict:
 # Premium rafters: the 1 m body carries the roof; the top strip, cover and seals overhang 5 cm at the
 # gutter and 2 cm at the wall. They are split so the body can be stretched while the overhangs keep their size.
 SPLIT_RAFTERS = {'premium': ['rafterMiddle', 'rafterSide']}
+# Posts: the drain outlet (bottom) and cover/top fittings must not stretch. Bottom 0–25 cm and top 75–100 cm stay
+# fixed; only the middle 50 cm is scaled to the post height (three-slice).
+SPLIT_POSTS = {'prime': ['post', 'postHalb', 'postRohr', 'postRohrHalb'], 'premium': ['post', 'postRohr']}
+POST_SLICES_M = (0.25, 0.75)
+
+
+def split_post(product: str, part_id: str, target_dir: Path) -> dict[str, Path]:
+    import trimesh
+
+    scene = trimesh.load(str(target_dir / f'{part_id}.glb'), force='scene')
+    lo, hi = POST_SLICES_M
+    groups: dict[str, list] = {'Bottom': [], 'Mid': [], 'Top': []}
+    for node in scene.graph.nodes_geometry:
+        transform, geometry_name = scene.graph[node]
+        mesh = scene.geometry[geometry_name].copy()
+        mesh.apply_transform(transform)
+        bottom = mesh.slice_plane([0, lo, 0], [0, -1, 0], cap=False)
+        middle = mesh.slice_plane([0, lo, 0], [0, 1, 0], cap=False).slice_plane([0, hi, 0], [0, -1, 0], cap=False)
+        top = mesh.slice_plane([0, hi, 0], [0, 1, 0], cap=False)
+        for key, piece in (('Bottom', bottom), ('Mid', middle), ('Top', top)):
+            if piece is not None and len(piece.faces):
+                material = getattr(mesh.visual, 'material', None)
+                name = getattr(material, 'name', None) or 'part'
+                piece.visual = trimesh.visual.TextureVisuals(material=trimesh.visual.material.PBRMaterial(name=name))
+                groups[key].append(piece)
+    outputs = {}
+    for key, meshes in groups.items():
+        out_scene = trimesh.Scene()
+        for index, mesh in enumerate(meshes):
+            out_scene.add_geometry(mesh, node_name=f'{key}{index}', geom_name=f'{key}{index}')
+        path = target_dir / f'{part_id}{key}.glb'
+        out_scene.export(str(path))
+        outputs[f'{part_id}{key}'] = path
+    return outputs
 
 
 def split_rafter(product: str, part_id: str, target_dir: Path) -> dict[str, Path]:
@@ -176,8 +210,13 @@ def prepare(product: str) -> None:
         }
         report['parts'][part_id] = entry
         print(f"{product}/{part_id:14s} {entry['glbBytes']:8d} B  {entry['triangles']:6d} tri  size cm {entry['sizeCm']}")
+        splits = {}
         if part_id in SPLIT_RAFTERS.get(product, []):
-            for split_id, split_path in split_rafter(product, part_id, out_dir).items():
+            splits = split_rafter(product, part_id, out_dir)
+        elif part_id in SPLIT_POSTS.get(product, []):
+            splits = split_post(product, part_id, out_dir)
+        if splits:
+            for split_id, split_path in splits.items():
                 split_entry = {
                     'source': relative, 'sourceSha256': entry['sourceSha256'], 'derivedFrom': part_id,
                     'glb': f'models/{product}/{split_id}.glb', 'glbBytes': split_path.stat().st_size,

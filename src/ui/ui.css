@@ -263,3 +263,10 @@
 .option-row { display: grid; gap: 8px; margin-top: 16px; }
 .option-row__label { color: var(--color-muted-strong); font-size: 14px; font-weight: 600; }
 .option-row .product-switch__option:disabled { cursor: not-allowed; opacity: .55; }
+
+.measure-figure { margin: 0 0 12px; }
+.measure-figure img { display: block; width: 100%; border-radius: 12px; border: 1px solid #e0e5e6; }
+.measure-figure figcaption { margin-top: 6px; color: var(--color-muted); font-size: 12px; }
+.total-height { display: grid; gap: 2px; margin: 4px 0 12px; padding: 10px 12px; border: 1px dashed #cbd4d7; border-radius: 12px; }
+.total-height__label { color: var(--color-muted-strong); font-size: 14px; font-weight: 600; }
+.total-height__value { color: var(--color-ink); font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }

@@ -12,10 +12,10 @@ export const de = {
   products: { prime: 'Prime', premium: 'Premium' } satisfies Record<ProductId, string>,
   roofMaterials: { glass: 'Glas', polycarbonate: 'Polycarbonat' } satisfies Record<RoofMaterialId, string>,
   dimensions: {
-    width: { label: 'Breite', help: 'Breite der Regenrinne.' },
-    depth: { label: 'Tiefe', help: 'Von der Wand bis zur Vorderkante.' },
-    rearHeight: { label: 'Höhe hinten', help: 'Bis zur Unterkante des Wandprofils.' },
-    frontHeight: { label: 'Höhe vorne', help: 'Bis zur Unterkante der Regenrinne.' },
+    width: { label: 'Breite (B)', help: 'Breite der Regenrinne.' },
+    depth: { label: 'Tiefe (A)', help: 'Von der Wand bis zur Vorderkante des Pfostens.' },
+    rearHeight: { label: 'Höhe hinten (D)', help: 'Bis zur Unterkante des Wandprofils.' },
+    frontHeight: { label: 'Höhe vorne (E)', help: 'Bis zur Unterkante der Regenrinne.' },
   },
 } as const;
 

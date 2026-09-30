@@ -228,6 +228,93 @@
         "Metal_06_1K"
       ]
     },
+    "postBottom": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/Pfosten.fbx",
+      "sourceSha256": "360a8c5d1b15fbfb74c055e52abaea6f34c4f90158901136f667388c9272e9f5",
+      "derivedFrom": "post",
+      "glb": "models/premium/postBottom.glb",
+      "glbBytes": 96176,
+      "glbSha256": "5dd7ab313cc7495d0d4627c383c9f4ed78eb2cd39591a1f8008dc06d91bd8025",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        -0.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        25.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.0,
+        25.0,
+        13.5
+      ],
+      "triangles": 2896,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
+    "postMid": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/Pfosten.fbx",
+      "sourceSha256": "360a8c5d1b15fbfb74c055e52abaea6f34c4f90158901136f667388c9272e9f5",
+      "derivedFrom": "post",
+      "glb": "models/premium/postMid.glb",
+      "glbBytes": 131096,
+      "glbSha256": "93bac46feac103d39c466cfbd6841e41f793e958346979459615ac80e1a4a2fc",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        25.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        75.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.0,
+        50.0,
+        13.5
+      ],
+      "triangles": 3620,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
+    "postTop": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/Pfosten.fbx",
+      "sourceSha256": "360a8c5d1b15fbfb74c055e52abaea6f34c4f90158901136f667388c9272e9f5",
+      "derivedFrom": "post",
+      "glb": "models/premium/postTop.glb",
+      "glbBytes": 96148,
+      "glbSha256": "8deac146400c6679bc830f676a273c201834fba7275e8b2bead17cac7cff67dd",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        75.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        100.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.0,
+        25.0,
+        13.5
+      ],
+      "triangles": 2896,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
     "postRohr": {
       "source": "Models/Terrassenüberdachungen/Premium/Pfosten/PfostenMitRohr.fbx",
       "sourceSha256": "1c04f1a7566c34f1fe20ec56995b2b4dfb1e2daae979e58dcc567eaaf43803d3",
@@ -255,6 +342,97 @@
         17.5
       ],
       "triangles": 3982,
+      "meshes": 3,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M08_Obsidian_Black",
+        "Metal_06_1K"
+      ]
+    },
+    "postRohrBottom": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/PfostenMitRohr.fbx",
+      "sourceSha256": "1c04f1a7566c34f1fe20ec56995b2b4dfb1e2daae979e58dcc567eaaf43803d3",
+      "derivedFrom": "postRohr",
+      "glb": "models/premium/postRohrBottom.glb",
+      "glbBytes": 120684,
+      "glbSha256": "3c90af961ceb1b7a5c1393266d5495df2c90dbf2929712145f305a11b6c7ce2b",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        25.0,
+        4.0
+      ],
+      "sizeCm": [
+        13.0,
+        25.0,
+        17.5
+      ],
+      "triangles": 3661,
+      "meshes": 2,
+      "materials": [
+        "M03_Pewter_Shine",
+        "Metal_06_1K"
+      ]
+    },
+    "postRohrMid": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/PfostenMitRohr.fbx",
+      "sourceSha256": "1c04f1a7566c34f1fe20ec56995b2b4dfb1e2daae979e58dcc567eaaf43803d3",
+      "derivedFrom": "postRohr",
+      "glb": "models/premium/postRohrMid.glb",
+      "glbBytes": 147408,
+      "glbSha256": "6f2d162b1e8cf409b82ebdf2d7a9abfa55684cf5751c0de07c5d3362a0259ebf",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        25.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        75.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.0,
+        50.0,
+        13.5
+      ],
+      "triangles": 4058,
+      "meshes": 2,
+      "materials": [
+        "M03_Pewter_Shine",
+        "Metal_06_1K"
+      ]
+    },
+    "postRohrTop": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/PfostenMitRohr.fbx",
+      "sourceSha256": "1c04f1a7566c34f1fe20ec56995b2b4dfb1e2daae979e58dcc567eaaf43803d3",
+      "derivedFrom": "postRohr",
+      "glb": "models/premium/postRohrTop.glb",
+      "glbBytes": 119408,
+      "glbSha256": "2ef42e992cae22bc87f1c2da0e336be50dd8937743a3c48f7b8f5b557d4c8e77",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        75.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        100.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.0,
+        25.0,
+        13.5
+      ],
+      "triangles": 3583,
       "meshes": 3,
       "materials": [
         "M03_Pewter_Shine",

@@ -45,13 +45,15 @@ export type ConfiguratorShellProps = {
   onUndo?: () => void;
   onRedo?: () => void;
   onResetView?: () => void;
+  showDimensions?: boolean;
+  onToggleDimensions?: () => void;
 };
 
 export function ConfiguratorShell({
   configuration, revision, quote, scene, sceneStatus = 'missing', productModelStatus = 'missing', profileModel,
   pdfStatus = 'unavailable', arStatus = 'unavailable', profileArStatus = 'unavailable', saveStatus = { state: 'idle' }, openStatus = { state: 'idle' },
   pdfFeedback = { state: 'idle' },
-  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, selectedPostId = null, onSelectPost, onUndo, onRedo, onResetView,
+  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, selectedPostId = null, onSelectPost, onUndo, onRedo, onResetView, showDimensions = false, onToggleDimensions,
 }: ConfiguratorShellProps) {
   const [section, setSection] = useState<ConfiguratorSection>('construction');
   const [overviewOpen, setOverviewOpen] = useState(false);
@@ -118,6 +120,8 @@ export function ConfiguratorShell({
             <button className="icon-button" type="button" aria-label="Wiederholen" title="Wiederholen" disabled={!onRedo} onClick={onRedo}><Icon name="redo" /></button>
             <span className="scene-toolbar__divider" aria-hidden="true" />
             <button className="icon-button" type="button" aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen" disabled={!onResetView} onClick={onResetView}><Icon name="reset" /></button>
+            <button className={`scene-toolbar__toggle ${showDimensions ? 'scene-toolbar__toggle--active' : ''}`} type="button" aria-pressed={showDimensions}
+              disabled={!onToggleDimensions} onClick={onToggleDimensions}><Icon name="measure" /> Bemaßungen</button>
             <button className="icon-button" type="button" aria-label={opaque ? 'Glasansicht aktivieren' : 'Opake Ansicht aktivieren'}
               title={opaque ? 'Glasansicht aktivieren' : 'Opake Ansicht aktivieren'} aria-pressed={opaque} onClick={() => setOpaque((value) => !value)}><Icon name={opaque ? 'sun' : 'info'} /></button>
             <button className="scene-expand-button" type="button" onClick={() => setSceneExpanded((value) => !value)}>

@@ -38,9 +38,10 @@ describe('assembly placements (provisional reference offsets)', () => {
     expect(layout.slopeDegrees).toBeCloseTo(Math.atan2(277, 3112) * 180 / Math.PI, 6);
     for (const placement of layout.placements) expect(basisDeterminant(placement.basis)).toBeCloseTo(1, 9);
     const byRole = (role: string) => layout.placements.filter((placement) => placement.role === role);
-    expect(byRole('post')).toHaveLength(3);
-    // Drain on the garden-left end post only (width ≤ 8 m); garden-left is the x = W end.
-    expect(byRole('post').map((placement) => placement.partId)).toEqual(['post', 'post', 'postRohr']);
+    // Three slices per post; the drain sits on the garden-left end post only (width ≤ 8 m), i.e. the x = W end.
+    expect(byRole('post')).toHaveLength(9);
+    expect([...new Set(byRole('post').map((placement) => placement.partId.replace(/(Bottom|Mid|Top)$/, '')))]).toEqual(['post', 'postRohr']);
+    expect(byRole('post').filter((placement) => placement.postIndex === 2).map((placement) => placement.partId)).toEqual(['postRohrBottom', 'postRohrMid', 'postRohrTop']);
     expect(byRole('rafter')).toHaveLength(7);
     expect(byRole('panel')).toHaveLength(6);
     expect(byRole('cover')).toHaveLength(12);
@@ -60,10 +61,13 @@ describe('assembly placements (provisional reference offsets)', () => {
     expect(wall.max[2]).toBeCloseTo(0, 6);
     expect(wall.min[2]).toBeCloseTo(-70.07, 1);
 
-    const post = bounds(byRole('post')[1]);
-    expect(post.min[0]).toBeCloseTo(2650 - 55, 6);
-    expect(post.min[2]).toBeCloseTo(-3200, 6);
-    expect(post.max[1]).toBeCloseTo(2415, 6);
+    const middlePost = byRole('post').filter((placement) => placement.postIndex === 1).map(bounds);
+    expect(middlePost[0].min[0]).toBeCloseTo(2650 - 55, 6);
+    expect(middlePost[0].min[2]).toBeCloseTo(-3200, 6);
+    expect(middlePost[0].max[1]).toBeCloseTo(250, 6);        // fixed bottom slice
+    expect(middlePost[1].min[1]).toBeCloseTo(250, 6);        // stretched middle
+    expect(middlePost[1].max[1]).toBeCloseTo(2415 - 250, 6);
+    expect(middlePost[2].max[1]).toBeCloseTo(2415, 6);       // fixed top slice
 
     const [rightCap, leftCap] = byRole('gutterCap').map(bounds);
     expect(leftCap.max[0]).toBeCloseTo(0, 6);
@@ -71,8 +75,8 @@ describe('assembly placements (provisional reference offsets)', () => {
     expect(leftCap.min[2]).toBeCloseTo(-3226, 1);
 
     const rafters = byRole('rafter').map(bounds);
-    expect(rafters[0].min[0]).toBeCloseTo(-2, 6);
-    expect(rafters[6].max[0]).toBeCloseTo(5302, 6); // side rafter lip
+    expect(rafters[0].min[0]).toBeCloseTo(2, 6); // side rafters stay inside the gutter caps
+    expect(rafters[6].max[0]).toBeCloseTo(5298, 6);
     expect(rafters[3].min[0]).toBeCloseTo(3 * (layout.capWidthMm + 55), 6);
     expect(rafters[3].min[2]).toBeCloseTo(-3200 + 53 - 98 * Math.sin(layout.slopeDegrees * Math.PI / 180), 0);
     expect(rafters[3].max[2]).toBeCloseTo(-35, 0);
@@ -95,15 +99,16 @@ describe('assembly placements (provisional reference offsets)', () => {
       expect(basisDeterminant(placement.basis)).toBeCloseTo(mirrored ? -1 : 1, 9);
     }
     const byRole = (role: string) => layout.placements.filter((placement) => placement.role === role);
-    expect(byRole('post').map((placement) => placement.partId)).toEqual(['postRohr', 'post']);
+    expect(byRole('post').map((placement) => placement.partId)).toEqual(['postRohrBottom', 'postRohrMid', 'postRohrTop', 'postBottom', 'postMid', 'postTop']);
     const post = bounds(byRole('post')[0]);
     expect(post.min[0]).toBeCloseTo(0, 6);
     expect(post.max[0]).toBeCloseTo(130, 6);
     // The drain outlet protrudes towards the garden (beyond the post face at −D); the plain post ends at −D.
     expect(post.min[2]).toBeLessThan(-3000);
-    const plain = bounds(byRole('post')[1]);
+    const plain = bounds(byRole('post')[4]);
     expect(plain.min[2]).toBeCloseTo(-3000, 6);
     expect(plain.max[2]).toBeCloseTo(-3000 + 135, 6);
+    expect(bounds(byRole('post')[5]).max[1]).toBeCloseTo(2316, 6);
     const gutter = bounds(byRole('gutter')[0]);
     expect(gutter.min[0]).toBeCloseTo(0, 6);
     expect(gutter.max[0]).toBeCloseTo(6000, 6);
@@ -132,6 +137,10 @@ describe('assembly placements (provisional reference offsets)', () => {
     expect(overhangs[0].max[2] - overhangs[0].min[2]).toBeLessThan(120);
     const panel = bounds(byRole('panel')[0]);
     expect(panel.max[0] - panel.min[0]).toBeCloseTo(layout.capWidthMm + 35, 6);
+    // Panel spans the rafter cover incl. overhangs (5 cm at the gutter, 2 cm at the wall).
+    const cover = layout.placements.filter((placement) => placement.partId.startsWith('rafterMiddleTop')).map(bounds);
+    expect(panel.min[2]).toBeCloseTo(Math.min(...cover.map((b) => b.min[2])), -1);
+    expect(panel.max[2]).toBeCloseTo(Math.max(...cover.map((b) => b.max[2])), -1);
   });
 
   it('builds a layout only from complete, rule-valid configurations', () => {

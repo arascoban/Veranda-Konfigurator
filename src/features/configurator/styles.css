@@ -10,7 +10,10 @@
 .configurator-feedback { display: grid; gap: 8px; margin-bottom: 12px; }
 .scene-expand-button { min-height: 44px; padding: 6px 12px; border: 0; border-radius: var(--radius-pill); background: var(--color-glass-strong); font-size: 13px; cursor: pointer; }
 .scene-column__head { position: relative; top: auto; left: auto; padding: 16px 20px 8px; }
-.scene-toolbar { position: relative; top: auto; left: auto; transform: none; align-self: center; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 24px); margin: 0 12px 12px; }
+.scene-toolbar { position: relative; top: auto; left: auto; transform: none; align-self: flex-start; flex-wrap: wrap; justify-content: flex-start; max-width: calc(100% - 24px); margin: 0 12px 12px 20px; }
+.scene-toolbar__toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid transparent; border-radius: var(--radius-pill); background: transparent; color: var(--color-muted-strong); font-size: 14px; font-weight: 600; cursor: pointer; }
+.scene-toolbar__toggle svg { width: 20px; height: 20px; }
+.scene-toolbar__toggle--active { background: var(--color-anthracite); color: #fff; }
 .scene-placeholder { padding: 24px 18px; }
 .configurator-workspace--expanded { grid-template-columns: minmax(0, 1fr); }
 .configurator-workspace--expanded .configurator-panel { display: none; }
