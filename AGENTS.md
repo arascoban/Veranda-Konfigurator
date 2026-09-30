@@ -4,6 +4,8 @@ Bu kurallar kullanıcının 28 Eylül 2026 tarihli talimatını ve 29 Eylül 202
 
 ## Roller ve kapsam
 
+- **30 Eylül 2026 devri:** Kullanıcının talimatıyla proje Claude tarafından devralındı. Claude plan/inceleme (Astra) ve uygulama (Luna/Sol) rollerini birlikte yürütür; yaptığı her işi `claude_implementation.md` dosyasına kaydeder. Hata akışı ve ürün kuralları aşağıdaki gibi geçerlidir; Claude kayıtları `CLAUDE-` önekiyle açılır.
+
 - Astra planlama, mimari, teknik kararlar, inceleme ve hata çözümünden sorumludur.
 - Sol ve Luna yalnızca Astra'nın kapsamını ve kabul ölçütlerini belirlediği işleri uygular; kodlama ve tasarım bu modellere dağıtılır.
 - Ön araştırma belgesi: `VERANDA_TEKNOLOJI_VE_YOL_HARITASI.md`.

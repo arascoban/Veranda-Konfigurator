@@ -49,3 +49,13 @@ describe('PDF document snapshot', () => {
     if (wrongProduct.status === 'ready') expect(wrongProduct.snapshot.price).toEqual({ status: 'unavailable', reason: 'invalid' });
   });
 });
+
+describe('PDF document snapshot completeness', () => {
+  it('requires every measurement and a post layout', () => {
+    const configuration = exampleConfiguration();
+    configuration.dimensionsMm.frontHeight = null;
+    expect(buildPdfDocumentSnapshot({
+      configuration, revision: 1, currentRevision: 1, documentId: 'E-1', createdAt: new Date(), quote: null,
+    })).toEqual({ status: 'invalid_configuration' });
+  });
+});

@@ -19,7 +19,8 @@
 .profile-modal__product-note svg { width: 20px; height: 20px; flex: 0 0 auto; }
 .quote-card__status { margin-bottom: 12px; }
 .status-message__body { min-width: 0; overflow-wrap: anywhere; }
-.overview-list__row > * { min-width: 0; overflow-wrap: anywhere; }
+.overview-list__row > * { min-width: 0; overflow-wrap: break-word; }
+.overview-list__row > dt { flex: 0 0 auto; max-width: 50%; }
 
 @media (min-width: 768px) {
   .configurator-workspace { height: max(620px, calc(100svh - 104px)); min-height: 0; }

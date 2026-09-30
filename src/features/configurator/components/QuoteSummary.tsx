@@ -18,7 +18,7 @@ export function QuoteSummary({ quote, revision, productName, materialName, measu
         ? { tone: 'error' as const, title: 'Preis konnte nicht geladen werden', text: 'Bitte versuchen Sie es später erneut.' }
         : { tone: 'success' as const, title: formatMoney(quote.amountMinor, quote.currency), text: 'Preisstand ' + quote.priceVersion };
   const pdfText = pdfState === 'ready' ? 'PDF-Entwurf erstellen' : pdfState === 'working' ? 'PDF wird erstellt …'
-    : pdfState === 'error' ? 'PDF konnte nicht erstellt werden' : 'PDF noch nicht verfügbar';
+    : pdfState === 'error' ? 'PDF konnte nicht erstellt werden' : 'PDF verfügbar, sobald alle Maße und Stützen gültig sind';
   const arText = arState === 'ready' ? 'Im Garten ansehen' : arState === 'working' ? 'AR wird vorbereitet …'
     : arState === 'error' ? 'AR-Vorschau fehlgeschlagen' : 'AR-Vorschau noch nicht verfügbar';
   return (

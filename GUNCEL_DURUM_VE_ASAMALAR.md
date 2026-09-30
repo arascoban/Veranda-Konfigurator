@@ -4,6 +4,8 @@ Tarih: 30 Eylül 2026. Sorumlu inceleme: Astra. Bu belge ilerleme durumunun gün
 
 ## Şu an nerede olduğumuz
 
+**30 Eylül 2026 devir:** Proje Claude tarafından devralındı; yapılan işler `claude_implementation.md` dosyasında. D04/P07 PDF taslağı ve indirme bağlantısı tamamlandı (19 dosyada 83 test, tip/üretim derlemesi başarılı). Aşağıdaki “Önce Luna / Ardından Sol” PDF kartları bu işle kapandı.
+
 Yerelde çalışan, Almanca arayüzlü bir konfigüratör prototipi var. Ürün ve dört ölçü seçimi, onaylanmış çatı/kolon hesapları, şematik 3D, kolon düzenleme, açıklık seçimi, geri/ileri alma ve aynı tarayıcıda taslak kaydı çalışıyor. D03'ün prototip bağlantıları uygulanmış durumda; D02/D03'ün tam görsel, gerçek model ve gerçek cihaz kabulü tamamlanmış değil.
 
 Prime/Premium ve Glasschiebewand kaynakları zaten yüklü. Kaynak ve hazırlanmış kapak klasörlerinde 33 FBX bulunuyor; bu klasörlerde web için hazırlanmış GLB henüz yok. Uygulamadaki Prime/Premium parça manifestleri boş. Müşterinin gördüğü sahne gerçek profillerden kurulmuş veranda değil, açıkça etiketlenmiş şematik geometridir.
@@ -24,7 +26,7 @@ Son kontrol: tip/üretim derlemesi başarılı; 16 dosyada 72 test başarılı. 
 | 8 | Gerçek parametrik veranda montajı — K03 | Bekliyor | Sol, Astra'nın doğruladığı montaj referanslarıyla. Profillerin kesitini bozmayarak genişlik/derinlik/yükseklik/eğim ve kolon yerleşimi. Prime varsayılan, Premium arka planda yükleme; ürün kimliği korunur. |
 | 9 | Sürgü cam ve diğer açıklık ürünleri — K03/K04 | Kaynak modeller var, kurallar bekliyor | Sol + Luna. 3/4/5/6 ray aralıkları, yükseklik ve montaj boşlukları; açıklığa göre hazır model seçimi ve genişlik ölçekleme. |
 | 10 | Gerçek fiyat — P05/K04 | Hücre seçimi/teklif altyapısı var; gerçek tutar yok | Sol. 530×320 → 600×350 ve minimum fiyat eksenleri 300/200 uygulanıyor. Gerçek liste, ekstra bedelleri ve fiyat kapsamı sonradan bağlanacak. |
-| 11 | PDF — P07/D04 | Veri kopyası hazır; şablon ve indirme yok | Önce Luna şablon, sonra Sol çıktı bağlantısı. Fiyat eksikken de açıkça taslak olarak PDF üretimi geliştirilebilir. |
+| 11 | PDF — P07/D04 | İndirilebilir A4 Planungsentwurf çalışıyor (Claude, 30 Eylül) | Gerçek fiyat bağlanınca mağazanın tam teklif sonucunu PDF'e geçirmek; marka/logo gelince başlık. Ayrıntı: `claude_implementation.md`. |
 | 12 | Bahçede AR ve masada profil AR — P08/K04 | Şematik GLB ve URL sözleşmeleri var; müşteri AR'si yok | Sol. Gerçek GLB, HTTPS depo, model-viewer bağlantısı, veranda/profil için ayrı durumlar; Android/iPhone kontrolü. |
 | 13 | Birleşik kalite ve performans — D04/P09 | Kısmi kontroller var | Sol teknik; Luna görsel; Astra son kabul. 3D/fiyat/PDF/AR aynı sürüm, gerçek cihaz FPS/GPU, cam/opak görünüm, yükleme ve bellek kontrolü. |
 | 14 | Önizleme ve canlı yayın — P09 | Yayınlanmadı | Sol hazırlık; Astra kontrol. Önce Vercel önizleme, sonra belirlenen alt alan adı ve Wix bağlantısı. WordPress'e geçiş uygulamayı yeniden kurmayı gerektirmez. |

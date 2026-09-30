@@ -763,3 +763,25 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Düzeltme: Boş/geçersiz ve bir ondalıktan fazla konum girdisi hareket üretmiyor; alan gerçek konumu yeniden gösteriyor. Açıkça girilen 0 geçerli kalıyor. cm girişi tam mm hesabına çevriliyor; ondalık virgül yardımcı işlevde destekleniyor.
 - Doğrulama: Boş, boşluk, anlamsız, sonsuz, negatif ve fazla hassas giriş; açık 0 ve 350,1 cm için regresyon testi geçti. Tarayıcıda 300 cm'deki kolonun konumu silinip başka kontrol tıklandı; değer 300'e döndü, kolon konumu değişmedi. Tek geri alma önceki kolon ekleme işlemini geri aldı; boş giriş ek bir adım üretmedi. Hata günlüğü boş; 16 dosyada 72 test ve tip/üretim derlemesi başarılı.
 - Devam izni: D03 sayı girişi ve geri alma akışına devam edilebilir. Fiziksel montaj minimumları SOL-K01-001 kapsamında bilgi bekler.
+
+## CLAUDE-P07-001 — Bulut ortamındaki npm 10 kilit dosyasında gereksiz değişiklik üretti
+
+- Durum: Çözüldü
+- Tarih: 30 Eylül 2026.
+- Bildiren / çözen: Claude (Astra/Sol/Luna rollerini devraldı); P07 PDF bağımlılığı ekleme.
+- Ortam: Claude Code bulut kapsayıcısı, Node 22.22.2, npm 10.9.7. Proje kilidi npm 11.12.1 ile üretilmişti.
+- Beklenen / gerçek sonuç: `pdf-lib@1.17.1` eklenince yalnız yeni paket girdileri beklenirken npm 10, Rollup/Vite yerel paketlerindeki `libc` alanlarını da silerek kilit dosyasında ilgisiz 40+ satır değiştirdi.
+- Etkilenen dosyalar: `package.json`, `package-lock.json`.
+- Tek çözüm denemesi: Değişiklik geri alındı; kurulum projenin doğrulanmış npm sürümüyle `npx npm@11.12.1 install --save-exact pdf-lib@1.17.1` olarak tekrarlandı.
+- Doğrulama: Kilit farkı yalnız `pdf-lib` ve bağımlılıklarını ekliyor (+43 satır, silme yok). `npm test` ve `npm run build` başarılı.
+
+## CLAUDE-D04-002 — Telefonda Übersicht penceresinde „Dachfelder“ etiketi kelime ortasından bölünüyordu
+
+- Durum: Çözüldü
+- Tarih: 30 Eylül 2026.
+- Bildiren / çözen: Claude; D04 görsel kontrolü.
+- Ortam: Yerel Vite geliştirme sunucusu, Playwright 1.56.1 Chromium, 390×844 mobil görünüm.
+- Kanıt: Premium 1000×350 cm taslağında Übersicht penceresi; etiket „Dachfeld / er“ olarak iki satıra bölündü. Neden: `.overview-list__row > *` için `min-width: 0` ve `overflow-wrap: anywhere` esnek satırda etiketin kelime içinden daralmasına izin veriyordu.
+- Etkilenen dosya: `src/features/configurator/styles.css`.
+- Tek çözüm denemesi: `overflow-wrap: break-word` kullanıldı; `dt` etiketi küçülmeyen (`flex: 0 0 auto`) ve en fazla %50 genişlikte tutuldu.
+- Doğrulama: Aynı akışın yeni ekran görüntüsünde etiket tek satırda, değer sağda iki satır; yatay taşma yok. Tip kontrolü ve testler başarılı.

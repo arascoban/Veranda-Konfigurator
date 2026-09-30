@@ -46,7 +46,8 @@ export function buildPdfDocumentSnapshot(input: {
     return { status: 'invalid_document_metadata' };
   }
   const parsed = parseConfiguration(input.configuration);
-  if (!parsed.ok || evaluateConfiguration(parsed.configuration).status === 'invalid') {
+  // A draft document needs every measurement and a valid post layout, not only the absence of errors.
+  if (!parsed.ok || evaluateConfiguration(parsed.configuration).status !== 'requires_engineering_review') {
     return { status: 'invalid_configuration' };
   }
   const configuration = structuredClone(parsed.configuration);

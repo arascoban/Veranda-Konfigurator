@@ -1,7 +1,9 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import type { ConfigurationV1 } from '../domain/configuration';
 import { MAX_WIDTH_MM } from '../catalog/catalog';
+import { evaluateConfiguration } from '../domain/evaluateConfiguration';
 import { ConfiguratorShell, type ConfiguratorActionStatus } from '../features/configurator';
+import { createPdfDraft, downloadPdf } from '../features/pdf/service/pdfExport';
 import { createMinimumPostLayout } from '../features/viewer/postEditing';
 import { loadLocalDraft, saveLocalDraft } from '../services/configurations/localDraft';
 import { createConfigurationHistory } from '../state/configurationHistory';
@@ -20,6 +22,8 @@ export function ConfiguratorApp() {
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
   const [saveStatus, setSaveStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
   const [openStatus, setOpenStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
+  const [pdfStatus, setPdfStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
+  const pdfPossible = useMemo(() => evaluateConfiguration(configuration).status === 'requires_engineering_review', [configuration]);
 
   const applyConfiguration = (candidate: ConfigurationV1, preserveAuto = true) => {
     const current = useConfiguratorStore.getState().configuration;
@@ -65,6 +69,28 @@ export function ConfiguratorApp() {
       setOpenStatus({ state: 'error', message: 'Lokaler Speicher ist nicht verfügbar.' });
     }
   };
+  const createPdf = async () => {
+    if (pdfStatus.state === 'pending') return;
+    setPdfStatus({ state: 'pending', message: 'PDF-Entwurf wird erstellt …' });
+    // No trusted price source is connected yet; the document states the missing price.
+    const result = await createPdfDraft(() => {
+      const state = useConfiguratorStore.getState();
+      return { configuration: state.configuration, revision: state.revision, quote: null };
+    });
+    if (result.status === 'ready') {
+      try {
+        downloadPdf(result.bytes, result.fileName);
+        setPdfStatus({ state: 'success', message: `${result.fileName} wurde heruntergeladen.` });
+      } catch {
+        setPdfStatus({ state: 'error', message: 'Der Download konnte nicht gestartet werden.' });
+      }
+    } else {
+      const message = result.status === 'stale' ? 'Die Planung wurde während der Erstellung geändert. Bitte erneut erstellen.'
+        : result.status === 'invalid_configuration' ? 'Bitte vervollständigen Sie zuerst alle Maße und die Stützenanordnung.'
+          : 'Der PDF-Entwurf konnte nicht erstellt werden.';
+      setPdfStatus({ state: 'error', message });
+    }
+  };
   const editPostsInScene = () => {
     setEditPosts(true);
     if (window.innerWidth < 768) window.requestAnimationFrame(() =>
@@ -77,7 +103,8 @@ export function ConfiguratorApp() {
       onSceneStatusChange={setSceneStatus}
       onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
     </Suspense>}
-    sceneStatus={sceneStatus} productModelStatus="missing" pdfStatus="unavailable" arStatus="unavailable" profileArStatus="unavailable"
+    sceneStatus={sceneStatus} productModelStatus="missing" pdfStatus={!pdfPossible ? 'unavailable' : pdfStatus.state === 'pending' ? 'working' : 'ready'}
+    pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable" profileArStatus="unavailable"
     saveStatus={saveStatus} openStatus={openStatus}
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}
     onEditPosts={editPostsInScene} onUndo={history.current.canUndo() ? undo : undefined}

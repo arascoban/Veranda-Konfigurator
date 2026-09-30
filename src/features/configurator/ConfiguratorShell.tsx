@@ -32,6 +32,7 @@ export type ConfiguratorShellProps = {
   profileArStatus?: 'unavailable' | 'ready' | 'working' | 'error';
   saveStatus?: ConfiguratorActionStatus;
   openStatus?: ConfiguratorActionStatus;
+  pdfFeedback?: ConfiguratorActionStatus;
   onConfigurationChange: (next: ConfigurationV1) => void;
   onOpenDraft?: () => void;
   onSaveDraft?: () => void;
@@ -47,6 +48,7 @@ export type ConfiguratorShellProps = {
 export function ConfiguratorShell({
   configuration, revision, quote, scene, sceneStatus = 'missing', productModelStatus = 'missing', profileModel,
   pdfStatus = 'unavailable', arStatus = 'unavailable', profileArStatus = 'unavailable', saveStatus = { state: 'idle' }, openStatus = { state: 'idle' },
+  pdfFeedback = { state: 'idle' },
   onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, onEditPosts, onUndo, onRedo, onResetView,
 }: ConfiguratorShellProps) {
   const [section, setSection] = useState<ConfiguratorSection>('construction');
@@ -72,9 +74,10 @@ export function ConfiguratorShell({
       <ConfiguratorHeader productId={configuration.productId} onProductChange={changeProduct}
         onOpen={onOpenDraft} onSave={onSaveDraft} canOpen={openStatus.state !== 'pending'} canSave={saveStatus.state !== 'pending'} />
 
-      {(saveStatus.state !== 'idle' || openStatus.state !== 'idle') && <div className="configurator-feedback" aria-live="polite">
+      {(saveStatus.state !== 'idle' || openStatus.state !== 'idle' || pdfFeedback.state !== 'idle') && <div className="configurator-feedback" aria-live="polite">
         {saveStatus.state !== 'idle' && <ActionFeedback title="Entwurf speichern" status={saveStatus} />}
         {openStatus.state !== 'idle' && <ActionFeedback title="Entwurf öffnen" status={openStatus} />}
+        {pdfFeedback.state !== 'idle' && <ActionFeedback title="PDF-Entwurf" status={pdfFeedback} />}
       </div>}
 
       <div className={`configurator-workspace ${sceneExpanded ? 'configurator-workspace--expanded' : ''}`}>
@@ -131,7 +134,7 @@ export function ConfiguratorShell({
       </div>
 
       <PlanOverview open={overviewOpen} onClose={() => setOverviewOpen(false)} configuration={configuration} quote={quote}
-        revision={revision} onPdf={onCreatePdf} pdfReady={pdfStatus === 'ready'} />
+        revision={revision} onPdf={onCreatePdf} pdfReady={pdfStatus === 'ready'} pdfFeedback={pdfFeedback} />
     </main>
   );
 }

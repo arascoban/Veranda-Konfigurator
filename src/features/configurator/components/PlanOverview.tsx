@@ -6,9 +6,11 @@ import { Button } from '../../../ui/Button';
 import { StatusMessage } from '../../../ui/StatusMessage';
 import { Modal } from '../../../ui/Modal';
 
-export function PlanOverview({ open, onClose, configuration, quote, revision, onPdf, pdfReady = false }: {
+export function PlanOverview({ open, onClose, configuration, quote, revision, onPdf, pdfReady = false, pdfFeedback }: {
   open: boolean; onClose: () => void; configuration: ConfigurationV1; quote: QuoteState; revision: number;
   onPdf?: () => void; pdfReady?: boolean;
+  /** The page-level feedback is hidden behind the dialog, so the result is repeated here. */
+  pdfFeedback?: { state: 'idle' | 'pending' | 'success' | 'error'; message?: string };
 }) {
   const quoteCurrent = 'revision' in quote && quote.revision === revision;
   const ready = quoteCurrent && quote.status === 'ready';
@@ -49,6 +51,10 @@ export function PlanOverview({ open, onClose, configuration, quote, revision, on
           <Button variant="primary" icon="save" onClick={onPdf} disabled={!onPdf || !pdfReady}>
             {pdfReady ? 'PDF-Entwurf speichern' : 'PDF-Entwurf noch nicht verfügbar'}
           </Button>
+          {pdfFeedback && pdfFeedback.state !== 'idle' && pdfFeedback.message &&
+            <StatusMessage tone={pdfFeedback.state === 'success' ? 'success' : pdfFeedback.state === 'error' ? 'error' : 'pending'}>
+              {pdfFeedback.message}
+            </StatusMessage>}
         </section>
       </div>
     </Modal>
