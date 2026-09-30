@@ -58,7 +58,7 @@ export const primeAssemblySpec: ProductAssemblySpec = {
   gutterDepthMm: 165,
   wallProfileDepthMm: 55,
   postIntoGutterMm: 15,
-  postSectionMm: { alongGutter: 110, towardsGarden: 110 },
+  postSectionMm: { alongGutter: 110, towardsGarden: 135 },
   rafterFront: { zFromPostFaceMm: 53 },
   rafterRear: { zFromWallFaceMm: 35 },
   coverAtGutter: { zFromPostFaceMm: 135, aboveGutterUndersideMm: 30 },

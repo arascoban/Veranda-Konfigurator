@@ -80,7 +80,7 @@ Tablo aritmetik örnektir; fiyat veya bütün montajın üretim onayı değildir
 
 **30 Eylül 2026 güncellemesi (kullanıcı onayı; aşağıdaki eski maddelerde çelişen ifadelerin yerine geçer):**
 
-- Kolon kesitleri: **Prime 11 × 12 cm**, **Premium 13 × 14 cm**. İlk sayı oluk yönündeki (genişlik ekseni) kolon eni, ikinci sayı bahçeye bakan yüzün ölçüsüdür. Kod: `postSections` (`catalog.ts`).
+- Kolon kesitleri: oluk yönünde **Prime 11 cm**, **Premium 13 cm** (kullanıcı onayı). Bahçeye bakan derinlik kullanıcının 30 Eylül kararıyla **modeldeki değer** esas alınır: her iki üründe 13,5 cm. Kod: `postSections` (`catalog.ts`).
 - **Kolonlar arası açıklık kolon yüzlerinden ölçülür**, merkezden değil: `lichte Weite = merkez aralığı − kolon eni`. Örnek: 200 cm Premium, iki kolon tam uçta → 200 − 13 − 13 = **174 cm**. Bu açıklık en az **90 cm** olmalıdır (`MIN_CLEAR_OPENING_MM`). ChatGPT döneminde bu ölçü merkez aralığıyla karıştırılmıştı; artık değil.
 - **Tam uçta:** kolonun dış yüzü oluğun ucuyla aynı hizada. Yeni tasarımda kolonlar bu konumda başlar (Prime merkez 5,5 cm, Premium 6,5 cm içeride). Kolon oluğun dışına taşamaz.
 - **Uç kolon içeri alma sınırı 50 cm, kolonun dış yüzünden ölçülür** (merkezden değil). Prime'da merkez en fazla 55,5 cm, Premium'da 56,5 cm içeride olabilir.

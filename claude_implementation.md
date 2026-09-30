@@ -107,7 +107,7 @@ Bu sayılar `src/catalog/attachmentReference.ts` (eğim kuralı için) ve `src/f
 **Doğrulama:** 89 test, tip/üretim derlemesi. Tarayıcıda (Chromium, yazılım WebGL) 530×320 Prime ve Premium yükleme; 400×300'de yakın plan: oluk kapakları, duvar profili kapakları, yan taşıyıcı, ara kapaklar, paneller. Kolon ekleme, sayısal konum (klemp 90 cm/400 cm kurallarına), sürükleme ve geri alma gerçek modelde çalıştı; konsol hatası yok. Üretim paketi: PreviewViewer parçası 677 kB (Three + GLTFLoader).
 
 **Bilinen eksikler / sonraki adımlar:**
-- Montaj payları onaysız (yukarıdaki tablo); kolon kesitleri modelde 11×13,5 / 13×13,5, kullanıcı 11×12 / 13×14 dedi → hangisi doğru sorulacak.
+- Montaj payları onaysız (yukarıdaki tablo). Kolon derinliği: kullanıcı 30 Eylül'de modeli esas aldı → 13,5 cm her iki üründe (`postSections`).
 - Premium taşıyıcı dosyasındaki uç bağlantı parçaları uzunlukla birlikte ölçekleniyor (hafif bozulma). Sol/sağ yan taşıyıcının oluk yönü Premium'da görsel olarak doğrulanmadı.
 - Premium duvar profili önündeki ince şerit (referansta ayrı parça, `Zubehör`?) ve Prime'daki iniş borusu (PfostenRohr) monte edilmiyor.
 - Ürün rengi/malzeme kataloğu yok; alüminyum nötr gri gösteriliyor.

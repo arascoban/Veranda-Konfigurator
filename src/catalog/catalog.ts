@@ -33,10 +33,14 @@ export const END_POST_MAX_INSET_MM = 500;
 /** Smallest clear opening between the facing sides of two neighbouring posts. */
 export const MIN_CLEAR_OPENING_MM = 900;
 
-/** Post cross-sections (confirmed 30 Sep 2026). `alongGutterMm` is the side along the width axis. */
+/**
+ * Post cross-sections. `alongGutterMm` is the side along the width axis (confirmed 30 Sep 2026).
+ * The garden-facing depth is taken from the SketchUp reference assemblies (both 135 mm), as the user
+ * decided on 30 Sep 2026 that the model is authoritative.
+ */
 export const postSections = {
-  prime: { alongGutterMm: 110, towardsGardenMm: 120 },
-  premium: { alongGutterMm: 130, towardsGardenMm: 140 },
+  prime: { alongGutterMm: 110, towardsGardenMm: 135 },
+  premium: { alongGutterMm: 130, towardsGardenMm: 135 },
 } as const satisfies Record<keyof typeof products, { alongGutterMm: number; towardsGardenMm: number }>;
 export const SLOPE_MIN_DEGREES = 5;
 export const SLOPE_MAX_DEGREES = 12;
