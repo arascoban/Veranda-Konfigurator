@@ -283,3 +283,23 @@
 .form-grid--pairs .dimension-field__label { font-size: 13px; }
 .form-grid--pairs .dimension-field__limit { font-size: 11px; white-space: nowrap; }
 .form-grid--pairs .dimension-field__label-row { flex-wrap: wrap; row-gap: 0; }
+
+/* 30 Sep 2026: glass overlays over the full-width model, smaller type, no horizontal scroll in the panel */
+.scene-toolbar, .quote-card { background: rgb(255 255 255 / 52%); border: 1px solid rgb(255 255 255 / 75%); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); box-shadow: 0 10px 30px rgb(24 31 34 / 12%), inset 0 1px 0 rgb(255 255 255 / 80%); }
+.scene-column { background: #e9edec; }
+.configurator-panel__body { overflow-x: hidden; }
+.info-dot::after { left: auto; right: -8px; width: 220px; }
+body, .configurator-app { font-size: 14px; }
+.configurator-panel__title { font-size: 20px; }
+.configurator-panel__description, .field-hint { font-size: 12px; }
+.section-heading, .section-subheading { font-size: 14px; }
+.dimension-field__label { font-size: 13px; }
+.dimension-field__input { font-size: 15px; height: 42px; }
+.dimension-field__control { min-height: 44px; }
+.dimension-field__step { flex: 0 0 36px; height: 36px; font-size: 18px; }
+.dimension-field__limit { font-size: 11px; }
+.form-grid--pairs .dimension-field__input { height: 38px; font-size: 14px; }
+.ui-button, .product-switch__option, .section-picker__select, .scene-toolbar__toggle { font-size: 13px; }
+.quote-card__title { font-size: 15px; }
+.post-row__name { font-size: 13px; }
+.configurator-header__brand { font-size: 15px; }

@@ -1,9 +1,9 @@
 import {
   BoxGeometry, BufferGeometry, DoubleSide, Float32BufferAttribute, PlaneGeometry,
-  GridHelper, Group, Mesh, MeshBasicMaterial,
+  Group, Mesh, MeshBasicMaterial,
 } from 'three';
 import type { ConfigurationV1 } from '../../domain/configuration';
-import { createPostControls } from '../assembly/assemblyScene';
+import { createGround, createPostControls } from '../assembly/assemblyScene';
 import type { PreviewDimensions } from './previewGeometry';
 
 /** Disposes helper geometry; meshes cloned from the shared part library keep their geometry. */
@@ -83,10 +83,7 @@ export function createSchematicGroup(
   guideMaterial.dispose();
 
   if (options.includeGroundGuide) {
-    const grid = new GridHelper(Math.max(widthM, depthM) + 2, 12, 0xa4b0b7, 0xd8e0e4);
-    grid.position.set(widthM / 2, -0.025, -depthM / 2);
-    grid.userData.exportable = false;
-    group.add(grid);
+    group.add(createGround(widthM, depthM));
   }
   return group;
 }

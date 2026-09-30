@@ -818,3 +818,12 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/assembly/assemblyScene.ts`.
 - Tek çözüm denemesi: Merkezler tekilleştirildi; kontrol nesneleri ayak başına bir kez eklendi; etiket sayısı gruptaki gerçek düzlem sayısından hesaplanıyor.
 - Doğrulama: Ekran görüntüsünde "Front 1"; 95 test.
+
+## CLAUDE-K03-006 — Seçim halkası ayak merkezinde değildi; tıklayınca ayak sıçrıyordu
+
+- Durum: Çözüldü
+- Tarih: 30 Eylül 2026.
+- Kanıt: Kullanıcı ekran görüntüsü; üstten görünüşte halka ayağın 11–13 cm yanında. Neden: `createAssemblyGroup` ayak merkezini `originMm[0] + en/2` ile hesaplıyordu; Prime ayak parçaları −Z→+X döndürülmüş, Premium 180° döndürülmüş olduğundan orijin ayak kenarının dışındaydı. Tutucu yanlış yerde, klon içeride telafi ediliyordu; sürüklemede tutucu gerçek aksa çekilince ayak sıçrıyordu ve uç ayak geri getirilemiyordu.
+- Etkilenen dosyalar: `placements.ts`, `assemblyScene.ts`.
+- Tek çözüm denemesi: Ayak yerleşimlerine `postCentreMm` eklendi; tutucu bu aksa kuruldu.
+- Doğrulama: Üstten görünüşte halka ayak merkezinde; tıklama/sürükleme testi ve 95 test geçti.

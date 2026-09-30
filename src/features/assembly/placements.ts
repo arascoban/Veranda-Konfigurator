@@ -16,6 +16,8 @@ export type PartPlacement = {
   scale: Vec3;
   /** Set on posts so the viewer can attach editing controls. */
   postIndex?: number;
+  /** Post axis (x, mm) for post placements; the holder/hit area/marker sit here. */
+  postCentreMm?: number;
   bayIndex?: number;
 };
 
@@ -150,9 +152,10 @@ function primePlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: Der
     const faceX = postFaceX(partId, bounds);
     const heightMm = Hf + spec.postIntoGutterMm;
     const at = (yMm: number): Vec3 => [xc - spec.postSectionMm.alongGutter / 2, yMm, -D];
-    out.push(placeAt(`${partId}Bottom`, 'post', postTowardsGarden, [1, 1, 1], [faceX, 0, bounds.min[2]], at(0), { postIndex: index }));
-    out.push(placeAt(`${partId}Mid`, 'post', postTowardsGarden, [1, Math.max(0.01, (heightMm - 500) / 500), 1], [faceX, 250, bounds.min[2]], at(250), { postIndex: index }));
-    out.push(placeAt(`${partId}Top`, 'post', postTowardsGarden, [1, 1, 1], [faceX, 750, bounds.min[2]], at(heightMm - 250), { postIndex: index }));
+    const extra = { postIndex: index, postCentreMm: xc };
+    out.push(placeAt(`${partId}Bottom`, 'post', postTowardsGarden, [1, 1, 1], [faceX, 0, bounds.min[2]], at(0), extra));
+    out.push(placeAt(`${partId}Mid`, 'post', postTowardsGarden, [1, Math.max(0.01, (heightMm - 500) / 500), 1], [faceX, 250, bounds.min[2]], at(250), extra));
+    out.push(placeAt(`${partId}Top`, 'post', postTowardsGarden, [1, 1, 1], [faceX, 750, bounds.min[2]], at(heightMm - 250), extra));
   });
 
   const gutterFrontZ = -D - spec.gutterBeyondPostMm;
@@ -216,9 +219,10 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
     const heightMm = Hf + spec.postIntoGutterMm;
     const localX = bounds.min[0] + spec.postSectionMm.alongGutter;
     const at = (yMm: number): Vec3 => [xc - spec.postSectionMm.alongGutter / 2, yMm, -D];
-    out.push(placeAt(`${partId}Bottom`, 'post', turned, [1, 1, 1], [localX, 0, 0], at(0), { postIndex: index }));
-    out.push(placeAt(`${partId}Mid`, 'post', turned, [1, Math.max(0.01, (heightMm - 500) / 500), 1], [localX, 250, 0], at(250), { postIndex: index }));
-    out.push(placeAt(`${partId}Top`, 'post', turned, [1, 1, 1], [localX, 750, 0], at(heightMm - 250), { postIndex: index }));
+    const extra = { postIndex: index, postCentreMm: xc };
+    out.push(placeAt(`${partId}Bottom`, 'post', turned, [1, 1, 1], [localX, 0, 0], at(0), extra));
+    out.push(placeAt(`${partId}Mid`, 'post', turned, [1, Math.max(0.01, (heightMm - 500) / 500), 1], [localX, 250, 0], at(250), extra));
+    out.push(placeAt(`${partId}Top`, 'post', turned, [1, 1, 1], [localX, 750, 0], at(heightMm - 250), extra));
   });
 
   const gutterFrontZ = -D - spec.gutterBeyondPostMm;

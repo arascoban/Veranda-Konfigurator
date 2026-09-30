@@ -1,10 +1,10 @@
 .preview-viewer { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
 .preview-canvas { position: relative; flex: 1 1 0; min-height: 200px; }
 .preview-canvas canvas { position: absolute; inset: 0; }
-.preview-note { flex: 0 0 auto; margin: 8px 12px; padding: 8px; background: #ffffffe0; color: #252c30; border-radius: 8px; font-size: 13px; }
-@media (min-width: 1200px) {
-  .scene-slot .preview-canvas { margin-right: 340px; }
-  .scene-slot .preview-note { margin-right: 340px; }
+.preview-note { flex: 0 0 auto; margin: 8px 12px; padding: 7px 12px; background: rgb(255 255 255 / 55%); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); border: 1px solid rgb(255 255 255 / 70%); color: #252c30; border-radius: 999px; font-size: 12px; }
+@media (min-width: 768px) {
+  .preview-canvas { position: absolute; inset: 0; }
+  .preview-note { position: absolute; left: 14px; bottom: 14px; z-index: 2; max-width: min(520px, calc(100% - 28px)); margin: 0; }
 }
 @media (max-width: 767px) {
   .preview-viewer { height: auto; }

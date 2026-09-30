@@ -1,5 +1,5 @@
 import {
-  CylinderGeometry, DoubleSide, GridHelper, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
+  CylinderGeometry, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
   MeshStandardMaterial, Object3D, PlaneGeometry, Vector3, type Material,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -96,6 +96,16 @@ export function createPostControls(postIndex: number, frontHeightM: number, dept
   return [hitArea, createSelectionMarker(postIndex, zCentre, alongGutterM / 2)];
 }
 
+/** Whole floor as a plain light-grey canvas (#CBD0CC, user choice 30 Sep 2026), visible from above only. */
+export function createGround(widthM: number, depthM: number): Mesh {
+  const ground = new Mesh(new PlaneGeometry(200, 200), new MeshBasicMaterial({ color: 0xcbd0cc }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(widthM / 2, -0.005, -depthM / 2);
+  ground.userData.exportable = false;
+  ground.userData.ground = true;
+  return ground;
+}
+
 /** Builds the product model from loaded parts. Editing helpers mirror the schematic so the viewer code is shared. */
 export function createAssemblyGroup(
   layout: AssemblyLayout,
@@ -130,7 +140,7 @@ export function createAssemblyGroup(
     });
     if (placement.postIndex !== undefined) {
       // Posts live in a movable group whose x is the post centre, as in the schematic.
-      const centreMm = placement.originMm[0] + spec.postSectionMm.alongGutter / 2;
+      const centreMm = placement.postCentreMm ?? placement.originMm[0] + spec.postSectionMm.alongGutter / 2;
       const holder = new Group();
       holder.position.set(millimetresToMetres(centreMm), 0, 0);
       holder.userData.postIndex = placement.postIndex;
@@ -163,16 +173,7 @@ export function createAssemblyGroup(
     }
   }
   if (options.includeGroundGuide) {
-    const grid = new GridHelper(Math.max(widthM, depthM) + 2, 12, 0xa4b0b7, 0xd8e0e4);
-    grid.position.set(widthM / 2, -0.025, -depthM / 2);
-    grid.userData.exportable = false;
-    group.add(grid);
-    // Pale terrace footprint, visible from above only so views from below stay clear.
-    const slab = new Mesh(new PlaneGeometry(widthM + 0.6, depthM + 0.6), new MeshStandardMaterial({ color: 0xe3e8ea, roughness: 1 }));
-    slab.rotation.x = -Math.PI / 2;
-    slab.position.set(widthM / 2, -0.02, -depthM / 2);
-    slab.userData.exportable = false;
-    group.add(slab);
+    group.add(createGround(widthM, depthM));
   }
   return group;
 }

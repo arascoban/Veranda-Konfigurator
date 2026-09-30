@@ -6,7 +6,8 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary, preloadProductParts } from '../assembly/assemblyScene';
-import { createDimensionGroup, createTextSprite, disposeAnnotations } from '../assembly/annotations';
+import { createDimensionGroup, createTextSprite, disposeAnnotations, setMarkerLimits } from '../assembly/annotations';
+import { postSections } from '../../catalog/catalog';
 import { buildDimensionLines, fieldName } from '../assembly/dimensions';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import type { PostCenter } from '../../domain/geometry/posts';
@@ -210,8 +211,18 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
     if (!runtime?.group) return;
     markSelectedPost(runtime.group, selectedIndex, hoveredIndex);
     markSelectedOpening(runtime.group, activeOpening?.index ?? null, hoveredOpening, openingSpans.length);
+    // Remaining travel in each direction, written on the arrows of the selected post.
+    if (selectedIndex >= 0 && selectedRange && posts && dimensions) {
+      const section = postSections[configuration.productId];
+      runtime.group.traverse((object) => {
+        if (object.userData.moveArrows && object.userData.postIndex === selectedIndex) {
+          setMarkerLimits(object, (selectedRange.maxMm - posts[selectedIndex].xMm) / 10, (posts[selectedIndex].xMm - selectedRange.minMm) / 10,
+            -dimensions.depthM + section.towardsGardenMm / 2000, section.alongGutterMm / 2000);
+        }
+      });
+    }
     runtime.render();
-  }, [activeOpening?.index, dimensions, selectedIndex, hoveredIndex, hoveredOpening, modelStatus, openingSpans.length]);
+  }, [activeOpening?.index, dimensions, selectedIndex, hoveredIndex, hoveredOpening, modelStatus, openingSpans.length, selectedRange, posts, configuration.productId]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;

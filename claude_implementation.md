@@ -157,6 +157,14 @@ Doğrulama: 95 test, derleme; tarayıcıda ölçü katmanı ve Feld etiketi ("Fr
 - Hareket okları `#D4AF37`; halka ve oklar derinlik testiyle çiziliyor (ayağın önünde "kaymış" görünmüyor).
 - Sol panel referans düzeni: Breite/Tiefe (yardım metinleri kaldırıldı) → A–E görsel → [Höhe vorne (E) | Neigung ⓘ] → [Höhe hinten (D) | Gesamthöhe (C)]; Neigung ve Gesamthöhe girilemeyen kutular, eğim açıklaması "i" ipucunda.
 
+## 7. İş — Halka/ayak hizası, ok limitleri, gri zemin, tam genişlik görüntüleyici (30 Eylül, beşinci tur)
+
+- **Halka kayması / tıklayınca ayak sıçraması (kök neden):** Ayak tutucusunun x'i parça orijininden türetiliyordu; döndürülmüş ayak parçalarında orijin ayak merkezinin 11–13 cm yanındaydı. Halka/oklar bu yanlış merkezde, sürüklemede de ayak sıçrıyordu. Artık yerleşim `postCentreMm` taşıyor (`placements.ts`), tutucu doğrudan ayak aksında.
+- Oklar küçültüldü; her okun üstünde o yöne kalan hareket payı cm olarak yazıyor (`setMarkerLimits`).
+- Zemin: tüm yer `#CBD0CC` düz kanvas (`createGround`), ızgara/plaka kaldırıldı. Ölçü yazıları arka plansız, iki satır (ad / cm değeri).
+- Görüntüleyici sağ sütunun tamamını kaplıyor; araç çubuğu, "3D-Vorschau" başlığı, not ve "Ihre Planung" kartı cam (blur/saturate) katman olarak modelin üstünde.
+- Panelde yatay kaydırma (Neigung ipucu taşması) kapatıldı; genel yazı boyutları küçültüldü (gövde 14 px).
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.
