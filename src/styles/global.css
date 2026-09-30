@@ -1,0 +1,30 @@
+@import './tokens.css';
+
+* { box-sizing: border-box; }
+
+html { min-width: 320px; min-height: 100%; background: var(--color-page); }
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--color-ink);
+  background:
+    radial-gradient(ellipse at 78% 14%, rgb(255 255 255 / 56%), transparent 36rem),
+    linear-gradient(145deg, #edf2f3, var(--color-page-deep));
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+button, input, select { font: inherit; }
+button { color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex="0"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  z-index: 1;
+}
+::selection { color: #fff; background: var(--color-anthracite); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

@@ -1,0 +1,178 @@
+{
+  "reference": "Models/Terrassenüberdachungen/Premium/Premium500x300.fbx",
+  "source_sha256": {
+    "Models/Terrassenüberdachungen/Premium/Premium500x300.fbx": "3c43d2763246eb00e53bf1d2f43c7497ff25fe1ad89eaddcf6ef037d258d1bed",
+    "Models/Terrassenüberdachungen/Premium/Regenrinne/RegenrinneDeckelLinks.fbx": "a8de772fc9a2bbf7f4dababea1b177bcbce684174c0b5e51102230b608b13c50",
+    "Models/Terrassenüberdachungen/Premium/Regenrinne/RegenrinneDeckelRechts.fbx": "c96f6a4c0d084c364b95b469dc96ec6449751b0248c57380c1f38896490dc6e2"
+  },
+  "unit": "cm",
+  "reference_width_cm": 500,
+  "up_axis": "Y",
+  "inside_view_convention": "Looking from wall toward garden (+Z): left is +X; right is -X.",
+  "tolerance_cm": 1e-07,
+  "parts": [
+    {
+      "side": "Links",
+      "source": "Models/Terrassenüberdachungen/Premium/Regenrinne/RegenrinneDeckelLinks.fbx",
+      "output": "PreparedModels/Premium/Regenrinne/RegenrinneDeckelLinks.fbx",
+      "output_sha256": "ba53d197c56b739ea2aee1748822dc75c7727c908c1b5687408b75b66a06a787",
+      "scale": 0.1,
+      "rotation": [
+        [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "translation_cm": [
+        400.25974316303734,
+        217.5144301949589,
+        -23.093832043775638
+      ],
+      "reference_anchor_cm": [
+        500.259743163019,
+        217.488561241892,
+        -22.9027815054464
+      ],
+      "plate_size_xyz_cm": [
+        0.20000000002301022,
+        17.600000000040012,
+        20.399995401627
+      ],
+      "meshes": [
+        {
+          "output_geometry": "2908810766544",
+          "reference_geometry": "2909393320656",
+          "reference_path": "Mesh283/Group107/skrue_2_11/Deckel_Schrauben_Gruppe_1_2/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 1.906956195343659e-11,
+          "max_bbox_error_cm": 1.9042545318370685e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908810766960",
+          "reference_geometry": "2909393316080",
+          "reference_path": "Mesh284/Group108/skrue_2_12/Deckel_Schrauben_Gruppe_1_2/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 1.9044323435660655e-11,
+          "max_bbox_error_cm": 1.801936377887614e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908810767376",
+          "reference_geometry": "2909393321904",
+          "reference_path": "Mesh285/Group109/skrue_2_13/Deckel_Schrauben_Gruppe_1_2/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 1.3063463464107432e-11,
+          "max_bbox_error_cm": 1.3017142919125035e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908086123648",
+          "reference_geometry": "2909393318160",
+          "reference_path": "Mesh286/Group110/skrue_2_14/Deckel_Schrauben_Gruppe_1_2/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 1.4075871322728675e-11,
+          "max_bbox_error_cm": 1.404032445861958e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908086122816",
+          "reference_geometry": "2909393329392",
+          "reference_path": "Mesh287/Regenrinne_Deckel_Premium_Taslak_1_1/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 4.156668931177314e-12,
+          "max_bbox_error_cm": 3.0127011996228248e-12,
+          "vertex_count": 3040
+        }
+      ]
+    },
+    {
+      "side": "Rechts",
+      "source": "Models/Terrassenüberdachungen/Premium/Regenrinne/RegenrinneDeckelRechts.fbx",
+      "output": "PreparedModels/Premium/Regenrinne/RegenrinneDeckelRechts.fbx",
+      "output_sha256": "d2a25d42a9c1b51b6344efbc75da9669eaf1068550751c424d802841ad135820",
+      "scale": 0.1,
+      "rotation": [
+        [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "translation_cm": [
+        0.240277491993518,
+        217.51443019495878,
+        -23.093832043600855
+      ],
+      "reference_anchor_cm": [
+        0.040277491929833,
+        217.488561241889,
+        -22.9027815053193
+      ],
+      "plate_size_xyz_cm": [
+        0.20000000001852403,
+        17.600000000000023,
+        20.39999540160614
+      ],
+      "meshes": [
+        {
+          "output_geometry": "2908909387280",
+          "reference_geometry": "2909393329808",
+          "reference_path": "Mesh277/Group103/skrue_2_7/Deckel_Schrauben_Gruppe_1_1/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 2.2971610083987652e-11,
+          "max_bbox_error_cm": 2.271560890776403e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908909383120",
+          "reference_geometry": "2909393315664",
+          "reference_path": "Mesh278/Group104/skrue_2_8/Deckel_Schrauben_Gruppe_1_1/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 2.2186014029373374e-11,
+          "max_bbox_error_cm": 2.193023020125029e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908909388112",
+          "reference_geometry": "2909393315248",
+          "reference_path": "Mesh279/Group105/skrue_2_9/Deckel_Schrauben_Gruppe_1_1/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 1.780476250263075e-11,
+          "max_bbox_error_cm": 1.7548599726135983e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908909388528",
+          "reference_geometry": "2909393317744",
+          "reference_path": "Mesh280/Group106/skrue_2_10/Deckel_Schrauben_Gruppe_1_1/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 1.7420458346026316e-11,
+          "max_bbox_error_cm": 1.7164240515010754e-11,
+          "vertex_count": 1305
+        },
+        {
+          "output_geometry": "2908909378128",
+          "reference_geometry": "2909393316912",
+          "reference_path": "Mesh282/Regenrinne_Deckel_Premium_Taslak1/Regenrinne___Premium1/Aluminium_Terrassen_berdachung_Premium1/Model/0",
+          "max_bidirectional_vertex_distance_cm": 7.514478645358262e-12,
+          "max_bbox_error_cm": 5.633021826767504e-12,
+          "vertex_count": 3040
+        }
+      ]
+    }
+  ],
+  "originals_unchanged": true
+}

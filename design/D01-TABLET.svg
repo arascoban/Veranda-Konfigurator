@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768" role="img" aria-labelledby="title desc" xml:lang="de">
+  <title id="title">Terrassenkonfigurator — D01-TABLET — Designentwurf</title>
+  <desc id="desc">Deutscher Designentwurf mit anthrazitfarbenen Akzenten, hellen Glaspaneelen und vereinfachter Modellillustration.</desc>
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#edf2f3" /><stop offset="1" stop-color="#dfe6e7" /></linearGradient>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#dce8ea" /><stop offset="1" stop-color="#eff1ed" /></linearGradient>
+    <linearGradient id="roof" x2="0" y2="1"><stop stop-color="#394247" stop-opacity=".2" /><stop offset="1" stop-color="#fff" stop-opacity=".55" /></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="7" stdDeviation="12" flood-color="#29343a" flood-opacity=".13" /></filter>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#63727a" stroke-opacity=".08" /></pattern>
+  </defs>
+  <rect width="1024" height="768" fill="url(#bg)" /><rect y="72" width="1024" height="696" fill="url(#grid)" />
+  <rect x="16" y="10" width="992" height="48" rx="24" fill="#fff" fill-opacity=".76" stroke="#fff" />
+  <text x="29" y="39" font-family="Arial, sans-serif" font-size="14" font-weight="650" fill="#20272b">TERRASSENPLANER</text>
+  <rect x="378" y="17" width="154" height="34" rx="17" fill="#fff" fill-opacity=".8" stroke="#e5e9ea" /><rect x="382" y="21" width="70" height="26" rx="13" fill="#383e42" />
+  <text x="417" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="650" fill="#fff">Prime</text><text x="489" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#53616a">Premium</text>
+  <rect x="875" y="17" width="55" height="34" rx="17" fill="#fff" fill-opacity=".8" /><text x="902" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#354046">Öffnen</text>
+  <rect x="936" y="17" width="60" height="34" rx="17" fill="#383e42" /><text x="966" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="650" fill="#fff">Speichern</text>
+  
+  <rect x="16" y="72" width="302" height="682" rx="24" fill="#fff" fill-opacity=".82" stroke="#fff" filter="url(#shadow)" />
+  <text x="36" y="103" font-family="Arial, sans-serif" font-size="12" font-weight="700" letter-spacing=".9" fill="#68767d">BEREICH: DACH ▾</text>
+  <text x="36" y="134" font-family="Arial, sans-serif" font-size="21" font-weight="680" fill="#20272b">Dach &amp; Material</text>
+  <text x="36" y="157" font-family="Arial, sans-serif" font-size="14" fill="#53616a">Material und Dachfelder wählen.</text>
+  <line x1="36" y1="175" x2="298" y2="175" stroke="#dce2e3" />
+  <text x="36" y="203" font-family="Arial, sans-serif" font-size="14" font-weight="650" fill="#293238">Dacheindeckung</text>
+  <rect x="36" y="216" width="125" height="102" rx="15" fill="#fff" stroke="#383e42" stroke-width="1.5" />
+  <rect x="47" y="227" width="103" height="49" rx="10" fill="#e6eff1" /><path d="M52 267l31-27 17 10 21-17 25 34z" fill="#c6d6da" /><path d="M55 231v41m28-43v45m30-45v45" stroke="#fff" stroke-opacity=".78" stroke-width="1" />
+  <text x="48" y="296" font-family="Arial, sans-serif" font-size="12" font-weight="650" fill="#293238">Glas</text><text x="147" y="296" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#68767d" />
+  <circle cx="146" cy="232" r="7" fill="#383e42" /><path d="M143 232l2 2 4-5" fill="none" stroke="#fff" stroke-width="1.3" />
+  <rect x="171" y="216" width="127" height="102" rx="15" fill="#fff" fill-opacity=".72" stroke="#d6dfe1" />
+  <rect x="182" y="227" width="105" height="49" rx="10" fill="#e8e9e4" /><path d="M186 267l28-21 19 11 24-19 26 29z" fill="#cfd2cb" /><path d="M184 234h100" stroke="#fff" stroke-opacity=".8" stroke-width="3" />
+  <text x="183" y="296" font-family="Arial, sans-serif" font-size="12" font-weight="600" fill="#47545b">Polycarbonat</text><text x="285" y="311" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#68767d" />
+  <text x="36" y="352" font-family="Arial, sans-serif" font-size="14" font-weight="650" fill="#293238">Dachfelder</text>
+  <text x="36" y="372" font-family="Arial, sans-serif" font-size="12" fill="#65737a">Feldzahl nach Plattenlimit.</text>
+  <rect x="36" y="389" width="262" height="86" rx="14" fill="#f1f4f4" />
+  <text x="51" y="413" font-family="Arial, sans-serif" font-size="12" fill="#65737a">Breite</text><text x="281" y="413" text-anchor="end" font-family="Arial, sans-serif" font-size="12" font-weight="650" fill="#293238">500 cm</text>
+  <text x="51" y="439" font-family="Arial, sans-serif" font-size="12" fill="#65737a">Max. Plattenbreite</text><text x="281" y="439" text-anchor="end" font-family="Arial, sans-serif" font-size="12" font-weight="650" fill="#293238">86 cm</text>
+  <text x="51" y="461" font-family="Arial, sans-serif" font-size="12" fill="#65737a">Gleichmäßig: 6 Felder / 7 Träger</text>
+  <text x="36" y="510" font-family="Arial, sans-serif" font-size="14" font-weight="650" fill="#293238">Anzahl Dachfelder</text>
+  <rect x="36" y="523" width="262" height="47" rx="12" fill="#fff" stroke="#adb8bd" />
+  <circle cx="62" cy="546" r="14" fill="#f0f3f3" /><path d="M56 546h12" stroke="#48545b" stroke-width="1.6" />
+  <text x="167" y="552" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="650" fill="#20272b">6</text>
+  <circle cx="271" cy="546" r="14" fill="#f0f3f3" /><path d="M265 546h12m-6-6v12" stroke="#48545b" stroke-width="1.6" />
+  <text x="36" y="593" font-family="Arial, sans-serif" font-size="12" fill="#65737a">Weitere Felder erhöhen den Preis.</text>
+  <rect x="36" y="622" width="262" height="1" fill="#dce2e3" />
+  <text x="38" y="653" font-family="Arial, sans-serif" font-size="12" fill="#65737a">Preis noch nicht verfügbar.</text>
+  <rect x="36" y="680" width="99" height="48" rx="24" fill="#fff" stroke="#adb8bd" /><text x="85" y="710" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="600" fill="#384247">← Aufbau</text>
+  <rect x="144" y="680" width="154" height="48" rx="24" fill="#383e42" /><text x="221" y="710" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="650" fill="#fff">Zu den Feldern →</text>
+  
+  <rect x="334" y="72" width="674" height="682" rx="24" fill="url(#sky)" stroke="#fff" filter="url(#shadow)" />
+  <text x="356" y="105" font-family="Arial, sans-serif" font-size="12" font-weight="650" letter-spacing=".5" fill="#65737a">3D-VORSCHAU · DESIGNENTWURF</text>
+  <rect x="840" y="88" width="146" height="34" rx="17" fill="#fff" fill-opacity=".78" stroke="#fff" /><text x="913" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#53616a">Maße  ·  ⌖</text>
+  <path d="M335 470c176-37 312-11 414-24 104-14 151 5 259-22v329H335z" fill="#d9e1dc" />
+  <ellipse cx="690" cy="576" rx="235" ry="26" fill="#7d898b" opacity=".18" />
+  
+  <path d="M435 335L818 322L926 443L514 456Z" fill="url(#roof)" stroke="#3e494e" stroke-width="7" stroke-linejoin="round" />
+  <path d="M435 335L818 322L926 443L514 456Z" fill="#fff" fill-opacity=".17" />
+  <g stroke="#839096" stroke-opacity=".6" stroke-width="1.2"><path d="M499 333L567 454" /><path d="M562 331L631 452" /><path d="M626 329L694 450" /><path d="M690 326L758 448" /><path d="M754 324L821 446" /><path d="M817 322L884 444" /></g>
+  <path d="M514 456L927 443V455L514 468Z" fill="#394247" />
+  <path d="M523 463L539 463L537 566L520 567Z" fill="#48545a" /><path d="M902 454L918 453L922 551L906 551Z" fill="#48545a" />
+  <path d="M704 461L720 460L720 560L704 561Z" fill="#48545a" />
+  <rect x="694" y="449" width="36" height="119" rx="14" fill="none" stroke="#383e42" stroke-width="1.8" stroke-dasharray="4 4" /><circle cx="712" cy="470" r="10" fill="#fff" stroke="#383e42" stroke-width="1.5" />
+  <path d="M525 595L913 583" stroke="#435057" stroke-dasharray="5 5" /><path d="M525 589v12m388-18v12" stroke="#435057" />
+  <rect x="644" y="575" width="137" height="30" rx="15" fill="#fff" fill-opacity=".9" /><text x="712" y="595" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="650" fill="#384247">7 Träger</text>
+  
+  <rect x="358" y="675" width="382" height="54" rx="27" fill="#fff" fill-opacity=".82" stroke="#fff" filter="url(#shadow)" />
+  <circle cx="386" cy="702" r="16" fill="#f0f3f3" /><path d="M391 696a6 6 0 1 0 2 8M391 696v4h-4" fill="none" stroke="#435057" stroke-width="1.4" />
+  <circle cx="429" cy="702" r="16" fill="#f0f3f3" /><path d="M424 696a6 6 0 1 1-2 8M424 696v4h4" fill="none" stroke="#849097" stroke-width="1.4" />
+  <path d="M456 702h1" stroke="#c9d0d2" /><text x="483" y="706" font-family="Arial, sans-serif" font-size="12" fill="#53616a">Ansicht zurücksetzen</text>
+  <rect x="599" y="685" width="124" height="34" rx="17" fill="#383e42" /><text x="661" y="707" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="650" fill="#fff">Übersicht</text>
+  <rect x="847" y="675" width="139" height="54" rx="18" fill="#fff" fill-opacity=".88" stroke="#fff" filter="url(#shadow)" />
+  <text x="863" y="695" font-family="Arial, sans-serif" font-size="12" fill="#65737a">PREISÜBERSICHT</text><text x="863" y="716" font-family="Arial, sans-serif" font-size="12" font-weight="600" fill="#344047">Noch nicht verfügbar</text>
+</svg>
