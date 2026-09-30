@@ -36,6 +36,7 @@ export const issueTextDe: Record<string, string> = {
   clear_opening_too_small: 'Die lichte Weite zwischen zwei Trägern muss mindestens 90 cm betragen.',
   roof_slope_outside_5_to_12_degrees: 'Die berechnete Dachneigung liegt außerhalb von 5° bis 12°.',
   roof_attachment_offsets_not_supplied: 'Montagebezüge fehlen; die Dachneigung kann noch nicht verlässlich bestätigt werden.',
+  roof_attachment_offsets_provisional: 'Die Dachneigung beruht auf vorläufigen Montagebezügen aus dem Referenzmodell; die Bestätigung steht noch aus.',
   minimum_gap_and_outer_mount_not_supplied: 'Weitere Montageabstände werden noch geprüft.',
   minimum_cut_width_not_supplied: 'Prüfen Sie Zuschnittmaße vor einer Bestellung.',
   engineering_and_price_rules_incomplete: 'Technische Freigabe und Preisliste stehen noch aus.',

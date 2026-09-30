@@ -105,7 +105,7 @@ Tablo aritmetik örnektir; fiyat veya bütün montajın üretim onayı değildir
 
 - Premium kapak dosyalarındaki sağ/sol adlandırması **verandanın içinden bakışa göre** yapılmıştır. Dışarıdan karşıdan bakışla yeniden adlandırılmaz.
 - Uygulama kamerası döndüğünde sağ/sol parça kimlikleri değişmez. Montaj şemasında bu bakış yönü bir okla açıkça gösterilecek; dosya eşlemesi referans montajla kontrol edilecek.
-- Prime ve Premium'un mevcut dosya eksenleri farklıdır. Yükleme/varlık hazırlama katmanında ortak eksene dönüştürülür; kaynak dosyalar değiştirilmeden parça manifestinde dönüşüm tutulabilir.
+- Prime ve Premium'un mevcut dosya eksenleri farklıdır. Yükleme/varlık hazırlama katmanında ortak eksene dönüştürülür; kaynak dosyalar değiştirilmeden parça manifestinde dönüşüm tutulabilir. **30 Eylül 2026 uygulaması:** ortak sahne çerçevesi X = içeriden bakışta soldan sağa, Y yukarı, duvar yüzü z = 0, bahçe −Z. Prime referansı ötelemeyle, Premium referansı Y ekseninde 180° dönüşle bu çerçeveye oturur (aynalama yok). Referans montajlardan okunan vorläufig bağlantı payları `src/catalog/attachmentReference.ts` ve `design/review/MONTAGEBEZUEGE-*.png` içindedir; kullanıcı onayı bekler.
 - Bağlantı noktaları, sabit kesitler, uzayan bölümler ve sabit kapak/vida geometrileri parça bazında tanımlanır.
 
 ## 4. Çatı malzemesi

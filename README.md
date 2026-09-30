@@ -1,8 +1,8 @@
 # Terrassenkonfigurator
 
-React + TypeScript + Vite ile çalışan Almanca konfigüratör prototipi. Arayüz ve şematik 3D çalışıyor; gerçek GLB montajı, gerçek müşteri fiyatı ve telefon AR deneyimi henüz tamamlanmadı.
+React + TypeScript + Vite ile çalışan Almanca konfigüratör prototipi. Arayüz ve şematik 3D çalışıyor; gerçek müşteri fiyatı, onaylı montaj payları ve telefon AR deneyimi henüz tamamlanmadı.
 
-**Durum (30 Eylül 2026):** P01/P02/K01 temeli, D02 arayüz, P04/D03 şematik 3D ve kolon/açıklık düzenleme, P05 fiyat altyapısı ve P06 yerel kayıt kodlandı. P07 indirilebilir PDF taslağı (Planungsentwurf, A4) ile P08 şematik GLB/HTTPS adres sözleşmesi hazır. Son kontrolde 19 dosyada 83 test ve üretim derlemesi geçti. 30 Eylül 2026'dan itibaren yapılan işler: [claude_implementation.md](claude_implementation.md). Gerçek montaj (`SOL-K01-001`), fiyat listesi (`SOL-P05-001`) ve telefon AR yayın ortamı (`SOL-P08-002`) bilgi bekliyor. [Güncel durum ve bütün aşamalar](GUNCEL_DURUM_VE_ASAMALAR.md) sonraki görevleri ve kullanıcıdan gerekenleri açıklar.
+**Durum (30 Eylül 2026):** P01/P02/K01 temeli, D02 arayüz, P04/D03 şematik 3D ve kolon/açıklık düzenleme, P05 fiyat altyapısı ve P06 yerel kayıt kodlandı. P07 indirilebilir PDF taslağı (Planungsentwurf, A4) ile P08 şematik GLB/HTTPS adres sözleşmesi hazır. K03 gerçek Prime/Premium parçalarıyla parametrik 3D montaj çalışıyor (montaj payları vorläufig, `design/review/MONTAGEBEZUEGE-*.png`). Son kontrolde 22 dosyada 89 test ve üretim derlemesi geçti. 30 Eylül 2026'dan itibaren yapılan işler: [claude_implementation.md](claude_implementation.md). Gerçek montaj (`SOL-K01-001`), fiyat listesi (`SOL-P05-001`) ve telefon AR yayın ortamı (`SOL-P08-002`) bilgi bekliyor. [Güncel durum ve bütün aşamalar](GUNCEL_DURUM_VE_ASAMALAR.md) sonraki görevleri ve kullanıcıdan gerekenleri açıklar.
 
 ## Yerel geliştirme
 
@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-`npm run check` tip kontrolünü, `npm run build` tip kontrolü ve üretim derlemesini, `npm test` onaylanmış kurallara ait hesap kontrollerini çalıştırır.
+`npm run check` tip kontrolünü, `npm run build` tip kontrolü ve üretim derlemesini, `npm test` onaylanmış kurallara ait hesap kontrollerini çalıştırır. `npm run models:prepare` kaynak FBX'leri (`git lfs pull` sonrası; Python 3 + `trimesh numpy`) `public/models/` altına GLB olarak hazırlar; `npm run models:drawings` montaj payı kesit çizimlerini üretir.
 
 Geliştirme sunucusunda `http://127.0.0.1:5173/?preview=1` örnek ölçülü şematik 3D sahneyi gösterir. Görünüm gerçek Prime/Premium kesiti veya çatı eğimi değildir. Örnek rotanın importu yalnız geliştirmede oluşturulur; üretim paketine dahil edilmediği doğrulandı.
 

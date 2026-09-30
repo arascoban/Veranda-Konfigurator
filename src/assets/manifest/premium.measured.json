@@ -1,0 +1,363 @@
+{
+  "product": "premium",
+  "unit": "cm",
+  "upAxis": "Y",
+  "converter": "fbx2gltf 0.9.7-p1",
+  "parts": {
+    "wallProfile": {
+      "source": "Models/Terrassenüberdachungen/Premium/Wandprofil/Wandprofil.fbx",
+      "sourceSha256": "0c52a52f562de4430e73d4c3219fde2eb8ca625c10383b739343fb9b0475475d",
+      "glb": "models/premium/wallProfile.glb",
+      "glbBytes": 281360,
+      "glbSha256": "a35af01dbcdfc2ef10ca0ec5180ee0fdf077ebf9a11fd58ad487dea3a4caac7c",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.26,
+        0.438,
+        0.0
+      ],
+      "boundsMaxCm": [
+        100.26,
+        19.475,
+        6.328
+      ],
+      "sizeCm": [
+        100.0,
+        19.037,
+        6.328
+      ],
+      "triangles": 5176,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
+    "wallCapLeft": {
+      "source": "Models/Terrassenüberdachungen/Premium/Wandprofil/WandprofilDeckelLinks.fbx",
+      "sourceSha256": "043029e9f97090bd5d2402dc0c457b10daf469a68f9b5b77faf6b80214f96e66",
+      "glb": "models/premium/wallCapLeft.glb",
+      "glbBytes": 383380,
+      "glbSha256": "bad476ba1fd08b04f6ab9f55a07de2ec29f6a1091b09c6f05f89b2385a53c42e",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        98.717,
+        0.0,
+        -10.945
+      ],
+      "boundsMaxCm": [
+        100.519,
+        19.463,
+        -0.0
+      ],
+      "sizeCm": [
+        1.802,
+        19.463,
+        10.945
+      ],
+      "triangles": 4597,
+      "meshes": 4,
+      "materials": [
+        "FrontColor",
+        "Metal_06_1K"
+      ]
+    },
+    "wallCapRight": {
+      "source": "Models/Terrassenüberdachungen/Premium/Wandprofil/WandprofilDeckelRechts.fbx",
+      "sourceSha256": "ee55e80ffe3acc01ff32da5476b9fc1091fe988fe4c1e51a349812d1d4aac01d",
+      "glb": "models/premium/wallCapRight.glb",
+      "glbBytes": 383388,
+      "glbSha256": "fb822ea1c8860c4abf61dab505431baebd6eb259c7a36e85007d6700e858a405",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -0.0,
+        0.0,
+        -10.945
+      ],
+      "boundsMaxCm": [
+        1.802,
+        19.463,
+        -0.0
+      ],
+      "sizeCm": [
+        1.802,
+        19.463,
+        10.945
+      ],
+      "triangles": 4597,
+      "meshes": 4,
+      "materials": [
+        "FrontColor",
+        "Metal_06_1K"
+      ]
+    },
+    "gutter": {
+      "source": "Models/Terrassenüberdachungen/Premium/Regenrinne/Regenrinne.fbx",
+      "sourceSha256": "de938d2c649abfa7f498978d29c7e8c1ac066902b04d2fb46c7fa751ac8cadf5",
+      "glb": "models/premium/gutter.glb",
+      "glbBytes": 284376,
+      "glbSha256": "9d1363e561f61d2b489517ac40020955b27b050956cbdb904b3792e8b087cbbb",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.218,
+        0.911,
+        0.0
+      ],
+      "boundsMaxCm": [
+        100.218,
+        17.561,
+        20.371
+      ],
+      "sizeCm": [
+        100.0,
+        16.65,
+        20.371
+      ],
+      "triangles": 5240,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
+    "gutterCapLeft": {
+      "source": "PreparedModels/Premium/Regenrinne/RegenrinneDeckelLinks.fbx",
+      "sourceSha256": "ba53d197c56b739ea2aee1748822dc75c7727c908c1b5687408b75b66a06a787",
+      "glb": "models/premium/gutterCapLeft.glb",
+      "glbBytes": 1186392,
+      "glbSha256": "2ea5228d8ec7cb65d3e37ec6edb2ee48946dd0b6aaa2233d1a88c87132296be3",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        499.407,
+        217.489,
+        -22.903
+      ],
+      "boundsMaxCm": [
+        500.478,
+        235.089,
+        -2.503
+      ],
+      "sizeCm": [
+        1.071,
+        17.6,
+        20.4
+      ],
+      "triangles": 7336,
+      "meshes": 5,
+      "materials": [
+        "FrontColor",
+        "Metal_06_1K"
+      ]
+    },
+    "gutterCapRight": {
+      "source": "PreparedModels/Premium/Regenrinne/RegenrinneDeckelRechts.fbx",
+      "sourceSha256": "d2a25d42a9c1b51b6344efbc75da9669eaf1068550751c424d802841ad135820",
+      "glb": "models/premium/gutterCapRight.glb",
+      "glbBytes": 1186424,
+      "glbSha256": "d81956eca26b233413db03d6d061604408bb73d0c18b9d213c60b0d633a73f88",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.008,
+        217.489,
+        -22.903
+      ],
+      "boundsMaxCm": [
+        1.079,
+        235.089,
+        -2.503
+      ],
+      "sizeCm": [
+        1.071,
+        17.6,
+        20.4
+      ],
+      "triangles": 7336,
+      "meshes": 5,
+      "materials": [
+        "FrontColor",
+        "Metal_06_1K"
+      ]
+    },
+    "post": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/Pfosten.fbx",
+      "sourceSha256": "360a8c5d1b15fbfb74c055e52abaea6f34c4f90158901136f667388c9272e9f5",
+      "glb": "models/premium/post.glb",
+      "glbBytes": 157736,
+      "glbSha256": "703111107f1325f29aad2e9d7c4a7c6c1d01f45ab8faa1e969d2456e08b9544d",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        -0.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        100.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.0,
+        100.0,
+        13.5
+      ],
+      "triangles": 2896,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
+    "rafterMiddle": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager mittel/tragermitte.fbx",
+      "sourceSha256": "35e2bbd93568e04545d078561555cd2dd0c15ec791462a6a85d5aebeae544b28",
+      "glb": "models/premium/rafterMiddle.glb",
+      "glbBytes": 713568,
+      "glbSha256": "edea495d9b2215a70b94d77bc7d565a6b9bedf85b6dc6e27322c78da7446d406",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -5.0,
+        0.0,
+        -0.251
+      ],
+      "boundsMaxCm": [
+        102.0,
+        11.8,
+        5.633
+      ],
+      "sizeCm": [
+        107.0,
+        11.8,
+        5.884
+      ],
+      "triangles": 13006,
+      "meshes": 7,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "rafterSide": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager Seiten/trageseiten.fbx",
+      "sourceSha256": "1d1f5e21bc20812865afbda13790b83d7cbcda8333f15bdf535521d10c90df35",
+      "glb": "models/premium/rafterSide.glb",
+      "glbBytes": 546120,
+      "glbSha256": "34096762385d2acdc1f6bf055eb1e18d06efb77dfa62f79921056fd16363a772",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -5.0,
+        0.0,
+        -0.157
+      ],
+      "boundsMaxCm": [
+        102.0,
+        11.8,
+        5.532
+      ],
+      "sizeCm": [
+        107.0,
+        11.8,
+        5.689
+      ],
+      "triangles": 9947,
+      "meshes": 5,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "cover": {
+      "source": "Models/Terrassenüberdachungen/Premium/Zwischendeckel/Zwischendeckel.fbx",
+      "sourceSha256": "ff484b58fc6b67d2ba23be72c26a6951ec3d00094e19952878b830f2e22a9cd6",
+      "glb": "models/premium/cover.glb",
+      "glbBytes": 156092,
+      "glbSha256": "292efef57010b42d749b87f49474f0c64fcf85a77d942edb96917e65ec76497c",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -0.0,
+        -0.01,
+        -3.49
+      ],
+      "boundsMaxCm": [
+        100.0,
+        11.19,
+        0.232
+      ],
+      "sizeCm": [
+        100.0,
+        11.2,
+        3.722
+      ],
+      "triangles": 2807,
+      "meshes": 2,
+      "materials": [
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "panel": {
+      "source": "Models/Terrassenüberdachungen/Premium/DachElement/DachElementGlasUndPolycarbonat.fbx",
+      "sourceSha256": "792b1b32c72e48299a37ba3c1cca068238b60adc5e3f20bcdd81d2138492571f",
+      "glb": "models/premium/panel.glb",
+      "glbBytes": 2884,
+      "glbSha256": "e560b117218f32d74f26dd76e201788aa8e18fc16cfd2ff0e23ebcb7ea58dede",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -100.0
+      ],
+      "boundsMaxCm": [
+        100.0,
+        0.7,
+        0.0
+      ],
+      "sizeCm": [
+        100.0,
+        0.7,
+        100.0
+      ],
+      "triangles": 12,
+      "meshes": 1,
+      "materials": [
+        "Glass_Basic_01"
+      ]
+    }
+  }
+}

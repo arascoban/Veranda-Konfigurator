@@ -39,9 +39,10 @@ describe('schematic AR GLB export', () => {
     expect(bounds.min.x).toBeCloseTo(0, 5);
     expect(bounds.max.x).toBeCloseTo(5, 5);
     // The schematic wall beam is 2.5 cm thick around z=0.
-    expect(bounds.min.z).toBeCloseTo(-0.0125, 5);
+    // Wall face at z = 0, garden towards negative Z.
+    expect(bounds.max.z).toBeCloseTo(0.0125, 5);
     // Posts end at the nominal depth; only the 25 mm gutter guide beam extends past it.
-    expect(bounds.max.z).toBeCloseTo(3.0125, 4);
+    expect(bounds.min.z).toBeCloseTo(-3.0125, 4);
     expect(bounds.min.y).toBeCloseTo(0, 5);
     expect(bounds.max.y).toBeCloseTo(2.7125, 4);
     const guideLines: string[] = [];

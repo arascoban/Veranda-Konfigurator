@@ -62,6 +62,57 @@ Etkileri: varsayılan yerleşim artık tam uçta (Prime 5,5 cm, Premium 6,5 cm m
 
 Doğrulama: 86 test; tarayıcıda 190×90 girişinde iki minimum hatası, 200×100'de 5,5/194,5 cm kolonlar, Premium'a geçişte 6,5/193,5 cm ve “Träger hinzufügen” devre dışı; konsol hatası yok.
 
+## 3. İş — Gerçek Prime/Premium modelleriyle parametrik 3D montaj (ilk sürüm çalışıyor)
+
+**Sonuç:** Konfigüratör artık şematik kutular yerine SketchUp'tan gelen gerçek profil parçalarını yüklüyor ve girilen dört ölçüye göre monte ediyor. Prime ve Premium ayrı parça setleriyle çalışıyor; kolon sürükleme/ekleme/sayısal konum aynı model üzerinde çalışıyor (tarayıcıda doğrulandı). Şematik görünüm yükleme sırasında ve yükleme hatasında yedek olarak kalıyor.
+
+**Kaynaktan web varlığına:**
+
+- `tools/prepare_models.py` (`npm run models:prepare`): FBX → GLB dönüşümü `fbx2gltf` (devDependency, ikili dosya paketle gelir) ile; her parça ölçülür ve `src/assets/manifest/<ürün>.measured.json` dosyasına yazılır (cm sınır kutusu, üçgen sayısı, kaynak/çıktı SHA-256). `Models/` kaynakları değişmez; Premium oluk kapakları için MODEL-001'in onarılmış kopyaları kullanılır. Betik, LFS işaretçisi görürse durur (`git lfs pull` gerekir).
+- Çıktılar `public/models/prime/` (9 parça, 436 kB) ve `public/models/premium/` (11 parça, 5,1 MB). `.gitattributes` ile bu klasör LFS dışında bırakıldı: web varlıkları küçük ve Vercel'de LFS ayarı olmadan yayınlanabilmeli. Kaynak FBX'ler LFS'te kalır.
+- Premium tek parçalar toplam ≈57 bin üçgen; 559 bin üçgenlik referans montajın ağırlığı vidalardan geliyor. Monte edilmiş 530 cm Premium ≈130 bin üçgen; masaüstünde sorunsuz, telefon ölçümü yapılmadı.
+
+**Kaynak modelden okunan ve KODA ALINAN yerleşim bilgileri (vorläufig):**
+
+| | Prime | Premium |
+| --- | --- | --- |
+| Parça yönü (tek parça dosyaları) | 1 m ekstrüzyon, uzunluk ekseni −Z, kesit orijinde | 1 m ekstrüzyon, uzunluk ekseni +X |
+| Referans montaj ekseni | Bahçe −Z yönünde, sol = x 0 | Bahçe +Z, sol = +X ucu (MODEL-001 notuyla uyumlu) |
+| Oluk | 16,5 × 16 cm, ön yüzü kolon önünden 2,6 cm dışarıda | 20,4 × 16,6 cm, 3,2 cm dışarıda |
+| Duvar profili | 5,5 × 16 cm | 6,3 × 19 cm |
+| Kolon | 11 × 11 cm (montajda 11 × 13,5) — kullanıcı 11 × 12 dedi | 13 × 13,5 cm — kullanıcı 13 × 14 dedi |
+| Taşıyıcı kesiti | 5,5 × 9,8 cm | 5,9 × 11,8 cm (uçlarda bağlantı parçalı, 107 cm dosya) |
+| Taşıyıcı alt kenarı önde | oluk altından +31 mm, kolon önünden 53 mm içeride | +25 mm, 132 mm içeride |
+| Taşıyıcı alt kenarı arkada | duvar profili altından +8 mm, duvardan 35 mm önce | +13 mm, 18 mm önce |
+| Ara kapak (Zwischendeckel) | oluk arka üst kenarında ve duvar profili önünde, bölme eni c | aynı, kesit 3,7 × 11,2 |
+| Panel | c + 3,2/3,5 cm, taşıyıcı üst kenarının 11 mm altında | 13 mm altında |
+| Referans eğim | 5,7° | 12,2° (sınırın hemen üstü; referans yükseklikleri rastlantısal) |
+
+Bu sayılar `src/catalog/attachmentReference.ts` (eğim kuralı için) ve `src/features/assembly/spec.ts` (yerleşim) içinde tek kaynaktan gelir; `confirmed: false`. Kural motoru artık eğimi bu vorläufig paylarla hesaplar; 5–12° dışı **geçersiz** sayılır ve `roof_attachment_offsets_provisional` uyarısı gösterilir. Kullanıcı SketchUp ekran görüntüleriyle doğrulayınca `confirmed: true` yapılacak ve sayılar düzeltilecek.
+
+**Onay çizimleri:** `tools/draw_attachment_reference.py` (`npm run models:drawings`) → `design/review/MONTAGEBEZUEGE-prime.svg/.png` ve `-premium`: ölçülü yan kesit, ①–⑥ numaralı paylar. Kullanıcıya gönderildi.
+
+**Kod yapısı:**
+
+| Dosya | İçerik |
+| --- | --- |
+| `src/features/assembly/spec.ts` | Ürün başına montaj sabitleri + ölçülmüş parça verisi |
+| `src/features/assembly/placements.ts` | Saf yerleşim hesabı (`buildAssemblyLayout`): her parça için sahne konumu, eksen tabanı (3 birim vektör, determinant +1 → aynalama yok), uzunluk ölçeği. `assemblyLayoutFromConfiguration` yalnız geçerli konfigürasyonda üretir; eğim sınır dışıysa yine çizer (müşteri hatayı görsün). Testli. |
+| `src/features/assembly/assemblyScene.ts` | GLB yükleme önbelleği (`PartLibrary`), klonlama, rol bazlı malzemeler (alüminyum nötr metal — ürün rengi bilinmiyor; conta koyu; cam saydam / polikarbonat sütlü), kolon düzenleme yardımcıları (tutamaç silindirleri, halo, açıklık düzlemleri) |
+| `src/features/viewer/PreviewViewer.tsx` | Önce şematik, parçalar yüklenince ürün modeli; `onProductModelStatusChange` (loading/ready/error) → ProfileInspector; seçili kolon emissive vurgu; DEV-only `?d03camera=px,py,pz,tx,ty,tz` kamera sabitleme (inceleme ekran görüntüleri için) |
+| `src/features/viewer/schematicGeometry.ts`, `previewGeometry.ts` | Sahne çerçevesi değişti: **duvar yüzü z = 0, bahçe −Z, X içeriden bakışta soldan sağa.** Kamera bahçe tarafından bakar. |
+
+**Sahne çerçevesi:** X = oluk sol ucundan (içeriden bakış) sağa, Y yukarı, Z: duvar 0, bahçe negatif. Prime referansı yalnız öteleme, Premium referansı Y ekseninde 180° dönüşle bu çerçeveye oturur (aynalama yok; sol/sağ kapaklar dosya adlarıyla uyumlu).
+
+**Doğrulama:** 89 test, tip/üretim derlemesi. Tarayıcıda (Chromium, yazılım WebGL) 530×320 Prime ve Premium yükleme; 400×300'de yakın plan: oluk kapakları, duvar profili kapakları, yan taşıyıcı, ara kapaklar, paneller. Kolon ekleme, sayısal konum (klemp 90 cm/400 cm kurallarına), sürükleme ve geri alma gerçek modelde çalıştı; konsol hatası yok. Üretim paketi: PreviewViewer parçası 677 kB (Three + GLTFLoader).
+
+**Bilinen eksikler / sonraki adımlar:**
+- Montaj payları onaysız (yukarıdaki tablo); kolon kesitleri modelde 11×13,5 / 13×13,5, kullanıcı 11×12 / 13×14 dedi → hangisi doğru sorulacak.
+- Premium taşıyıcı dosyasındaki uç bağlantı parçaları uzunlukla birlikte ölçekleniyor (hafif bozulma). Sol/sağ yan taşıyıcının oluk yönü Premium'da görsel olarak doğrulanmadı.
+- Premium duvar profili önündeki ince şerit (referansta ayrı parça, `Zubehör`?) ve Prime'daki iniş borusu (PfostenRohr) monte edilmiyor.
+- Ürün rengi/malzeme kataloğu yok; alüminyum nötr gri gösteriliyor.
+- Telefon performansı ve AR için GLB dışa aktarma hâlâ şematik modeli kullanıyor (`exportDemoGlb`); gerçek montajın GLB'si sonraki adım.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

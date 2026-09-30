@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AmbientLight, Color, DirectionalLight, Group, Mesh, MeshBasicMaterial,
+  AmbientLight, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshStandardMaterial,
   PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
+import { createAssemblyGroup, loadLayoutParts, PartLibrary } from '../assembly/assemblyScene';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import type { PostCenter } from '../../domain/geometry/posts';
 import { millimetresToCentimetres } from '../../domain/units';
@@ -19,14 +21,19 @@ type ViewerRuntime = {
   controls: OrbitControls;
   render: () => void;
   group: Group | null;
+  library: PartLibrary;
 };
 
-export function PreviewViewer({ configuration, editPosts = false, resetViewToken = 0, onPostCentersChange, onSceneStatusChange }: {
+export type ProductModelStatus = 'loading' | 'ready' | 'missing' | 'error';
+
+export function PreviewViewer({ configuration, editPosts = false, resetViewToken = 0, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
   configuration: ConfigurationV1;
   editPosts?: boolean;
   resetViewToken?: number;
   onPostCentersChange?: (posts: PostCenter[]) => void;
   onSceneStatusChange?: (status: 'loading' | 'ready' | 'missing' | 'error') => void;
+  /** Real product parts: missing while the schematic stands in, ready once the GLB assembly is shown. */
+  onProductModelStatusChange?: (status: ProductModelStatus) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<ViewerRuntime | null>(null);
@@ -35,8 +42,11 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedOpening, setSelectedOpening] = useState<OpeningSelection | null>(null);
   const dimensions = useMemo(() => previewDimensions(configuration), [configuration]);
+  const layout = useMemo(() => assemblyLayoutFromConfiguration(configuration), [configuration]);
+  const [modelStatus, setModelStatus] = useState<ProductModelStatus>('missing');
   const visibleSceneStatus = sceneStatus === 'ready' && !dimensions ? 'missing' : sceneStatus;
   useEffect(() => onSceneStatusChange?.(visibleSceneStatus), [onSceneStatusChange, visibleSceneStatus]);
+  useEffect(() => onProductModelStatusChange?.(modelStatus), [onProductModelStatusChange, modelStatus]);
   const posts = configuration.postCenters;
   const widthMm = configuration.dimensionsMm.width;
   const selectedIndex = posts?.findIndex((post) => post.id === selectedPostId) ?? -1;
@@ -64,10 +74,14 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
 
     const scene = new Scene();
     scene.background = new Color(0xf4f7f8);
-    scene.add(new AmbientLight(0xffffff, 1.5));
-    const light = new DirectionalLight(0xffffff, 2);
-    light.position.set(4, 8, 5);
+    scene.add(new AmbientLight(0xffffff, 0.9));
+    scene.add(new HemisphereLight(0xffffff, 0xb8c0c6, 1.2));
+    const light = new DirectionalLight(0xffffff, 2.2);
+    light.position.set(4, 8, -5);
     scene.add(light);
+    const fill = new DirectionalLight(0xffffff, 0.8);
+    fill.position.set(-6, 4, 3);
+    scene.add(fill);
     const camera = new PerspectiveCamera(45, 1, 0.01, 1000);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = false;
@@ -91,7 +105,7 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
         renderer.domElement.dataset.d03RenderCpuMaxMs = ordered[ordered.length - 1].toFixed(2);
       };
     }
-    const runtime: ViewerRuntime = { scene, camera, renderer, controls, render, group: null };
+    const runtime: ViewerRuntime = { scene, camera, renderer, controls, render, group: null, library: new PartLibrary(import.meta.env.BASE_URL) };
     runtimeRef.current = runtime;
     setSceneStatus('ready');
     const onContextLost = (event: Event) => {
@@ -132,28 +146,56 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
   useEffect(() => {
     const runtime = runtimeRef.current;
     if (!runtime) return;
-    if (runtime.group) {
-      runtime.scene.remove(runtime.group);
-      disposeSchematicGroup(runtime.group);
-      runtime.group = null;
-    }
-    if (dimensions) {
-      const group = createSchematicGroup(dimensions, configuration.roofMaterialId, { includeGroundGuide: true, includePostControls: true });
-      group.userData.dimensions = dimensions;
-      runtime.scene.add(group);
-      runtime.group = group;
-      const fitKey = [dimensions.widthM, dimensions.depthM, dimensions.rearHeightM, dimensions.frontHeightM].join(':');
-      if (lastFitKeyRef.current !== fitKey) {
-        fitCamera(runtime, dimensions, runtime.camera.aspect);
-        lastFitKeyRef.current = fitKey;
+    const swapGroup = (group: Group | null) => {
+      if (runtime.group) {
+        runtime.scene.remove(runtime.group);
+        disposeSchematicGroup(runtime.group);
+        runtime.group = null;
       }
-    } else {
+      if (group && dimensions) {
+        group.userData.dimensions = dimensions;
+        runtime.scene.add(group);
+        runtime.group = group;
+        markSelectedPost(group, selectedIndexRef.current);
+        markSelectedOpening(group, selectedOpeningIndexRef.current);
+      }
+      runtime.render();
+    };
+    if (!dimensions) {
+      swapGroup(null);
       lastFitKeyRef.current = '';
+      setModelStatus('missing');
+      return;
     }
-    runtime.render();
-  }, [dimensions, configuration.roofMaterialId]);
+    // The schematic is shown at once; the product parts replace it as soon as they are loaded.
+    swapGroup(createSchematicGroup(dimensions, configuration.roofMaterialId, { includeGroundGuide: true, includePostControls: true }));
+    const fitKey = [dimensions.widthM, dimensions.depthM, dimensions.rearHeightM, dimensions.frontHeightM].join(':');
+    if (lastFitKeyRef.current !== fitKey) {
+      fitCamera(runtime, dimensions, runtime.camera.aspect);
+      lastFitKeyRef.current = fitKey;
+    }
+    if (!layout) {
+      setModelStatus('missing');
+      return;
+    }
+    let cancelled = false;
+    setModelStatus('loading');
+    loadLayoutParts(layout, runtime.library).then((parts) => {
+      if (cancelled) return;
+      swapGroup(createAssemblyGroup(layout, parts, { includeGroundGuide: true, includePostControls: true }));
+      setModelStatus('ready');
+    }).catch(() => {
+      // The schematic stays in place; the product model is reported as unavailable, never as ready.
+      if (!cancelled) setModelStatus('error');
+    });
+    return () => { cancelled = true; };
+  }, [dimensions, configuration.roofMaterialId, layout]);
 
+  const selectedIndexRef = useRef(-1);
+  const selectedOpeningIndexRef = useRef<number | null>(null);
   useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+    selectedOpeningIndexRef.current = activeOpening?.index ?? null;
     const runtime = runtimeRef.current;
     if (!runtime?.group) return;
     markSelectedPost(runtime.group, selectedIndex);
@@ -174,7 +216,8 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
     const canvas = runtime.renderer.domElement;
     const raycaster = new Raycaster();
     const pointer = new Vector2();
-    const dragPlane = new Plane(new Vector3(0, 0, 1), -dimensions.depthM);
+    // Posts move along the gutter in the plane of their garden-facing faces (z = −depth).
+    const dragPlane = new Plane(new Vector3(0, 0, 1), dimensions.depthM);
     let drag: { pointerId: number; index: number; initialMm: number; currentMm: number } | null = null;
     const setRay = (event: PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
@@ -184,7 +227,7 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
     };
     const restorePost = (index: number, xMm: number) => {
       runtime.group?.traverse((object) => {
-        if (object.userData.postIndex === index) object.position.x = xMm / 1000;
+        if (object.userData.postIndex === index && object.userData.postMovable) object.position.x = xMm / 1000;
       });
       runtime.render();
     };
@@ -319,7 +362,9 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
         {visibleSceneStatus === 'error' ? '3D-Vorschau nicht verfügbar. Ihre Angaben bleiben erhalten.'
           : sceneStatus === 'loading' ? '3D-Vorschau wird geladen …'
           : !dimensions ? 'Bitte geben Sie gültige Maße für die schematische Vorschau ein.'
-            : `Schematische Vorschau · ${configuration.productId === 'premium' ? 'Premium' : 'Prime'} · ${measurements}. Keine Fertigungsdarstellung.`}
+            : modelStatus === 'ready' ? `Produktmodell · ${configuration.productId === 'premium' ? 'Premium' : 'Prime'} · ${measurements}. Montagebezüge vorläufig, keine Fertigungsdarstellung.`
+              : modelStatus === 'loading' ? `Produktmodell wird geladen · ${measurements}. Bis dahin schematische Vorschau.`
+                : `Schematische Vorschau · ${configuration.productId === 'premium' ? 'Premium' : 'Prime'} · ${measurements}. Keine Fertigungsdarstellung.`}
       </p>
     </div>
   );
@@ -328,8 +373,18 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
 function markSelectedPost(group: Group, selectedIndex: number): void {
   group.traverse((object) => {
     if (object.userData.selectionHalo) object.visible = object.userData.postIndex === selectedIndex;
-    if (object.userData.postVisual && object instanceof Mesh && object.material instanceof MeshBasicMaterial) {
-      object.material.color.setHex(object.userData.postIndex === selectedIndex ? 0x20272c : 0x68747d);
+    if (!object.userData.postVisual || !(object instanceof Mesh)) return;
+    const selected = object.userData.postIndex === selectedIndex;
+    if (object.material instanceof MeshBasicMaterial) object.material.color.setHex(selected ? 0x20272c : 0x68747d);
+    else if (object.material instanceof MeshStandardMaterial) {
+      // Product parts share finishes; a selected post gets its own instance with an emissive tint.
+      if (selected && !object.userData.ownMaterial) {
+        object.material = object.material.clone();
+        object.material.emissive.setHex(0x1f2a33);
+        object.userData.ownMaterial = true;
+      } else if (!selected && object.userData.ownMaterial) {
+        object.material.emissive.setHex(0x000000);
+      }
     }
   });
 }
@@ -347,11 +402,20 @@ function dimensionsFromGroup(group: Group): PreviewDimensions {
 
 function fitCamera(runtime: ViewerRuntime, dimensions: PreviewDimensions, aspect: number): void {
   const { widthM, depthM, rearHeightM, frontHeightM } = dimensions;
-  const target = new Vector3(widthM / 2, Math.max(rearHeightM, frontHeightM) / 2, depthM / 2);
+  const target = new Vector3(widthM / 2, Math.max(rearHeightM, frontHeightM) / 2, -depthM / 2);
   const distance = cameraDistanceForPreview(dimensions, runtime.camera.fov, aspect);
-  runtime.camera.position.copy(target).add(new Vector3(0.65, 0.55, 0.75).normalize().multiplyScalar(distance));
+  // Viewed from the garden side, slightly from the right.
+  runtime.camera.position.copy(target).add(new Vector3(0.65, 0.5, -0.8).normalize().multiplyScalar(distance));
   runtime.camera.far = Math.max(100, distance * 4);
   runtime.camera.updateProjectionMatrix();
   runtime.controls.target.copy(target);
+  if (import.meta.env.DEV) {
+    // Review aid only: ?d03camera=px,py,pz,tx,ty,tz (metres) pins the camera for close-up screenshots.
+    const pinned = new URLSearchParams(window.location.search).get('d03camera')?.split(',').map(Number);
+    if (pinned?.length === 6 && pinned.every(Number.isFinite)) {
+      runtime.camera.position.set(pinned[0], pinned[1], pinned[2]);
+      runtime.controls.target.set(pinned[3], pinned[4], pinned[5]);
+    }
+  }
   runtime.controls.update();
 }

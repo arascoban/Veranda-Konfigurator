@@ -1,3 +1,4 @@
+import { attachmentReferences } from '../catalog/attachmentReference';
 import { MAX_WIDTH_MM, MIN_DEPTH_MM, MIN_WIDTH_MM, roofMaterials } from '../catalog/catalog';
 import type { ConfigurationV1 } from './configuration';
 import { calculateRoofBayGeometry, minimumRoofBayCount, type RoofBayGeometry } from './geometry/roof';
@@ -21,7 +22,7 @@ export type ConfigurationEvaluation = {
 
 export function evaluateConfiguration(
   configuration: ConfigurationV1,
-  attachmentOffsets: RoofAttachmentOffsetsMm | null = null,
+  attachmentOffsets: (RoofAttachmentOffsetsMm & { confirmed?: boolean }) | null = attachmentReferences[configuration.productId],
 ): ConfigurationEvaluation {
   const issues: RuleIssue[] = [];
   const { width, depth, rearHeight, frontHeight } = configuration.dimensionsMm;
@@ -79,6 +80,9 @@ export function evaluateConfiguration(
       issues.push({ kind: 'unverified', field: 'dimensionsMm', code: 'roof_attachment_offsets_not_supplied' });
     } else if (slope.status === 'invalid_geometry' || !slope.withinLimit) {
       issues.push({ kind: 'invalid', field: 'dimensionsMm', code: 'roof_slope_outside_5_to_12_degrees' });
+    }
+    if (slope.status !== 'missing_reference' && attachmentOffsets?.confirmed === false) {
+      issues.push({ kind: 'unverified', field: 'dimensionsMm', code: 'roof_attachment_offsets_provisional' });
     }
   }
 

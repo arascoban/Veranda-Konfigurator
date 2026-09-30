@@ -20,6 +20,7 @@ export function ConfiguratorApp() {
   const [editPosts, setEditPosts] = useState(false);
   const [resetViewToken, setResetViewToken] = useState(0);
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
+  const [productModelStatus, setProductModelStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('missing');
   const [saveStatus, setSaveStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
   const [openStatus, setOpenStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
   const [pdfStatus, setPdfStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
@@ -100,10 +101,10 @@ export function ConfiguratorApp() {
   return <ConfiguratorShell configuration={configuration} revision={revision} quote={quote}
     scene={<Suspense fallback={<p role="status">3D-Vorschau wird geladen …</p>}><PreviewViewer
       configuration={configuration} editPosts={editPosts} resetViewToken={resetViewToken}
-      onSceneStatusChange={setSceneStatus}
+      onSceneStatusChange={setSceneStatus} onProductModelStatusChange={setProductModelStatus}
       onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
     </Suspense>}
-    sceneStatus={sceneStatus} productModelStatus="missing" pdfStatus={!pdfPossible ? 'unavailable' : pdfStatus.state === 'pending' ? 'working' : 'ready'}
+    sceneStatus={sceneStatus} productModelStatus={productModelStatus} pdfStatus={!pdfPossible ? 'unavailable' : pdfStatus.state === 'pending' ? 'working' : 'ready'}
     pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable" profileArStatus="unavailable"
     saveStatus={saveStatus} openStatus={openStatus}
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}

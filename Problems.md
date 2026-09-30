@@ -786,3 +786,14 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/configurator/styles.css`.
 - Tek çözüm denemesi: `overflow-wrap: break-word` kullanıldı; `dt` etiketi küçülmeyen (`flex: 0 0 auto`) ve en fazla %50 genişlikte tutuldu.
 - Doğrulama: Aynı akışın yeni ekran görüntüsünde etiket tek satırda, değer sağda iki satır; yatay taşma yok. Tip kontrolü ve testler başarılı.
+
+## CLAUDE-K03-003 — Premium duvar profili kapakları profil ucundan ayrık ve döndürülmüş yerleşti
+
+- Durum: Çözüldü
+- Tarih: 30 Eylül 2026.
+- Bildiren / çözen: Claude; K03 gerçek montaj ilk sürümü.
+- Ortam: three 0.186.1, fbx2gltf 0.9.7-p1, Chromium (yazılım WebGL) ekran görüntüsü.
+- Kanıt: `?d03camera` ile alınan köşe görüntüsünde `WandprofilDeckelLinks/Rechts` duvar profilinin ucundan ~10 cm bahçeye doğru kaymış plaka olarak görünüyordu. Neden: kapak dosyalarının yerel çerçevesinin profil dosyasıyla aynı olduğu varsayılmıştı; oysa kapakta duvar yüzü z = −109 mm'de, profilde z = 0'da.
+- Etkilenen dosya: `src/features/assembly/placements.ts`.
+- Tek çözüm denemesi: Kapak ve profilin (y,z) dış hatları sayısal olarak karşılaştırıldı (en iyi örtüşme: aynalama yok, z ötelemesi +110 mm). Yerleşim, kapağın yerel z-min'ini duvar yüzüne ve üst kenarını profil üst kenarına hizalayacak şekilde değiştirildi.
+- Doğrulama: Yeni köşe görüntüsünde kapak profil ucuna oturuyor; 89 test ve tip kontrolü geçti.

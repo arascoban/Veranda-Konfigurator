@@ -106,7 +106,7 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
           { label: de.dimensions.depth.label, value: formatCentimetres(depth) },
           { label: de.dimensions.rearHeight.label, value: formatCentimetres(rearHeight) },
           { label: de.dimensions.frontHeight.label, value: formatCentimetres(frontHeight) },
-          { label: 'Dachneigung', value: 'Noch nicht bestätigt' },
+          { label: 'Dachneigung', value: evaluation.slope?.status === 'calculated' ? `ca. ${numberDe.format(evaluation.slope.degrees)}° (vorläufig)` : 'Noch nicht bestätigt' },
         ],
       },
       {

@@ -5,9 +5,11 @@ import {
 import type { ConfigurationV1 } from '../../domain/configuration';
 import type { PreviewDimensions } from './previewGeometry';
 
+/** Disposes helper geometry; meshes cloned from the shared part library keep their geometry. */
 export function disposeSchematicGroup(group: Group): void {
   group.traverse((object) => {
     if (!('geometry' in object && 'material' in object)) return;
+    if (object.userData.sharedAsset) return;
     const drawable = object as Mesh;
     drawable.geometry.dispose();
     for (const material of Array.isArray(drawable.material) ? drawable.material : [drawable.material]) {
@@ -27,11 +29,12 @@ export function createSchematicGroup(
   const { widthM, depthM, rearHeightM, frontHeightM, postCentersM, postSectionM } = dimensions;
 
   const roofGeometry = new BufferGeometry();
+  // Scene frame: wall face at z = 0, garden towards negative Z, X left → right as seen from inside.
   roofGeometry.setAttribute('position', new Float32BufferAttribute([
     0, rearHeightM, 0,
     widthM, rearHeightM, 0,
-    widthM, frontHeightM, depthM,
-    0, frontHeightM, depthM,
+    widthM, frontHeightM, -depthM,
+    0, frontHeightM, -depthM,
   ], 3));
   roofGeometry.setIndex([0, 1, 2, 0, 2, 3]);
   roofGeometry.computeVertexNormals();
@@ -45,7 +48,7 @@ export function createSchematicGroup(
   group.add(new Mesh(roofGeometry, roofMaterial));
 
   const guideMaterial = new MeshBasicMaterial({ color: 0x68747d });
-  for (const [height, depth] of [[rearHeightM, 0], [frontHeightM, depthM]]) {
+  for (const [height, depth] of [[rearHeightM, 0], [frontHeightM, -depthM]]) {
     const beam = new Mesh(new BoxGeometry(widthM, 0.025, 0.025), guideMaterial.clone());
     beam.position.set(widthM / 2, height, depth);
     group.add(beam);
@@ -53,20 +56,23 @@ export function createSchematicGroup(
   postCentersM.forEach((centerM, index) => {
     // Post box with the confirmed cross-section; its garden-facing side ends at the nominal depth.
     const post = new Mesh(new BoxGeometry(postSectionM.alongGutterM, frontHeightM, postSectionM.towardsGardenM), guideMaterial.clone());
-    post.position.set(centerM, frontHeightM / 2, depthM - postSectionM.towardsGardenM / 2);
+    post.position.set(centerM, frontHeightM / 2, -depthM + postSectionM.towardsGardenM / 2);
     post.userData.postIndex = index;
     post.userData.postVisual = true;
+    post.userData.postMovable = true;
     group.add(post);
     if (options.includePostControls) {
     const hitArea = new Mesh(new CylinderGeometry(0.12, 0.12, frontHeightM, 12),
       new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
     hitArea.position.copy(post.position);
     hitArea.userData.postIndex = index;
+    hitArea.userData.postMovable = true;
     group.add(hitArea);
     const halo = new Mesh(new CylinderGeometry(0.11, 0.11, 0.01, 24),
       new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0.55 }));
-    halo.position.set(centerM, 0.01, depthM);
+    halo.position.set(centerM, 0.01, -depthM);
     halo.userData.postIndex = index;
+    halo.userData.postMovable = true;
     halo.userData.selectionHalo = true;
     halo.visible = false;
     group.add(halo);
@@ -78,7 +84,7 @@ export function createSchematicGroup(
       const right = postCentersM[index + 1];
       const field = new Mesh(new PlaneGeometry(right - left, frontHeightM),
         new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0, depthWrite: false, side: DoubleSide }));
-      field.position.set((left + right) / 2, frontHeightM / 2, depthM - 0.003);
+      field.position.set((left + right) / 2, frontHeightM / 2, -depthM + 0.003);
       field.userData.openingIndex = index;
       group.add(field);
     }
@@ -87,7 +93,7 @@ export function createSchematicGroup(
 
   if (options.includeGroundGuide) {
     const grid = new GridHelper(Math.max(widthM, depthM) + 2, 12, 0xa4b0b7, 0xd8e0e4);
-    grid.position.set(widthM / 2, -0.025, depthM / 2);
+    grid.position.set(widthM / 2, -0.025, -depthM / 2);
     grid.userData.exportable = false;
     group.add(grid);
   }

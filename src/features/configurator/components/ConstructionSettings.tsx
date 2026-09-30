@@ -50,7 +50,8 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onEd
       <div className="slope-status">
         {evaluation.slope?.status === 'calculated'
           ? <StatusMessage tone={evaluation.slope.withinLimit ? 'success' : 'error'} title="Dachneigung">
-            {formatNumber(evaluation.slope.degrees)}° · {evaluation.slope.withinLimit ? 'innerhalb des Richtwerts' : 'außerhalb des Richtwerts'}
+            {formatNumber(evaluation.slope.degrees)}° · {evaluation.slope.withinLimit ? 'innerhalb von 5° bis 12°' : 'außerhalb von 5° bis 12°'}
+            {evaluation.issues.some((issue) => issue.code === 'roof_attachment_offsets_provisional') && ' · vorläufige Montagebezüge'}
           </StatusMessage>
           : <StatusMessage tone="warning" title="Dachneigung noch nicht bestätigt">
             {issueTextDe.roof_attachment_offsets_not_supplied}

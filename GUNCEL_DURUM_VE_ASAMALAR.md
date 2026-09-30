@@ -4,7 +4,7 @@ Tarih: 30 Eylül 2026. Sorumlu inceleme: Astra. Bu belge ilerleme durumunun gün
 
 ## Şu an nerede olduğumuz
 
-**30 Eylül 2026 devir:** Proje Claude tarafından devralındı; yapılan işler `claude_implementation.md` dosyasında. D04/P07 PDF taslağı ve indirme bağlantısı tamamlandı (19 dosyada 83 test, tip/üretim derlemesi başarılı). Aşağıdaki “Önce Luna / Ardından Sol” PDF kartları bu işle kapandı.
+**30 Eylül 2026 devir:** Proje Claude tarafından devralındı; yapılan işler `claude_implementation.md` dosyasında. D04/P07 PDF, onaylı fiziksel sınırlar ve gerçek Prime/Premium parçalarıyla parametrik 3D montaj kodlandı (89 test, tip/üretim derlemesi başarılı). Aşağıdaki “Önce Luna / Ardından Sol” PDF kartları bu işle kapandı.
 
 Yerelde çalışan, Almanca arayüzlü bir konfigüratör prototipi var. Ürün ve dört ölçü seçimi, onaylanmış çatı/kolon hesapları, şematik 3D, kolon düzenleme, açıklık seçimi, geri/ileri alma ve aynı tarayıcıda taslak kaydı çalışıyor. D03'ün prototip bağlantıları uygulanmış durumda; D02/D03'ün tam görsel, gerçek model ve gerçek cihaz kabulü tamamlanmış değil.
 
@@ -22,8 +22,8 @@ Son kontrol: tip/üretim derlemesi başarılı; 16 dosyada 72 test başarılı. 
 | 4 | Tasarım ve Almanca arayüz — D01/D02/P03/K02 | Taslaklar ve arayüz var; son kabul açık | Luna. Antrasit/cam menüler ve doğrudan bölüm seçimi var; gerçek %200 büyütme, klavye ve tüm durumların son kabulü yapılacak. |
 | 5 | Şematik 3D ve arayüz bağlantıları — P04/D03 | Çalışan prototip | Sol; Astra hata incelemesi yapıldı. Kolon sürükleme, alan seçimi, geri/ileri alma ve durum mesajları var. Gerçek telefon FPS/GPU kabulü açık. |
 | 6 | Kaydetme ve geri açma — P06 | Yerel kayıt var; bağlantıyla paylaşım yok | Sol. Çevrimiçi kayıt ve başka cihazdan açılan bağlantı için sunucu/depolama eklenecek. |
-| 7 | Gerçek modelleri web için hazırlama — P04/K03 hazırlığı | İlk inceleme ve Premium kapak onarımı yapıldı | Sol. Kaynakları koruyarak GLB dönüşümü, eksen/metre/ölçek, malzeme ve boyut kontrolleri; Premium optimizasyonu, tekil profil detayları. |
-| 8 | Gerçek parametrik veranda montajı — K03 | Bekliyor | Sol, Astra'nın doğruladığı montaj referanslarıyla. Profillerin kesitini bozmayarak genişlik/derinlik/yükseklik/eğim ve kolon yerleşimi. Prime varsayılan, Premium arka planda yükleme; ürün kimliği korunur. |
+| 7 | Gerçek modelleri web için hazırlama — P04/K03 hazırlığı | Tamamlandı (Claude, 30 Eylül): `tools/prepare_models.py`, `public/models/`, ölçüm JSON'ları | Malzeme/renk kataloğu ve telefon performans ölçümü açık. |
+| 8 | Gerçek parametrik veranda montajı — K03 | İlk sürüm çalışıyor (Claude, 30 Eylül); montaj payları **vorläufig** | Kullanıcı `design/review/MONTAGEBEZUEGE-*.png` çizimlerini onaylayacak/düzeltecek; kolon kesiti (11×12 mi 11×13,5 mi) sorulacak. Premium arka plan ön yükleme henüz yok. |
 | 9 | Sürgü cam ve diğer açıklık ürünleri — K03/K04 | Kaynak modeller var, kurallar bekliyor | Sol + Luna. 3/4/5/6 ray aralıkları, yükseklik ve montaj boşlukları; açıklığa göre hazır model seçimi ve genişlik ölçekleme. |
 | 10 | Gerçek fiyat — P05/K04 | Hücre seçimi/teklif altyapısı var; gerçek tutar yok | Sol. 530×320 → 600×350 ve minimum fiyat eksenleri 300/200 uygulanıyor. Gerçek liste, ekstra bedelleri ve fiyat kapsamı sonradan bağlanacak. |
 | 11 | PDF — P07/D04 | İndirilebilir A4 Planungsentwurf çalışıyor (Claude, 30 Eylül) | Gerçek fiyat bağlanınca mağazanın tam teklif sonucunu PDF'e geçirmek; marka/logo gelince başlık. Ayrıntı: `claude_implementation.md`. |
@@ -57,7 +57,7 @@ Bu aşamalar tek sıra bekleyen bir kuyruk değildir. PDF taslağı ve model var
 
 ## Kullanıcıdan gerekenler
 
-1. **Şimdi en faydalı bilgi: montaj referansları.** *Kullanıcı 30 Eylül: diğer bilgisayardan SketchUp ekran görüntüleriyle verilecek.* Prime ve Premium için duvar profili–taşıyıcı ve oluk–taşıyıcı birleşimini gösteren ölçülü kesit veya SketchUp açıklaması. Hangi yüzlerin oturduğunu/ölçüldüğünü işaretlemek yeterli başlangıçtır; kot ve yatay bağlantı paylarını modelden biz çıkarıp seninle doğrulayabiliriz. Mevcut modelleri yeniden yüklemek gerekmiyor.
+1. **Şimdi en faydalı bilgi: montaj referansları.** *Kullanıcı 30 Eylül: diğer bilgisayardan SketchUp ekran görüntüleriyle verilecek.* Claude referans modellerden okuduğu payları `design/review/MONTAGEBEZUEGE-prime.png` ve `-premium.png` çizimlerine ①–⑥ olarak işledi; onay veya düzeltme yeterli. Prime ve Premium için duvar profili–taşıyıcı ve oluk–taşıyıcı birleşimini gösteren ölçülü kesit veya SketchUp açıklaması. Hangi yüzlerin oturduğunu/ölçüldüğünü işaretlemek yeterli başlangıçtır; kot ve yatay bağlantı paylarını modelden biz çıkarıp seninle doğrulayabiliriz. Mevcut modelleri yeniden yüklemek gerekmiyor.
 2. **Fiziksel sınırlar.** *30 Eylül'de alındı ve kodlandı:* min. genişlik 200 cm, min. derinlik 100 cm, kolon kesitleri (Prime 11×12, Premium 13×14 cm), yüzden yüze en az 90 cm açıklık, uç kolon dış yüzünden en fazla 50 cm içeride, varsayılan yerleşim tam uçta. *Hâlâ eksik:* ön/arka yükseklik aralıkları, panel/kapak minimum eni, kesim hassasiyeti, elle seçilebilir en fazla çatı bölmesi, kolonun derinlik yönünde hareketi.
 3. **Sürgü cam tablosu.** *Kullanıcı 30 Eylül: referanslar sonra verilecek.* 3/4/5/6 ray için kesin genişlik aralıkları, yükseklik yöntemi/sınırları ve montaj boşlukları; eğimli yan taraftaki üst boşluğun nasıl tamamlandığı. 264–305 cm örneği kesin tablo olarak kullanılmayacak.
 4. **Hazır olduğunda fiyat listesi.** Prime/Premium ve cam/polikarbonat tabloları; ekstra kolon/çatı bölmesi, sürgü/alüminyum/sabit cam bedelleri; KDV, montaj ve nakliye kapsamı. Daha sonra göndereceğin bilgisi kayıtlı; bağımsız işler için şimdi zorunlu değil.

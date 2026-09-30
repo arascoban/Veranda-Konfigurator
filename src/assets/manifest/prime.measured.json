@@ -1,0 +1,302 @@
+{
+  "product": "prime",
+  "unit": "cm",
+  "upAxis": "Y",
+  "converter": "fbx2gltf 0.9.7-p1",
+  "parts": {
+    "wallProfile": {
+      "source": "Models/Terrassenüberdachungen/Prime/Wandprofil/Wandprofil.fbx",
+      "sourceSha256": "800f42797b02bef56cd3868f0257e84350e61b440fa966a40d32c21fa19b4c64",
+      "glb": "models/prime/wallProfile.glb",
+      "glbBytes": 21104,
+      "glbSha256": "6f4d922c3fac4fc76c4889005fe031207cc661a3a95d7deb7ae8dd232960b7d2",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -0.0,
+        0.0,
+        -99.6
+      ],
+      "boundsMaxCm": [
+        7.007,
+        16.0,
+        -0.4
+      ],
+      "sizeCm": [
+        7.007,
+        16.0,
+        99.2
+      ],
+      "triangles": 322,
+      "meshes": 2,
+      "materials": [
+        "M_1k_Aluminium",
+        "Material2"
+      ]
+    },
+    "wallCap": {
+      "source": "Models/Terrassenüberdachungen/Prime/Wandprofil/WandprofilDeckelLinksRechts.fbx",
+      "sourceSha256": "a36316437a5f01a4c2642cdaf34b374eb2e6a65d033f499e5a49e616603da58a",
+      "glb": "models/prime/wallCap.glb",
+      "glbBytes": 3216,
+      "glbSha256": "69b1c07581bd36002c932e75c9fb074cc7b02cb5f6db8853f74e2e00d488e2ea",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -100.0
+      ],
+      "boundsMaxCm": [
+        5.5,
+        16.0,
+        -99.6
+      ],
+      "sizeCm": [
+        5.5,
+        16.0,
+        0.4
+      ],
+      "triangles": 20,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "gutter": {
+      "source": "Models/Terrassenüberdachungen/Prime/Regenrinne/regenrinne.fbx",
+      "sourceSha256": "e506e34ed2bd731964e8110dd2f7a20ad6db32e04b94252bec7920e79042a5cf",
+      "glb": "models/prime/gutter.glb",
+      "glbBytes": 61172,
+      "glbSha256": "2c2906ba27f452059cba39c82eb94de47daa8987df5fa9def341953e4813e938",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -100.0
+      ],
+      "boundsMaxCm": [
+        16.4,
+        16.0,
+        0.0
+      ],
+      "sizeCm": [
+        16.4,
+        16.0,
+        100.0
+      ],
+      "triangles": 1030,
+      "meshes": 3,
+      "materials": [
+        "FrontColor",
+        "M_1k_Aluminium",
+        "Material2"
+      ]
+    },
+    "gutterCap": {
+      "source": "Models/Terrassenüberdachungen/Prime/Regenrinne/regenrinneDeckelLinksRechts.fbx",
+      "sourceSha256": "cebe7935e0b2046d757c600add99811f53ab2136741ae1e03f4b2e8a46b8cc4f",
+      "glb": "models/prime/gutterCap.glb",
+      "glbBytes": 23028,
+      "glbSha256": "120d9bc68b69caab46007a1a850a0971558c168310888b4260e482bf6ea3eb3a",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -0.0,
+        0.0,
+        -100.1
+      ],
+      "boundsMaxCm": [
+        16.5,
+        16.0,
+        -100.0
+      ],
+      "sizeCm": [
+        16.5,
+        16.0,
+        0.1
+      ],
+      "triangles": 384,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "post": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitGeradeDeckel.fbx",
+      "sourceSha256": "d92132ae2148bfea5f8e554e54d0ec9ebdff6ceef517ecf2d155e8532adf0810",
+      "glb": "models/prime/post.glb",
+      "glbBytes": 3184,
+      "glbSha256": "8f2544d4c346a42170449cec22da05df20a033008be5ddd405101759c8b42af7",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        11.0,
+        100.0,
+        0.0
+      ],
+      "sizeCm": [
+        11.0,
+        100.0,
+        11.0
+      ],
+      "triangles": 16,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "rafterMiddle": {
+      "source": "Models/Terrassenüberdachungen/Prime/Trager mittel/tragemittel.fbx",
+      "sourceSha256": "2bbd6c65ec6fb851a2dd60f06aa369e69178ecfae40f9dd4128ad23b095f6fc4",
+      "glb": "models/prime/rafterMiddle.glb",
+      "glbBytes": 175548,
+      "glbSha256": "62abf6531672308d7d61a545d893c3cacdd37ed31794bce3639ff948fc9c0845",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_acik_texture.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -0.0,
+        0.0,
+        -100.0
+      ],
+      "boundsMaxCm": [
+        5.5,
+        9.8,
+        0.0
+      ],
+      "sizeCm": [
+        5.5,
+        9.8,
+        100.0
+      ],
+      "triangles": 2862,
+      "meshes": 7,
+      "materials": [
+        "M_1k_Aluminium",
+        "M_1k_Aluminium_acik",
+        "Material2"
+      ]
+    },
+    "rafterSide": {
+      "source": "Models/Terrassenüberdachungen/Prime/Trager Seiten/tragerseiten.fbx",
+      "sourceSha256": "3a0613753867b8d637172cc3993249c424a829b0143e2ff6c971adeeb4a50a31",
+      "glb": "models/prime/rafterSide.glb",
+      "glbBytes": 98028,
+      "glbSha256": "9ac57a8e75ab2de4308fe7f7e208a53e194b598d3942234040457164deebd72a",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_acik_texture.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -0.2,
+        0.0,
+        -100.0
+      ],
+      "boundsMaxCm": [
+        5.5,
+        9.807,
+        0.0
+      ],
+      "sizeCm": [
+        5.7,
+        9.807,
+        100.0
+      ],
+      "triangles": 1570,
+      "meshes": 5,
+      "materials": [
+        "M_1k_Aluminium",
+        "M_1k_Aluminium_acik",
+        "Material2"
+      ]
+    },
+    "cover": {
+      "source": "Models/Terrassenüberdachungen/Prime/Zwischendeckel/Zwischendeckel.fbx",
+      "sourceSha256": "a01223036ecc79bf1725b62e76fb1246aeebc7d5ce98ee36d25966c3ed002fc7",
+      "glb": "models/prime/cover.glb",
+      "glbBytes": 43360,
+      "glbSha256": "0aaeb900a30c2055b1267c6f01de34b26ff0e8339a796426f5fe8bf80913b758",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        -3.1,
+        0.0,
+        -100.0
+      ],
+      "boundsMaxCm": [
+        0.4,
+        9.477,
+        0.0
+      ],
+      "sizeCm": [
+        3.5,
+        9.477,
+        100.0
+      ],
+      "triangles": 682,
+      "meshes": 2,
+      "materials": [
+        "M_1k_Aluminium",
+        "Material2"
+      ]
+    },
+    "panel": {
+      "source": "Models/Terrassenüberdachungen/Prime/DachElement/DachElementGlasUndPolycarbonat.fbx",
+      "sourceSha256": "792b1b32c72e48299a37ba3c1cca068238b60adc5e3f20bcdd81d2138492571f",
+      "glb": "models/prime/panel.glb",
+      "glbBytes": 2884,
+      "glbSha256": "e560b117218f32d74f26dd76e201788aa8e18fc16cfd2ff0e23ebcb7ea58dede",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -100.0
+      ],
+      "boundsMaxCm": [
+        100.0,
+        0.7,
+        0.0
+      ],
+      "sizeCm": [
+        100.0,
+        0.7,
+        100.0
+      ],
+      "triangles": 12,
+      "meshes": 1,
+      "materials": [
+        "Glass_Basic_01"
+      ]
+    }
+  }
+}
