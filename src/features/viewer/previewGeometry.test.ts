@@ -14,6 +14,7 @@ describe('schematic preview dimensions', () => {
       rearHeightM: 2.7,
       frontHeightM: 2.4,
       postCentersM: [0.5, 4.5],
+      postSectionM: { alongGutterM: 0.11, towardsGardenM: 0.12 },
     });
     expect(cameraDistanceForPreview(dimensions, 45, 0.6)).toBeGreaterThan(cameraDistanceForPreview(dimensions, 45, 1.6));
   });

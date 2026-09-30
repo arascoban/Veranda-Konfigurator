@@ -1,12 +1,13 @@
 import { useEffect, useId, useState } from 'react';
 import { centimetresToMillimetres, millimetresToCentimetres } from '../../../domain/units';
 
-export function DimensionField({ label, valueMm, help, error, maximumMm, onValueChange, wide = false }: {
+export function DimensionField({ label, valueMm, help, error, maximumMm, minimumMm, onValueChange, wide = false }: {
   label: string;
   valueMm: number | null;
   help: string;
   error?: string;
   maximumMm?: number;
+  minimumMm?: number;
   onValueChange: (value: number | null) => void;
   wide?: boolean;
 }) {
@@ -35,7 +36,12 @@ export function DimensionField({ label, valueMm, help, error, maximumMm, onValue
     <div className={`dimension-field ${message ? 'dimension-field--error' : ''} ${wide ? 'form-grid__wide' : ''}`}>
       <div className="dimension-field__label-row">
         <label className="dimension-field__label" htmlFor={id}>{label}</label>
-        {maximumMm !== undefined && <span className="dimension-field__limit">Max. {formatCentimetres(millimetresToCentimetres(maximumMm))} cm</span>}
+        {(minimumMm !== undefined || maximumMm !== undefined) && <span className="dimension-field__limit">
+          {minimumMm !== undefined && maximumMm !== undefined
+            ? `${formatCentimetres(millimetresToCentimetres(minimumMm))}–${formatCentimetres(millimetresToCentimetres(maximumMm))} cm`
+            : maximumMm !== undefined ? `Max. ${formatCentimetres(millimetresToCentimetres(maximumMm))} cm`
+              : `Min. ${formatCentimetres(millimetresToCentimetres(minimumMm!))} cm`}
+        </span>}
       </div>
       <div className="dimension-field__control">
         <input id={id} className="dimension-field__input" type="text" inputMode="decimal" autoComplete="off"

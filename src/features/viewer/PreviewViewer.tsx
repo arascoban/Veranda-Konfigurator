@@ -292,7 +292,7 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
                 onClick={() => { setSelectedPostId(null); setSelectedOpening(span); }}>
                 Feld {span.index + 1}
               </button>)}
-              {activeOpening && <span> Achsenabstand {millimetresToCentimetres(activeOpening.spanMm)} cm; kein lichtes Maß.</span>}
+              {activeOpening && <span> Achsenabstand {millimetresToCentimetres(activeOpening.spanMm)} cm · lichte Weite {millimetresToCentimetres(activeOpening.clearMm)} cm.</span>}
             </div>}
             <div className="preview-position-row">
             {selectedIndex >= 0 && selectedRange ? <>
@@ -312,7 +312,7 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
             </> : <span>Wählen Sie einen Träger im Modell oder über seine Nummer.</span>}
             </div>
           </> : <span>Noch keine Träger gesetzt.</span>}
-          <small>Im Modell antippen und entlang der Rinne ziehen. Abstände beziehen sich auf die Achsen.</small>
+          <small>Im Modell antippen und entlang der Rinne ziehen. Positionen beziehen sich auf die Trägerachse; die lichte Weite ist der Abstand zwischen den Trägerseiten.</small>
         </>}
       </div>}
       <p className="preview-note" role="status" aria-live="polite">

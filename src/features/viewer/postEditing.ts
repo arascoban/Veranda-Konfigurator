@@ -1,8 +1,12 @@
-import { END_POST_MAX_INSET_MM, MAX_WIDTH_MM, maxPostCenterGapMm, type ProductId } from '../../catalog/catalog';
-import { validatePostCenters, type PostCenter } from '../../domain/geometry/posts';
+import { END_POST_MAX_INSET_MM, MAX_WIDTH_MM, MIN_CLEAR_OPENING_MM, maxPostCenterGapMm, postWidthMm, type ProductId } from '../../catalog/catalog';
+import { clearOpeningMm, flushEndPostCenters, validatePostCenters, type PostCenter } from '../../domain/geometry/posts';
 
 export type OpeningAxisSpan = {
-  index: number; leftPostId: string; rightPostId: string; spanMm: number;
+  index: number; leftPostId: string; rightPostId: string;
+  /** Centre-to-centre distance. */
+  spanMm: number;
+  /** Face-to-face distance between the two posts; sliding-glass allowances are not deducted. */
+  clearMm: number;
 };
 export type OpeningSelection = Pick<OpeningAxisSpan, 'leftPostId' | 'rightPostId'>;
 
@@ -11,7 +15,7 @@ export function findSelectedOpening(spans: readonly OpeningAxisSpan[], selection
   return selection ? spans.find((span) => span.leftPostId === selection.leftPostId && span.rightPostId === selection.rightPostId) : undefined;
 }
 
-/** Schematic axis spans only; these are not clear opening or order dimensions. */
+/** Axis spans and clear openings between posts; mounting allowances of infill products are not deducted. */
 export function openingAxisSpans(productId: ProductId, widthMm: number, posts: readonly PostCenter[]): OpeningAxisSpan[] {
   if (validatePostCenters(productId, widthMm, posts).length) return [];
   return posts.slice(1).map((post, offset) => ({
@@ -19,15 +23,14 @@ export function openingAxisSpans(productId: ProductId, widthMm: number, posts: r
     leftPostId: posts[offset].id,
     rightPostId: post.id,
     spanMm: post.xMm - posts[offset].xMm,
+    clearMm: clearOpeningMm(productId, posts[offset].xMm, post.xMm),
   }));
 }
 
-/** The widest permitted end inset gives the fewest posts without inventing mounting clearances. */
+/** Default layout: end posts flush with the gutter ends, then the fewest posts under the centre-gap rule. */
 export function createMinimumPostLayout(productId: ProductId, widthMm: number): PostCenter[] | null {
   if (!Number.isSafeInteger(widthMm) || widthMm <= 0 || widthMm > MAX_WIDTH_MM) return null;
-  const inset = Math.min(END_POST_MAX_INSET_MM, Math.floor(widthMm / 4));
-  const left = inset;
-  const right = widthMm - inset;
+  const { leftMm: left, rightMm: right } = flushEndPostCenters(productId, widthMm);
   const maxGap = maxPostCenterGapMm(productId, widthMm);
   const gaps = Math.max(1, Math.ceil((right - left) / maxGap));
   const posts = Array.from({ length: gaps + 1 }, (_, index) => ({
@@ -43,12 +46,14 @@ export function postMoveRange(productId: ProductId, widthMm: number, posts: read
 } | null {
   if (!Number.isSafeInteger(widthMm) || widthMm <= 0 || index < 0 || index >= posts.length || posts.length < 2) return null;
   const maxGap = maxPostCenterGapMm(productId, widthMm);
+  const minCenterGap = postWidthMm(productId) + MIN_CLEAR_OPENING_MM;
+  const flush = flushEndPostCenters(productId, widthMm);
   const previous = posts[index - 1];
   const next = posts[index + 1];
-  let minMm = index === 0 ? 0 : previous.xMm + 1;
-  let maxMm = index === posts.length - 1 ? widthMm : next.xMm - 1;
-  if (index === 0) maxMm = Math.min(maxMm, END_POST_MAX_INSET_MM);
-  if (index === posts.length - 1) minMm = Math.max(minMm, widthMm - END_POST_MAX_INSET_MM);
+  let minMm = index === 0 ? flush.leftMm : previous.xMm + minCenterGap;
+  let maxMm = index === posts.length - 1 ? flush.rightMm : next.xMm - minCenterGap;
+  if (index === 0) maxMm = Math.min(maxMm, flush.leftMm + END_POST_MAX_INSET_MM);
+  if (index === posts.length - 1) minMm = Math.max(minMm, flush.rightMm - END_POST_MAX_INSET_MM);
   if (previous) maxMm = Math.min(maxMm, previous.xMm + maxGap);
   if (next) minMm = Math.max(minMm, next.xMm - maxGap);
   return minMm <= maxMm ? { minMm, maxMm } : null;

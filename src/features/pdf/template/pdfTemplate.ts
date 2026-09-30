@@ -1,6 +1,6 @@
 import { de, issueTextDe } from '../../../content/de';
 import { evaluateConfiguration } from '../../../domain/evaluateConfiguration';
-import { ROOF_SUPPORT_WIDTH_MM } from '../../../catalog/catalog';
+import { ROOF_SUPPORT_WIDTH_MM, postSections, postWidthMm } from '../../../catalog/catalog';
 import type { PdfDocumentSnapshot } from '../service/documentSnapshot';
 
 export type PdfRow = { label: string; value: string };
@@ -12,6 +12,7 @@ export type PdfPlanDrawing = {
   depthMm: number;
   roofSupportCentersMm: number[];
   postCentersMm: number[];
+  postSectionMm: { alongGutterMm: number; towardsGardenMm: number };
   caption: string;
 };
 
@@ -121,8 +122,10 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
         heading: 'Stützen',
         rows: [
           { label: 'Anzahl', value: String(posts.length) },
+          { label: 'Querschnitt', value: `${postSections[configuration.productId].alongGutterMm / 10} × ${postSections[configuration.productId].towardsGardenMm / 10} cm` },
           { label: 'Achsen ab links', value: posts.map((x) => numberDe.format(x / 10)).join(' · ') + ' cm' },
           { label: 'Achsabstände', value: gaps.map((gap) => numberDe.format(gap / 10)).join(' · ') + ' cm' },
+          { label: 'Lichte Weiten', value: gaps.map((gap) => numberDe.format((gap - postWidthMm(configuration.productId)) / 10)).join(' · ') + ' cm' },
         ],
       },
     ],
@@ -132,6 +135,7 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
       roofSupportCentersMm: Array.from({ length: roof.supportCount },
         (_, index) => ROOF_SUPPORT_WIDTH_MM / 2 + index * supportPitch),
       postCentersMm: posts,
+      postSectionMm: { ...postSections[configuration.productId] },
       caption: 'Schematische Draufsicht, Blick von der Hauswand. Keine Produktabbildung, nicht für die Fertigung.',
     },
     price,

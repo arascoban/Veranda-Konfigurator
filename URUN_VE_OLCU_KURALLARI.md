@@ -30,13 +30,15 @@ Güncelleme: 29 Eylül 2026. Kaynak: kullanıcının ürün açıklamaları, fiy
 - Çatı eğimi hesaplanırken yalnızca iki giriş yüksekliğinin farkı kullanılmaz; duvar ve oluk profillerinin ilgili taşıyıcı bağlantı noktalarına kadar olan payları da hesaba katılır.
 - Uygulama verileri mm olarak tutulur; 3D sahneye geçerken metreye çevrilir. Arayüz birimi açıkça gösterilir.
 - Mevcut Prime ve Premium referans montajlarının farklı yükseklikleri özel bir ürün kısıtı değildir; kullanıcı bunun rastlantısal olduğunu ve ayarlanacağını doğruladı.
-- Onaylanan üst sınırlar ve bölme kuralları aşağıdadır. Minimum genişlik/derinlik/yükseklik, yükseklik üst sınırları ve giriş/üretim ölçü adımları henüz verilmedi. Tek örnek montajdan genel üretim kuralı çıkarılmaz.
+- Onaylanan üst sınırlar ve bölme kuralları aşağıdadır. **30 Eylül 2026:** minimum genişlik **200 cm**, minimum derinlik **100 cm** (Prime/Premium, cam/polikarbonat için aynı). Minimum/maksimum yükseklik ve giriş/üretim ölçü adımları henüz verilmedi. Tek örnek montajdan genel üretim kuralı çıkarılmaz.
 
 ### 2.1. Kesinleşen sınırlar
 
 | Kural | Cam | Polikarbonat |
 | --- | ---: | ---: |
+| Minimum genişlik | 200 cm | 200 cm |
 | Maksimum genişlik | 1200 cm | 1200 cm |
+| Minimum yatay derinlik | 100 cm | 100 cm |
 | Maksimum yatay derinlik | 400 cm | 500 cm |
 | Son panel eni üst sınırı, ekleme payı dahil | 86 cm | 98 cm |
 | Panel enine eklenen pay | 3,2 cm | 3,5 cm |
@@ -75,6 +77,16 @@ Polikarbonat panel eni = c + 3,5
 Tablo aritmetik örnektir; fiyat veya bütün montajın üretim onayı değildir. Her örnekte bir önceki bölme sayısı panel üst sınırını aşar.
 
 ### 2.3. Kolonlar ve kullanılabilir açıklıklar
+
+**30 Eylül 2026 güncellemesi (kullanıcı onayı; aşağıdaki eski maddelerde çelişen ifadelerin yerine geçer):**
+
+- Kolon kesitleri: **Prime 11 × 12 cm**, **Premium 13 × 14 cm**. İlk sayı oluk yönündeki (genişlik ekseni) kolon eni, ikinci sayı bahçeye bakan yüzün ölçüsüdür. Kod: `postSections` (`catalog.ts`).
+- **Kolonlar arası açıklık kolon yüzlerinden ölçülür**, merkezden değil: `lichte Weite = merkez aralığı − kolon eni`. Örnek: 200 cm Premium, iki kolon tam uçta → 200 − 13 − 13 = **174 cm**. Bu açıklık en az **90 cm** olmalıdır (`MIN_CLEAR_OPENING_MM`). ChatGPT döneminde bu ölçü merkez aralığıyla karıştırılmıştı; artık değil.
+- **Tam uçta:** kolonun dış yüzü oluğun ucuyla aynı hizada. Yeni tasarımda kolonlar bu konumda başlar (Prime merkez 5,5 cm, Premium 6,5 cm içeride). Kolon oluğun dışına taşamaz.
+- **Uç kolon içeri alma sınırı 50 cm, kolonun dış yüzünden ölçülür** (merkezden değil). Prime'da merkez en fazla 55,5 cm, Premium'da 56,5 cm içeride olabilir.
+- **400 cm (Premium ≤600 cm'de 600 cm) üst sınırı merkezden merkeze ölçülmeye devam eder.** Yalnız 90 cm alt sınırı yüzden yüze ölçülür.
+- Sonuçlar: 1000 cm'de uçlar 50 cm içeri alınsa bile merkez aralığı 887 cm kalır; her iki üründe 4 kolon gerekir. 900 cm'de Premium 56,5 / 450 / 843,5 cm merkezleriyle 3 kolon mümkündür; tam uçta başlangıç yerleşimi Prime'da 4 kolon verir.
+- Sürgü cam montaj payları hâlâ bilinmiyor; lichte Weite bu payları düşmez.
 
 - **Çatı bölmesi** ile **kolonlar arası açıklık** ayrı kavram ve veri alanlarıdır. Taşıyıcı sayısı çatı bölmelerinden hesaplanır; sürgü cam sistemi kolonlar/duvarlar arasındaki açıklığa yerleşir.
 - **Prime:** iki komşu kolonun **merkezleri arası** en fazla 400 cm olur. Kullanıcı merkez referansını doğruladı; örneğin 600 cm Prime için 3 kolon gerekir. Uç kolon konumları belirlenmeden yalnız toplam genişlikten kesin yerleşim çıkarılmaz. İlk/son kolon merkezleri arasındaki mesafe `S` ise, eşit dağılımda mesafe kuralı için gereken en az kolon sayısı `ceil(S/400)+1` olur. `S`, oluk genişliğiyle otomatik olarak aynı sayılmaz.

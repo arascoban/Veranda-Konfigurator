@@ -1,3 +1,4 @@
+import { MAX_WIDTH_MM, MIN_DEPTH_MM, MIN_WIDTH_MM, postSections, roofMaterials } from '../../../catalog/catalog';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import type { ConfigurationEvaluation } from '../../../domain/evaluateConfiguration';
 import { de, issueTextDe } from '../../../content/de';
@@ -19,8 +20,9 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onEd
     const issue = evaluation.issues.find((item) => item.kind === 'invalid' && item.field === `dimensionsMm.${field}`);
     return issue ? issueTextDe[issue.code] ?? 'Bitte prüfen Sie dieses Maß.' : undefined;
   };
-  const maximum = (field: DimensionKey): number | undefined => field === 'width' ? 12000
-    : field === 'depth' ? (configuration.roofMaterialId === 'glass' ? 4000 : 5000) : undefined;
+  const maximum = (field: DimensionKey): number | undefined => field === 'width' ? MAX_WIDTH_MM
+    : field === 'depth' ? roofMaterials[configuration.roofMaterialId].maxDepthMm : undefined;
+  const minimum = (field: DimensionKey): number | undefined => field === 'width' ? MIN_WIDTH_MM : field === 'depth' ? MIN_DEPTH_MM : undefined;
   const setDimension = (field: DimensionKey, value: number | null) => onChange({
     ...configuration,
     dimensionsMm: { ...configuration.dimensionsMm, [field]: value },
@@ -31,7 +33,7 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onEd
       <div className="form-grid">
         {fields.map((field, index) => (
           <DimensionField key={field} label={de.dimensions[field].label} valueMm={configuration.dimensionsMm[field]}
-            help={de.dimensions[field].help} error={fieldError(field)} maximumMm={maximum(field)}
+            help={de.dimensions[field].help} error={fieldError(field)} maximumMm={maximum(field)} minimumMm={minimum(field)}
             wide={index < 2} onValueChange={(value) => setDimension(field, value)} />
         ))}
       </div>
@@ -68,7 +70,7 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onEd
           {evaluation.issues.filter((issue) => issue.kind === 'invalid' && issue.field === 'postCenters').map((issue) => (
             <StatusMessage key={issue.code} tone="error">{issueTextDe[issue.code] ?? 'Bitte prüfen Sie die Trägeranordnung.'}</StatusMessage>
           ))}
-          <p className="field-hint">Die Achsenposition wird vom linken Rinnenende aus gemessen.</p>
+          <p className="field-hint">Die Achsenposition wird vom linken Rinnenende aus gemessen. Trägerquerschnitt {de.products[configuration.productId]}: {postSections[configuration.productId].alongGutterMm / 10} × {postSections[configuration.productId].towardsGardenMm / 10} cm.</p>
         </div>
       ) : <StatusMessage tone="info" title="Trägerpositionen noch offen">
         Wählen Sie eine Anordnung in der 3D-Ansicht. Die Mindestanordnung wird aus Produkt und Breite bestimmt.

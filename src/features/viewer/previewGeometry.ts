@@ -1,3 +1,4 @@
+import { postSections } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { millimetresToMetres } from '../../domain/units';
 
@@ -8,6 +9,8 @@ export type PreviewDimensions = {
   rearHeightM: number;
   frontHeightM: number;
   postCentersM: number[];
+  /** Confirmed post cross-section; the schematic still has no real profile geometry. */
+  postSectionM: { alongGutterM: number; towardsGardenM: number };
 };
 
 export function previewDimensions(configuration: ConfigurationV1): PreviewDimensions | null {
@@ -23,6 +26,10 @@ export function previewDimensions(configuration: ConfigurationV1): PreviewDimens
     rearHeightM: millimetresToMetres(rearHeight),
     frontHeightM: millimetresToMetres(frontHeight),
     postCentersM: postCenters.map((post) => millimetresToMetres(post.xMm)),
+    postSectionM: {
+      alongGutterM: millimetresToMetres(postSections[configuration.productId].alongGutterMm),
+      towardsGardenM: millimetresToMetres(postSections[configuration.productId].towardsGardenMm),
+    },
   };
 }
 

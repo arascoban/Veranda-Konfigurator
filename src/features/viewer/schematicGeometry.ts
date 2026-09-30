@@ -24,7 +24,7 @@ export function createSchematicGroup(
 ): Group {
   const group = new Group();
   group.userData.previewOnly = true;
-  const { widthM, depthM, rearHeightM, frontHeightM, postCentersM } = dimensions;
+  const { widthM, depthM, rearHeightM, frontHeightM, postCentersM, postSectionM } = dimensions;
 
   const roofGeometry = new BufferGeometry();
   roofGeometry.setAttribute('position', new Float32BufferAttribute([
@@ -51,8 +51,9 @@ export function createSchematicGroup(
     group.add(beam);
   }
   postCentersM.forEach((centerM, index) => {
-    const post = new Mesh(new CylinderGeometry(0.018, 0.018, frontHeightM, 8), guideMaterial.clone());
-    post.position.set(centerM, frontHeightM / 2, depthM);
+    // Post box with the confirmed cross-section; its garden-facing side ends at the nominal depth.
+    const post = new Mesh(new BoxGeometry(postSectionM.alongGutterM, frontHeightM, postSectionM.towardsGardenM), guideMaterial.clone());
+    post.position.set(centerM, frontHeightM / 2, depthM - postSectionM.towardsGardenM / 2);
     post.userData.postIndex = index;
     post.userData.postVisual = true;
     group.add(post);

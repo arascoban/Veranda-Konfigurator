@@ -135,9 +135,11 @@ function drawPlan(layout: Layout, fonts: Fonts, plan: PdfPlanDrawing, x: number,
   // Wall line and gutter line.
   page.drawLine({ start: { x: left - 8, y: wallY }, end: { x: left + w + 8, y: wallY }, thickness: 3, color: colors.anthracite });
   page.drawLine({ start: { x: left, y: frontY }, end: { x: left + w, y: frontY }, thickness: 1.6, color: colors.anthracite });
-  const postSize = 5;
+  // Posts at scale, but never thinner than a visible mark; the garden side sits on the gutter line.
+  const postW = Math.max(3, plan.postSectionMm.alongGutterMm * scale);
+  const postD = Math.max(3, plan.postSectionMm.towardsGardenMm * scale);
   for (const center of plan.postCentersMm) {
-    page.drawRectangle({ x: left + center * scale - postSize / 2, y: frontY - postSize / 2, width: postSize, height: postSize, color: colors.anthracite });
+    page.drawRectangle({ x: left + center * scale - postW / 2, y: frontY - postD, width: postW, height: postD, color: colors.anthracite });
   }
 
   const small = 8;
