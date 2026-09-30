@@ -9,7 +9,6 @@ import { Button } from '../../../ui/Button';
 import { StatusMessage } from '../../../ui/StatusMessage';
 import { DimensionField } from './DimensionField';
 
-const fields: DimensionKey[] = ['width', 'depth', 'rearHeight', 'frontHeight'];
 
 export function ConstructionSettings({ configuration, evaluation, onChange, selectedPostId = null, onSelectPost }: {
   configuration: ConfigurationV1;
@@ -41,34 +40,32 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
   return (
     <section aria-labelledby="construction-heading">
       <h3 id="construction-heading" className="section-heading">Maße der Überdachung</h3>
-      <figure className="measure-figure">
-        <img src={`${import.meta.env.BASE_URL}images/masse-abcde.jpg`} alt="Maßskizze: A Tiefe, B Breite, C Gesamthöhe, D Höhe hinten, E Höhe vorne" />
-        <figcaption>A Tiefe · B Breite · C Gesamthöhe · D Höhe hinten · E Höhe vorne</figcaption>
-      </figure>
       <div className="form-grid">
-        {fields.map((field, index) => {
+        {(['width', 'depth'] as DimensionKey[]).map((field) => {
           const range = dimensionRange(configuration, field);
           return <DimensionField key={field} label={de.dimensions[field].label} valueMm={configuration.dimensionsMm[field]}
-            help={de.dimensions[field].help} error={fieldError(field)} minimumMm={range?.minMm} maximumMm={range?.maxMm}
-            wide onValueChange={(value) => setDimension(field, value)} />;
+            error={fieldError(field)} minimumMm={range?.minMm} maximumMm={range?.maxMm} wide
+            onValueChange={(value) => setDimension(field, value)} />;
         })}
       </div>
-      <div className="total-height" aria-live="polite">
-        <span className="total-height__label">Gesamthöhe (C)</span>
-        <span className="total-height__value">{configuration.dimensionsMm.rearHeight === null ? '–'
-          : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`}</span>
-        <span className="field-hint">Höhe hinten + Wandprofil ({assemblySpecs[configuration.productId].wallProfileHeightMm / 10} cm); wird nicht eingegeben.</span>
-      </div>
-      <div className="slope-status">
-        {evaluation.slope?.status === 'calculated'
-          ? <StatusMessage tone={evaluation.slope.withinLimit ? 'success' : 'error'} title="Dachneigung">
-            {formatNumber(evaluation.slope.degrees)}° · {evaluation.slope.withinLimit ? 'innerhalb von 5° bis 12°' : 'außerhalb von 5° bis 12°'}
-            {' · '}Die Neigung bleibt erhalten, wenn Sie Tiefe oder Höhe vorne ändern; über die Höhe hinten ändern Sie die Neigung.
-            {evaluation.issues.some((issue) => issue.code === 'roof_attachment_offsets_provisional') && ' Montagebezüge vorläufig.'}
-          </StatusMessage>
-          : <StatusMessage tone="warning" title="Dachneigung noch nicht berechnet">
-            Bitte Tiefe sowie Höhe vorne und hinten angeben.
-          </StatusMessage>}
+      <figure className="measure-figure">
+        <img src={`${import.meta.env.BASE_URL}images/masse-abcde.jpg`} alt="Maßskizze: A Tiefe, B Breite, C Gesamthöhe, D Höhe hinten, E Höhe vorne" />
+      </figure>
+      <div className="form-grid form-grid--pairs">
+        <DimensionField label={de.dimensions.frontHeight.label} valueMm={configuration.dimensionsMm.frontHeight}
+          error={fieldError('frontHeight')} minimumMm={dimensionRange(configuration, 'frontHeight')?.minMm}
+          maximumMm={dimensionRange(configuration, 'frontHeight')?.maxMm} onValueChange={(value) => setDimension('frontHeight', value)} />
+        <ReadOnlyValue label="Neigung" limit="5–12°"
+          value={evaluation.slope?.status === 'calculated' ? `${formatNumber(evaluation.slope.degrees)}°` : '–'}
+          tone={evaluation.slope?.status === 'calculated' && !evaluation.slope.withinLimit ? 'error' : undefined}
+          info={'Die Neigung bleibt erhalten, wenn Sie Tiefe oder Höhe vorne ändern. Über die Höhe hinten ändern Sie die Neigung; zulässig sind 5° bis 12°.'
+            + (evaluation.issues.some((issue) => issue.code === 'roof_attachment_offsets_provisional') ? ' Die Montagebezüge sind vorläufig.' : '')} />
+        <DimensionField label={de.dimensions.rearHeight.label} valueMm={configuration.dimensionsMm.rearHeight}
+          error={fieldError('rearHeight')} minimumMm={dimensionRange(configuration, 'rearHeight')?.minMm}
+          maximumMm={dimensionRange(configuration, 'rearHeight')?.maxMm} onValueChange={(value) => setDimension('rearHeight', value)} />
+        <ReadOnlyValue label="Gesamthöhe (C)"
+          value={configuration.dimensionsMm.rearHeight === null ? '–'
+            : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`} />
       </div>
 
       <h3 className="section-subheading">Pfosten</h3>
@@ -139,6 +136,21 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
       </div>
       {firstInvalid && <p className="sr-only">{issueTextDe[firstInvalid.code] ?? 'Die Konfiguration enthält ungültige Angaben.'}</p>}
     </section>
+  );
+}
+
+/** Value the customer cannot type (calculated); optional "i" with an explanation. */
+function ReadOnlyValue({ label, value, limit, info, tone }: { label: string; value: string; limit?: string; info?: string; tone?: 'error' }) {
+  return (
+    <div className={`dimension-field readonly-value ${tone === 'error' ? 'dimension-field--error' : ''}`}>
+      <div className="dimension-field__label-row">
+        <span className="dimension-field__label">{label}{info && <span className="info-dot" tabIndex={0} role="note" aria-label={info} data-tip={info}>i</span>}</span>
+        {limit && <span className="dimension-field__limit">{limit}</span>}
+      </div>
+      <div className="dimension-field__control readonly-value__control" aria-readonly="true">
+        <output className="dimension-field__input">{value}</output>
+      </div>
+    </div>
   );
 }
 

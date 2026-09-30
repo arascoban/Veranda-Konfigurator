@@ -8,7 +8,8 @@ import { centimetresToMillimetres, millimetresToCentimetres } from '../../../dom
 export function DimensionField({ label, valueMm, help, error, maximumMm, minimumMm, onValueChange, wide = false, stepMm = 10 }: {
   label: string;
   valueMm: number | null;
-  help: string;
+  /** Omitted: no help line is reserved under the field (compact layout). */
+  help?: string;
   error?: string;
   maximumMm?: number;
   minimumMm?: number;
@@ -82,9 +83,9 @@ export function DimensionField({ label, valueMm, help, error, maximumMm, minimum
         <button type="button" className="dimension-field__step" aria-label={`${label} um 1 cm erhöhen`}
           disabled={!canStep(1)} onClick={() => step(1)}>+</button>
       </div>
-      <p id={`${id}-message`} className={message ? 'dimension-field__error' : 'dimension-field__help'}>
+      {(message || help) && <p id={`${id}-message`} className={message ? 'dimension-field__error' : 'dimension-field__help'}>
         {message || help}
-      </p>
+      </p>}
     </div>
   );
 }

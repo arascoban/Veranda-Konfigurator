@@ -150,6 +150,13 @@ Açık: alan (Feld) üzerine gelince "+" arayüzü (Glasschiebewand vb.) ve ayak
 
 Doğrulama: 95 test, derleme; tarayıcıda ölçü katmanı ve Feld etiketi ("Front 1"), boru ağzı bozulmadan, panel ucu kapakla hizalı, uç taşıyıcı kapak içinde; salt tıklama ayağı kaydırmıyor. Hata kaydı: `CLAUDE-K03-005` (üç dilimli ayak → alan düzlemleri üçe katlanmıştı).
 
+## 6. İş — Sabit ölçü yazıları, altın oklar, kompakt ölçü paneli (30 Eylül, dördüncü tur)
+
+- Ölçü etiketleri artık kameraya dönmüyor: yükseklikler duvara paralel dik düzlemde, diğerleri yerde yatık (`createFlatLabel`); derinlik çizgilerinin yazısı çizgi boyunca. Bahçeden bakışta okunur yönde.
+- Ek ölçüler: **Tiefe links / Tiefe rechts** (uç ayağın duvara bakan yüzünden duvara kadar = Tiefe − ayak derinliği). Alan ölçüleri sadece "Front n …".
+- Hareket okları `#D4AF37`; halka ve oklar derinlik testiyle çiziliyor (ayağın önünde "kaymış" görünmüyor).
+- Sol panel referans düzeni: Breite/Tiefe (yardım metinleri kaldırıldı) → A–E görsel → [Höhe vorne (E) | Neigung ⓘ] → [Höhe hinten (D) | Gesamthöhe (C)]; Neigung ve Gesamthöhe girilemeyen kutular, eğim açıklaması "i" ipucunda.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

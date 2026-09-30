@@ -1,4 +1,4 @@
-import { postWidthMm } from '../../catalog/catalog';
+import { postSections, postWidthMm } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { assemblySpecs } from './spec';
 import type { Vec3 } from './placements';
@@ -14,6 +14,10 @@ export type DimensionLine = {
   fromMm: Vec3;
   toMm: Vec3;
   tick: Vec3;
+  /** Where the label lies: flat on the ground or parallel to the wall (heights). */
+  plane: 'ground' | 'wall';
+  /** Optional label shift from the line midpoint (mm) to keep neighbouring labels apart. */
+  labelOffsetMm?: Vec3;
 };
 
 /** Field (opening) names as the customer sees them from the garden: "Front 1" is the garden-left field. */
@@ -31,12 +35,16 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
   if (W === null || D === null || Hr === null || Hf === null) return [];
   const spec = assemblySpecs[configuration.productId];
   const gap = 350;           // distance of the main lines from the structure
+  // Depth behind the posts: from the post's wall-facing side to the wall, on the garden-left (x = W) and garden-right end.
+  const behindPost = D - postSections[configuration.productId].towardsGardenMm;
   const lines: DimensionLine[] = [
-    { id: 'width', label: `Breite (B) ${metres(W)}`, fromMm: [0, 0, -D - gap - 450], toMm: [W, 0, -D - gap - 450], tick: [0, 0, 1] },
-    { id: 'depth', label: `Tiefe (A) ${metres(D)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, 0, -D], tick: [-1, 0, 0] },
-    { id: 'rearHeight', label: `Höhe hinten (D) ${metres(Hr)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, Hr, 0], tick: [-1, 0, 0] },
-    { id: 'totalHeight', label: `Gesamthöhe (C) ${metres(Hr + spec.wallProfileHeightMm)}`, fromMm: [-gap - 250, 0, 0], toMm: [-gap - 250, Hr + spec.wallProfileHeightMm, 0], tick: [1, 0, 0] },
-    { id: 'frontHeight', label: `Durchgangshöhe (E) ${metres(Hf)}`, fromMm: [-gap, 0, -D], toMm: [-gap, Hf, -D], tick: [1, 0, 0] },
+    { id: 'width', label: `Breite (B) ${metres(W)}`, fromMm: [0, 0, -D - gap - 450], toMm: [W, 0, -D - gap - 450], tick: [0, 0, 1], plane: 'ground' },
+    { id: 'depth', label: `Tiefe (A) ${metres(D)}`, fromMm: [W + gap + 350, 0, 0], toMm: [W + gap + 350, 0, -D], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [200, 0, 0] },
+    { id: 'depthLeft', label: `Tiefe links ${metres(behindPost)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, 0, -behindPost], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [-200, 0, 0] },
+    { id: 'depthRight', label: `Tiefe rechts ${metres(behindPost)}`, fromMm: [-gap, 0, 0], toMm: [-gap, 0, -behindPost], tick: [1, 0, 0], plane: 'ground', labelOffsetMm: [200, 0, 0] },
+    { id: 'rearHeight', label: `Höhe hinten (D) ${metres(Hr)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, Hr, 0], tick: [-1, 0, 0], plane: 'wall' },
+    { id: 'totalHeight', label: `Gesamthöhe (C) ${metres(Hr + spec.wallProfileHeightMm)}`, fromMm: [-gap - 250, 0, 0], toMm: [-gap - 250, Hr + spec.wallProfileHeightMm, 0], tick: [1, 0, 0], plane: 'wall' },
+    { id: 'frontHeight', label: `Durchgangshöhe (E) ${metres(Hf)}`, fromMm: [-gap, 0, -D], toMm: [-gap, Hf, -D], tick: [1, 0, 0], plane: 'wall' },
   ];
   const posts = configuration.postCenters ?? [];
   const postWidth = postWidthMm(configuration.productId);
@@ -47,8 +55,8 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
     const right = posts[index + 1].xMm - postWidth / 2;
     lines.push({
       id: `field-${posts[index].id}-${posts[index + 1].id}`,
-      label: `Breite ${fieldName(index, fieldCount)} ${metres(right - left)}`,
-      fromMm: [left, 0, -D - gap], toMm: [right, 0, -D - gap], tick: [0, 0, 1],
+      label: `${fieldName(index, fieldCount)} ${metres(right - left)}`,
+      fromMm: [left, 0, -D - gap], toMm: [right, 0, -D - gap], tick: [0, 0, 1], plane: 'ground',
     });
   }
   return [...lines, ...extraLines];
