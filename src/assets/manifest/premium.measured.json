@@ -228,6 +228,40 @@
         "Metal_06_1K"
       ]
     },
+    "postRohr": {
+      "source": "Models/Terrassenüberdachungen/Premium/Pfosten/PfostenMitRohr.fbx",
+      "sourceSha256": "1c04f1a7566c34f1fe20ec56995b2b4dfb1e2daae979e58dcc567eaaf43803d3",
+      "glb": "models/premium/postRohr.glb",
+      "glbBytes": 220048,
+      "glbSha256": "f224582c02e0d4a6eb978c99cf33384dd22ebc992a647be6dad5eb58d7964f19",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Metal_06_1K_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -13.5
+      ],
+      "boundsMaxCm": [
+        13.0,
+        100.0,
+        4.0
+      ],
+      "sizeCm": [
+        13.0,
+        100.0,
+        17.5
+      ],
+      "triangles": 3982,
+      "meshes": 3,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M08_Obsidian_Black",
+        "Metal_06_1K"
+      ]
+    },
     "rafterMiddle": {
       "source": "Models/Terrassenüberdachungen/Premium/Trager mittel/tragermitte.fbx",
       "sourceSha256": "35e2bbd93568e04545d078561555cd2dd0c15ec791462a6a85d5aebeae544b28",
@@ -262,6 +296,128 @@
         "Metal_06_1K"
       ]
     },
+    "rafterMiddleBody": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager mittel/tragermitte.fbx",
+      "sourceSha256": "35e2bbd93568e04545d078561555cd2dd0c15ec791462a6a85d5aebeae544b28",
+      "derivedFrom": "rafterMiddle",
+      "glb": "models/premium/rafterMiddleBody.glb",
+      "glbBytes": 63240,
+      "glbSha256": "e52e429df8d09c6bafbd223aff0d60e3d4ee05d96e652d7b73d37c9f3044c035",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        -0.0,
+        0.0,
+        -0.059
+      ],
+      "boundsMaxCm": [
+        100.0,
+        10.0,
+        5.441
+      ],
+      "sizeCm": [
+        100.0,
+        10.0,
+        5.5
+      ],
+      "triangles": 2080,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
+    "rafterMiddleTop": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager mittel/tragermitte.fbx",
+      "sourceSha256": "35e2bbd93568e04545d078561555cd2dd0c15ec791462a6a85d5aebeae544b28",
+      "derivedFrom": "rafterMiddle",
+      "glb": "models/premium/rafterMiddleTop.glb",
+      "glbBytes": 452696,
+      "glbSha256": "4b31a48dedc1b23f120dc57e53fa25b5e64ae64968e0d5fd8894ed1c7c259e3d",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        9.05,
+        -0.251
+      ],
+      "boundsMaxCm": [
+        100.0,
+        11.8,
+        5.633
+      ],
+      "sizeCm": [
+        100.0,
+        2.75,
+        5.884
+      ],
+      "triangles": 13666,
+      "meshes": 6,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "rafterMiddleTopFront": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager mittel/tragermitte.fbx",
+      "sourceSha256": "35e2bbd93568e04545d078561555cd2dd0c15ec791462a6a85d5aebeae544b28",
+      "derivedFrom": "rafterMiddle",
+      "glb": "models/premium/rafterMiddleTopFront.glb",
+      "glbBytes": 364320,
+      "glbSha256": "2aaf58c457447da297906a13fb050feab4e9e089ad718925217f3e49197a0195",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        -5.0,
+        9.05,
+        -0.251
+      ],
+      "boundsMaxCm": [
+        0.0,
+        11.8,
+        5.633
+      ],
+      "sizeCm": [
+        5.0,
+        2.75,
+        5.884
+      ],
+      "triangles": 10928,
+      "meshes": 6,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "rafterMiddleTopRear": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager mittel/tragermitte.fbx",
+      "sourceSha256": "35e2bbd93568e04545d078561555cd2dd0c15ec791462a6a85d5aebeae544b28",
+      "derivedFrom": "rafterMiddle",
+      "glb": "models/premium/rafterMiddleTopRear.glb",
+      "glbBytes": 364344,
+      "glbSha256": "410e3a64baad20b81fcda05457789e6ef5a93a70ef6332c7c24d0fba4bb804f6",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        100.0,
+        9.05,
+        -0.251
+      ],
+      "boundsMaxCm": [
+        102.0,
+        11.8,
+        5.633
+      ],
+      "sizeCm": [
+        2.0,
+        2.75,
+        5.884
+      ],
+      "triangles": 10930,
+      "meshes": 6,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
     "rafterSide": {
       "source": "Models/Terrassenüberdachungen/Premium/Trager Seiten/trageseiten.fbx",
       "sourceSha256": "1d1f5e21bc20812865afbda13790b83d7cbcda8333f15bdf535521d10c90df35",
@@ -290,6 +446,128 @@
       ],
       "triangles": 9947,
       "meshes": 5,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "rafterSideBody": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager Seiten/trageseiten.fbx",
+      "sourceSha256": "1d1f5e21bc20812865afbda13790b83d7cbcda8333f15bdf535521d10c90df35",
+      "derivedFrom": "rafterSide",
+      "glb": "models/premium/rafterSideBody.glb",
+      "glbBytes": 63240,
+      "glbSha256": "3c7d1af3937ebfa2b3f11fc8c93fa0e1c9e0d5768a076a37baaf315471c2ae1d",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        -0.0,
+        0.0,
+        -0.059
+      ],
+      "boundsMaxCm": [
+        100.0,
+        10.0,
+        5.441
+      ],
+      "sizeCm": [
+        100.0,
+        10.0,
+        5.5
+      ],
+      "triangles": 2080,
+      "meshes": 1,
+      "materials": [
+        "Metal_06_1K"
+      ]
+    },
+    "rafterSideTop": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager Seiten/trageseiten.fbx",
+      "sourceSha256": "1d1f5e21bc20812865afbda13790b83d7cbcda8333f15bdf535521d10c90df35",
+      "derivedFrom": "rafterSide",
+      "glb": "models/premium/rafterSideTop.glb",
+      "glbBytes": 356776,
+      "glbSha256": "520609c925400da56dda3a5ca9ff8a5eb9aae262543ef659e01c1b122db2461f",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        0.0,
+        7.3,
+        -0.157
+      ],
+      "boundsMaxCm": [
+        100.0,
+        11.8,
+        5.532
+      ],
+      "sizeCm": [
+        100.0,
+        4.5,
+        5.689
+      ],
+      "triangles": 9843,
+      "meshes": 4,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "rafterSideTopFront": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager Seiten/trageseiten.fbx",
+      "sourceSha256": "1d1f5e21bc20812865afbda13790b83d7cbcda8333f15bdf535521d10c90df35",
+      "derivedFrom": "rafterSide",
+      "glb": "models/premium/rafterSideTopFront.glb",
+      "glbBytes": 262324,
+      "glbSha256": "83bb4cd4e6f63f8b246216cb26386692d2695cfdacd1785b57b995a7fc95ed3f",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        -5.0,
+        7.3,
+        -0.157
+      ],
+      "boundsMaxCm": [
+        0.0,
+        11.8,
+        5.532
+      ],
+      "sizeCm": [
+        5.0,
+        4.5,
+        5.689
+      ],
+      "triangles": 7870,
+      "meshes": 4,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M07_Charcoal_Gleam",
+        "Metal_06_1K"
+      ]
+    },
+    "rafterSideTopRear": {
+      "source": "Models/Terrassenüberdachungen/Premium/Trager Seiten/trageseiten.fbx",
+      "sourceSha256": "1d1f5e21bc20812865afbda13790b83d7cbcda8333f15bdf535521d10c90df35",
+      "derivedFrom": "rafterSide",
+      "glb": "models/premium/rafterSideTopRear.glb",
+      "glbBytes": 262332,
+      "glbSha256": "6f45a8a03ac0965abf6a7c2cb3ffe274a7794e82d874d486738fffb3922794da",
+      "converterWarnings": [],
+      "boundsMinCm": [
+        100.0,
+        7.3,
+        -0.157
+      ],
+      "boundsMaxCm": [
+        102.0,
+        11.8,
+        5.532
+      ],
+      "sizeCm": [
+        2.0,
+        4.5,
+        5.689
+      ],
+      "triangles": 7871,
+      "meshes": 4,
       "materials": [
         "M03_Pewter_Shine",
         "M07_Charcoal_Gleam",

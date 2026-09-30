@@ -45,7 +45,7 @@ Güncelleme: 29 Eylül 2026. Kaynak: kullanıcının ürün açıklamaları, fiy
 | İzin verilen çatı eğimi | 5–12° | 5–12° |
 
 - Kullanıcı 400/500 cm'nin **derinlik** olduğunu ve panel sınırının **ekleme yapılmış son ene** uygulandığını açıkça doğruladı.
-- Eğim, arka ve ön yükseklik girildikten sonra hesaplanır. Gerçek çatı bağlantı noktalarının kot farkı ve yatay mesafesi kullanılır; 5° ve 12° sınırları dahildir. Profil alt yüzleri ile çatı bağlantı noktaları arasındaki paylar montajda doğrulanacak.
+- Eğim, arka ve ön yükseklik girildikten sonra hesaplanır. Gerçek çatı bağlantı noktalarının kot farkı ve yatay mesafesi kullanılır; 5° ve 12° sınırları dahildir. Profil alt yüzleri ile çatı bağlantı noktaları arasındaki paylar montajda doğrulanacak. **30 Eylül 2026 kuralı:** yeni taslak 8° ile başlar (500 × 300 cm, ön 230 cm). Derinlik veya ön yükseklik değişince açı korunur ve arka yükseklik hesaplanır; müşteri arka yüksekliği değiştirirse açı değişir ve o açı korunur. Ön yükseklik 50–500 cm; arka yüksekliğin sınırları 5°–12°'den anlık hesaplanır ve sınır dışı giriş kabul edilmez. Her ölçü alanında 1 cm'lik +/− düğmeleri vardır.
 - Sınır dışındaki eğim görünür bir açıklamayla geçersiz sayılır; müşteri ölçüleri sessizce değiştirilmez. Uygun yükseklik önerisi ancak bağlantı payları biliniyorsa verilir.
 
 ### 2.2. Çatı bölmeleri, taşıyıcılar ve ara kapaklar
@@ -87,6 +87,10 @@ Tablo aritmetik örnektir; fiyat veya bütün montajın üretim onayı değildir
 - **400 cm (Premium ≤600 cm'de 600 cm) üst sınırı merkezden merkeze ölçülmeye devam eder.** Yalnız 90 cm alt sınırı yüzden yüze ölçülür.
 - Sonuçlar: 1000 cm'de uçlar 50 cm içeri alınsa bile merkez aralığı 887 cm kalır; her iki üründe 4 kolon gerekir. 900 cm'de Premium 56,5 / 450 / 843,5 cm merkezleriyle 3 kolon mümkündür; tam uçta başlangıç yerleşimi Prime'da 4 kolon verir.
 - Sürgü cam montaj payları hâlâ bilinmiyor; lichte Weite bu payları düşmez.
+- **Müşteri arayüzü bahçeden bakışı esas alır** (30 Eylül 2026): Pfosten numaraları, "ab links" konumları ve Ablauf Links/Rechts seçimi müşterinin 3D modeli gördüğü yönden (bahçeden) tanımlıdır. Konfigürasyon verisinde `postCenters.xMm` içeriden bakışta soldan ölçülmeye devam eder; dönüşüm `x_garten = W − x`. PDF planı da bahçeden bakışla çizilir.
+- **Wasserablauf:** her terasta en az bir ayak boru içerir (Prime `PfostenRohr…`, Premium `PfostenMitRohr`); yalnız uç ayaklarda olur; çıkış bahçeye bakar. Genişlik 800 cm'yi geçerse her iki uç ayakta zorunludur. Varsayılan: bahçeden bakışta sol.
+- **Prime Pfostendeckel:** müşteri Gerade / Halb seçer (`postCapStyle`); Premium'da tek ayak tipi.
+- **Ayakların terasın içine kaydırılması** ileride en fazla 100 cm; destek profili modeli gelince uygulanacak.
 
 - **Çatı bölmesi** ile **kolonlar arası açıklık** ayrı kavram ve veri alanlarıdır. Taşıyıcı sayısı çatı bölmelerinden hesaplanır; sürgü cam sistemi kolonlar/duvarlar arasındaki açıklığa yerleşir.
 - **Prime:** iki komşu kolonun **merkezleri arası** en fazla 400 cm olur. Kullanıcı merkez referansını doğruladı; örneğin 600 cm Prime için 3 kolon gerekir. Uç kolon konumları belirlenmeden yalnız toplam genişlikten kesin yerleşim çıkarılmaz. İlk/son kolon merkezleri arasındaki mesafe `S` ise, eşit dağılımda mesafe kuralı için gereken en az kolon sayısı `ceil(S/400)+1` olur. `S`, oluk genişliğiyle otomatik olarak aynı sayılmaz.

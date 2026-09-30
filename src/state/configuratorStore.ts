@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createEmptyConfiguration, parseConfiguration, type ConfigurationV1 } from '../domain/configuration';
+import { createDefaultConfiguration, parseConfiguration, type ConfigurationV1 } from '../domain/configuration';
 
 export type QuoteState =
   | { status: 'not_requested' }
@@ -19,7 +19,7 @@ type ConfiguratorState = {
 };
 
 export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
-  configuration: createEmptyConfiguration(),
+  configuration: createDefaultConfiguration(),
   revision: 0,
   quote: { status: 'not_requested' },
   replaceConfiguration: (next) => {

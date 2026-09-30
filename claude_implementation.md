@@ -113,6 +113,28 @@ Bu sayılar `src/catalog/attachmentReference.ts` (eğim kuralı için) ve `src/f
 - Ürün rengi/malzeme kataloğu yok; alüminyum nötr gri gösteriliyor.
 - Telefon performansı ve AR için GLB dışa aktarma hâlâ şematik modeli kullanıyor (`exportDemoGlb`); gerçek montajın GLB'si sonraki adım.
 
+## 4. İş — Kullanıcı düzeltmeleri ve yeni kurallar (30 Eylül, ikinci tur)
+
+Kullanıcının ekran görüntülü geri bildirimi ve yeni kuralları uygulandı:
+
+| Konu | Karar / uygulama |
+| --- | --- |
+| Prime oluk kapağı | Her iki kapak oluğun kendi yönünde (`alongX`); önceki sürümde x = 0 ucundaki kapak 180° tersti. |
+| Premium taşıyıcı 3 parça | `tools/prepare_models.py` taşıyıcı GLB'sini gövde (100 cm) + üst alüminyum şerit/kapak/contalar olarak böler; üst parçalar önde 5 cm, arkada 2 cm sabit taşkınlıkla (`rafter*Body/Top/TopFront/TopRear`). Gövde oluk ile duvar profiline bağlanır. Kesim için `shapely` gerekir. |
+| Sol yan taşıyıcı | Referanstaki gibi aynalanmış bileşen (det −1); three.js'te dönüş + negatif z ölçeğiyle uygulanır (`applyPlacement`). |
+| "Träger" → "Pfosten" | Tüm müşteri metinleri; çatı taşıyıcıları "Dachträger" olarak kalır. |
+| Ayak düzenleme | Ayrı panel kaldırıldı. Modelde üzerine gelince ayak parlar (imleç ↔), tıklayınca seçilir; seçili ayakta sağ/sol hareket okları; sürükleme oluk boyunca; boşluğa tıklama/Esc seçimi kaldırır. Seçim panel ile paylaşılır (`selectedPostId`). |
+| Pfosten bölümü | Numaralar ve konumlar **bahçeden bakışa göre soldan** (müşteri modeli bahçeden görür; konfigürasyon içi eksen içeriden-sol kalır, dönüşüm arayüzde). Düğmeler: Pfosten hinzufügen / entfernen / Felder gleichmäßig verteilen / Mindestanordnung. Prime: Pfostendeckel Gerade/Halb. Wasserablauf Links/Rechts (bahçeden bakış), 800 cm üstünde iki uçta zorunlu. |
+| Ablauf ayağı | Prime `PfostenRohrMit{Gerade,Halb}Deckel`, Premium `PfostenMitRohr`; çıkış bahçeye bakar (Prime dosyalarında bahçe yüzü yerel +X → sahnede −Z döndürülür; Premium referans gibi 180°). |
+| Başlangıç | `createDefaultConfiguration`: Prime, 500 × 300, ön 230 cm, arka 8°'den hesaplanır (273,2 cm), ayaklar tam uçta; model hemen görünür; diğer ürün arka planda ön yüklenir (`preloadProductParts`). |
+| Eğim kuralı | `domain/adjustDimensions.ts`: derinlik/ön yükseklik değişince açı korunur ve arka yükseklik hesaplanır; arka yükseklik girilirse açı değişir ve yeni açı korunur; ürün değişiminde açı korunur. Arka sınırları 5°–12°'den anlık (`rearHeightRange`); ön 50–500 cm; sınır dışı giriş reddedilir (alan eski değere döner, sınır mesajı gösterilir). |
+| +/− düğmeleri | Her ölçü alanında 1 cm adım, sınırlarda devre dışı. |
+| Kolon derinliği | Modelden: 13,5 cm (her iki ürün). |
+
+Doğrulama: 95 test; tarayıcıda varsayılan açılış (500/300/273,2/230, 8°), +1 cm ön → arka 274,2 ve 8° sabit, arka 400 reddedildi ("Zulässig sind 258,8–295,1 cm"), Premium'a geçişte 8° korunur, ayak seçiminde oklar görünür, 900 cm'de ablauf her iki uçta; yakın planlarda ablauf çıkışı bahçeye bakıyor, Premium taşıyıcı üst parçaları gövdenin üstünde, sol yan taşıyıcı doğru. Konsol hatası yok.
+
+Açık: alan (Feld) üzerine gelince "+" arayüzü (Glasschiebewand vb.) ve ayakların terasın içine 1 m'ye kadar kaydırılması (destek profili gelince).
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

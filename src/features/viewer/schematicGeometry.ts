@@ -1,8 +1,9 @@
 import {
-  BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, Float32BufferAttribute, PlaneGeometry,
+  BoxGeometry, BufferGeometry, DoubleSide, Float32BufferAttribute, PlaneGeometry,
   GridHelper, Group, Mesh, MeshBasicMaterial,
 } from 'three';
 import type { ConfigurationV1 } from '../../domain/configuration';
+import { createPostControls } from '../assembly/assemblyScene';
 import type { PreviewDimensions } from './previewGeometry';
 
 /** Disposes helper geometry; meshes cloned from the shared part library keep their geometry. */
@@ -55,28 +56,18 @@ export function createSchematicGroup(
   }
   postCentersM.forEach((centerM, index) => {
     // Post box with the confirmed cross-section; its garden-facing side ends at the nominal depth.
+    // Like the product model, each post lives in a movable holder whose x is the post centre.
+    const holder = new Group();
+    holder.position.set(centerM, 0, 0);
+    holder.userData.postIndex = index;
+    holder.userData.postMovable = true;
     const post = new Mesh(new BoxGeometry(postSectionM.alongGutterM, frontHeightM, postSectionM.towardsGardenM), guideMaterial.clone());
-    post.position.set(centerM, frontHeightM / 2, -depthM + postSectionM.towardsGardenM / 2);
+    post.position.set(0, frontHeightM / 2, -depthM + postSectionM.towardsGardenM / 2);
     post.userData.postIndex = index;
     post.userData.postVisual = true;
-    post.userData.postMovable = true;
-    group.add(post);
-    if (options.includePostControls) {
-    const hitArea = new Mesh(new CylinderGeometry(0.12, 0.12, frontHeightM, 12),
-      new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-    hitArea.position.copy(post.position);
-    hitArea.userData.postIndex = index;
-    hitArea.userData.postMovable = true;
-    group.add(hitArea);
-    const halo = new Mesh(new CylinderGeometry(0.11, 0.11, 0.01, 24),
-      new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0.55 }));
-    halo.position.set(centerM, 0.01, -depthM);
-    halo.userData.postIndex = index;
-    halo.userData.postMovable = true;
-    halo.userData.selectionHalo = true;
-    halo.visible = false;
-    group.add(halo);
-    }
+    holder.add(post);
+    if (options.includePostControls) holder.add(...createPostControls(index, frontHeightM, depthM, postSectionM.towardsGardenM));
+    group.add(holder);
   });
   if (options.includePostControls) {
     for (let index = 0; index < postCentersM.length - 1; index += 1) {

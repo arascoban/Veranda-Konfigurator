@@ -17,7 +17,7 @@ export function ConfiguratorApp() {
   const quote = useConfiguratorStore((state) => state.quote);
   const history = useRef(createConfigurationHistory());
   const [, refreshHistory] = useState(0);
-  const [editPosts, setEditPosts] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [resetViewToken, setResetViewToken] = useState(0);
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
   const [productModelStatus, setProductModelStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('missing');
@@ -92,15 +92,10 @@ export function ConfiguratorApp() {
       setPdfStatus({ state: 'error', message });
     }
   };
-  const editPostsInScene = () => {
-    setEditPosts(true);
-    if (window.innerWidth < 768) window.requestAnimationFrame(() =>
-      document.querySelector('[aria-label="3D-Vorschau"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  };
 
   return <ConfiguratorShell configuration={configuration} revision={revision} quote={quote}
     scene={<Suspense fallback={<p role="status">3D-Vorschau wird geladen …</p>}><PreviewViewer
-      configuration={configuration} editPosts={editPosts} resetViewToken={resetViewToken}
+      configuration={configuration} resetViewToken={resetViewToken} selectedPostId={selectedPostId} onSelectPost={setSelectedPostId}
       onSceneStatusChange={setSceneStatus} onProductModelStatusChange={setProductModelStatus}
       onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
     </Suspense>}
@@ -108,7 +103,7 @@ export function ConfiguratorApp() {
     pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable" profileArStatus="unavailable"
     saveStatus={saveStatus} openStatus={openStatus}
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}
-    onEditPosts={editPostsInScene} onUndo={history.current.canUndo() ? undo : undefined}
+    selectedPostId={selectedPostId} onSelectPost={setSelectedPostId} onUndo={history.current.canUndo() ? undo : undefined}
     onRedo={history.current.canRedo() ? redo : undefined}
     onResetView={() => setResetViewToken((value) => value + 1)} />;
 }

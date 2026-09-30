@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { de } from '../../content/de';
 import type { ConfigurationV1 } from '../../domain/configuration';
+import { withProduct } from '../../domain/adjustDimensions';
 import { evaluateConfiguration } from '../../domain/evaluateConfiguration';
 import { millimetresToCentimetres } from '../../domain/units';
 import type { QuoteState } from '../../state/configuratorStore';
@@ -39,7 +40,8 @@ export type ConfiguratorShellProps = {
   onCreatePdf?: () => void;
   onShowAr?: () => void;
   onShowProfileAr?: () => void;
-  onEditPosts?: () => void;
+  selectedPostId?: string | null;
+  onSelectPost?: (postId: string | null) => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onResetView?: () => void;
@@ -49,7 +51,7 @@ export function ConfiguratorShell({
   configuration, revision, quote, scene, sceneStatus = 'missing', productModelStatus = 'missing', profileModel,
   pdfStatus = 'unavailable', arStatus = 'unavailable', profileArStatus = 'unavailable', saveStatus = { state: 'idle' }, openStatus = { state: 'idle' },
   pdfFeedback = { state: 'idle' },
-  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, onEditPosts, onUndo, onRedo, onResetView,
+  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, selectedPostId = null, onSelectPost, onUndo, onRedo, onResetView,
 }: ConfiguratorShellProps) {
   const [section, setSection] = useState<ConfiguratorSection>('construction');
   const [overviewOpen, setOverviewOpen] = useState(false);
@@ -65,7 +67,7 @@ export function ConfiguratorShell({
   const activeContent = de.sections[section];
 
   const update = (next: ConfigurationV1) => onConfigurationChange(structuredClone(next));
-  const changeProduct = (productId: ConfigurationV1['productId']) => update({ ...configuration, productId });
+  const changeProduct = (productId: ConfigurationV1['productId']) => update(withProduct(configuration, productId));
   const quoteNote = quote.status === 'ready' && 'revision' in quote && quote.revision === revision
     ? 'Preisstand ' + quote.priceVersion : 'Preis wird erst mit vollständigen Preisdaten angezeigt.';
 
@@ -90,7 +92,7 @@ export function ConfiguratorShell({
           <SectionPicker value={section} onChange={setSection} />
           <div className="configurator-panel__body" key={section}>
             {section === 'construction' && <>
-              <ConstructionSettings configuration={configuration} evaluation={evaluation} onChange={update} onEditPosts={onEditPosts} />
+              <ConstructionSettings configuration={configuration} evaluation={evaluation} onChange={update} selectedPostId={selectedPostId} onSelectPost={onSelectPost} />
               <div className="construction-actions">
                 <ProfileInspector productId={configuration.productId} modelStatus={productModelStatus} profileModel={profileModel}
                   arReady={profileArStatus === 'ready'} onShowAr={onShowProfileAr} />

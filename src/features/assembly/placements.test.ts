@@ -29,7 +29,7 @@ describe('assembly placements (provisional reference offsets)', () => {
   it('places the Prime parts of a 530 × 320 glass roof without mirroring any part', () => {
     currentProduct = 'prime';
     const layout = buildAssemblyLayout({
-      productId: 'prime', roofMaterialId: 'glass', widthMm: 5300, depthMm: 3200, rearHeightMm: 2700, frontHeightMm: 2400,
+      productId: 'prime', roofMaterialId: 'glass', postCapStyle: 'gerade', drainSide: 'left', widthMm: 5300, depthMm: 3200, rearHeightMm: 2700, frontHeightMm: 2400,
       bayCount: 6, postCentersMm: [55, 2650, 5245],
     });
     expect(layout.bayCount).toBe(6);
@@ -39,6 +39,8 @@ describe('assembly placements (provisional reference offsets)', () => {
     for (const placement of layout.placements) expect(basisDeterminant(placement.basis)).toBeCloseTo(1, 9);
     const byRole = (role: string) => layout.placements.filter((placement) => placement.role === role);
     expect(byRole('post')).toHaveLength(3);
+    // Drain on the garden-left end post only (width ≤ 8 m); garden-left is the x = W end.
+    expect(byRole('post').map((placement) => placement.partId)).toEqual(['post', 'post', 'postRohr']);
     expect(byRole('rafter')).toHaveLength(7);
     expect(byRole('panel')).toHaveLength(6);
     expect(byRole('cover')).toHaveLength(12);
@@ -63,7 +65,7 @@ describe('assembly placements (provisional reference offsets)', () => {
     expect(post.min[2]).toBeCloseTo(-3200, 6);
     expect(post.max[1]).toBeCloseTo(2415, 6);
 
-    const [leftCap, rightCap] = [bounds(byRole('gutterCap')[1]), bounds(byRole('gutterCap')[0])];
+    const [rightCap, leftCap] = byRole('gutterCap').map(bounds);
     expect(leftCap.max[0]).toBeCloseTo(0, 6);
     expect(rightCap.min[0]).toBeCloseTo(5300, 6);
     expect(leftCap.min[2]).toBeCloseTo(-3226, 1);
@@ -84,11 +86,24 @@ describe('assembly placements (provisional reference offsets)', () => {
   it('places the Premium parts with the turned reference caps at the gutter ends', () => {
     currentProduct = 'premium';
     const layout = buildAssemblyLayout({
-      productId: 'premium', roofMaterialId: 'polycarbonate', widthMm: 6000, depthMm: 3000, rearHeightMm: 2900, frontHeightMm: 2300,
+      productId: 'premium', roofMaterialId: 'polycarbonate', postCapStyle: 'gerade', drainSide: 'right', widthMm: 6000, depthMm: 3000, rearHeightMm: 2900, frontHeightMm: 2300,
       bayCount: 6, postCentersMm: [65, 5935],
     });
-    for (const placement of layout.placements) expect(basisDeterminant(placement.basis)).toBeCloseTo(1, 9);
+    // Only the left side rafter is the mirrored component (as in the SketchUp reference).
+    for (const placement of layout.placements) {
+      const mirrored = placement.partId.startsWith('rafterSide') && placement.originMm[0] < 100;
+      expect(basisDeterminant(placement.basis)).toBeCloseTo(mirrored ? -1 : 1, 9);
+    }
     const byRole = (role: string) => layout.placements.filter((placement) => placement.role === role);
+    expect(byRole('post').map((placement) => placement.partId)).toEqual(['postRohr', 'post']);
+    const post = bounds(byRole('post')[0]);
+    expect(post.min[0]).toBeCloseTo(0, 6);
+    expect(post.max[0]).toBeCloseTo(130, 6);
+    // The drain outlet protrudes towards the garden (beyond the post face at −D); the plain post ends at −D.
+    expect(post.min[2]).toBeLessThan(-3000);
+    const plain = bounds(byRole('post')[1]);
+    expect(plain.min[2]).toBeCloseTo(-3000, 6);
+    expect(plain.max[2]).toBeCloseTo(-3000 + 135, 6);
     const gutter = bounds(byRole('gutter')[0]);
     expect(gutter.min[0]).toBeCloseTo(0, 6);
     expect(gutter.max[0]).toBeCloseTo(6000, 6);
@@ -106,10 +121,15 @@ describe('assembly placements (provisional reference offsets)', () => {
     expect(wall.max[0]).toBeCloseTo(6000, 6);
     expect(wall.min[1]).toBeCloseTo(2900, 6);
     expect(wall.max[2]).toBeCloseTo(0, 6);
-    const rafters = byRole('rafter').map(bounds);
+    const bodies = layout.placements.filter((placement) => placement.partId === 'rafterMiddleBody').map(bounds);
+    expect(bodies).toHaveLength(5);
     const sin = Math.sin(layout.slopeDegrees * Math.PI / 180);
-    expect(rafters[1].min[2]).toBeCloseTo(-3000 + 132 - 118 * sin, 0);
-    expect(rafters[1].max[2]).toBeCloseTo(-18, 0);
+    expect(bodies[0].min[2]).toBeCloseTo(-3000 + 132 - 100 * sin, 0);
+    expect(bodies[0].max[2]).toBeCloseTo(-18, 0);
+    const overhangs = layout.placements.filter((placement) => placement.partId === 'rafterMiddleTopFront').map(bounds);
+    // The 5 cm overhang keeps its size and reaches over the gutter, in front of the body.
+    expect(overhangs[0].min[2]).toBeLessThan(bodies[0].min[2]);
+    expect(overhangs[0].max[2] - overhangs[0].min[2]).toBeLessThan(120);
     const panel = bounds(byRole('panel')[0]);
     expect(panel.max[0] - panel.min[0]).toBeCloseTo(layout.capWidthMm + 35, 6);
   });

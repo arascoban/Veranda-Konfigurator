@@ -128,8 +128,10 @@ function drawPlan(layout: Layout, fonts: Fonts, plan: PdfPlanDrawing, x: number,
   const frontY = wallY + d;
 
   page.drawRectangle({ x: left, y: wallY, width: w, height: d, color: colors.roof, borderColor: colors.border, borderWidth: 0.5 });
+  // Drawn as the customer sees it from the garden: x runs from the garden-left end (x = W inside).
+  const gx = (mm: number) => left + (plan.widthMm - mm) * scale;
   for (const center of plan.roofSupportCentersMm) {
-    const sx = left + center * scale;
+    const sx = gx(center);
     page.drawLine({ start: { x: sx, y: wallY }, end: { x: sx, y: frontY }, thickness: 0.7, color: colors.secondary });
   }
   // Wall line and gutter line.
@@ -139,7 +141,7 @@ function drawPlan(layout: Layout, fonts: Fonts, plan: PdfPlanDrawing, x: number,
   const postW = Math.max(3, plan.postSectionMm.alongGutterMm * scale);
   const postD = Math.max(3, plan.postSectionMm.towardsGardenMm * scale);
   for (const center of plan.postCentersMm) {
-    page.drawRectangle({ x: left + center * scale - postW / 2, y: frontY - postD, width: postW, height: postD, color: colors.anthracite });
+    page.drawRectangle({ x: gx(center) - postW / 2, y: frontY - postD, width: postW, height: postD, color: colors.anthracite });
   }
 
   const small = 8;
@@ -165,7 +167,7 @@ function drawPlan(layout: Layout, fonts: Fonts, plan: PdfPlanDrawing, x: number,
   label('Hauswand', left + w / 2, wallY - 14);
   layout.text('links', left, wallY - 14, small, fonts.regular, colors.secondary);
   layout.text('rechts', left + w - fonts.regular.widthOfTextAtSize('rechts', small), wallY - 14, small, fonts.regular, colors.secondary);
-  label('Gartenseite · Stützen an der Rinne', left + w / 2, top - 14);
+  label('Gartenseite · Pfosten an der Rinne', left + w / 2, top - 14);
 }
 
 function formatCm(valueMm: number): string {

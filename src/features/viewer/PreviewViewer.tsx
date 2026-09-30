@@ -5,11 +5,11 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
-import { createAssemblyGroup, loadLayoutParts, PartLibrary } from '../assembly/assemblyScene';
+import { createAssemblyGroup, loadLayoutParts, PartLibrary, preloadProductParts } from '../assembly/assemblyScene';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import type { PostCenter } from '../../domain/geometry/posts';
 import { millimetresToCentimetres } from '../../domain/units';
-import { addPost, createMinimumPostLayout, findSelectedOpening, finishPostDrag, movePostFromCentimetres, openingAxisSpans, postMoveRange, removePost, type OpeningSelection } from './postEditing';
+import { findSelectedOpening, finishPostDrag, openingAxisSpans, postMoveRange, type OpeningSelection } from './postEditing';
 import { cameraDistanceForPreview, previewDimensions, type PreviewDimensions } from './previewGeometry';
 import { createSchematicGroup, disposeSchematicGroup } from './schematicGeometry';
 import './styles.css';
@@ -26,10 +26,12 @@ type ViewerRuntime = {
 
 export type ProductModelStatus = 'loading' | 'ready' | 'missing' | 'error';
 
-export function PreviewViewer({ configuration, editPosts = false, resetViewToken = 0, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
+export function PreviewViewer({ configuration, resetViewToken = 0, selectedPostId = null, onSelectPost, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
   configuration: ConfigurationV1;
-  editPosts?: boolean;
   resetViewToken?: number;
+  /** Selection is shared with the settings panel; posts are edited directly in the model. */
+  selectedPostId?: string | null;
+  onSelectPost?: (postId: string | null) => void;
   onPostCentersChange?: (posts: PostCenter[]) => void;
   onSceneStatusChange?: (status: 'loading' | 'ready' | 'missing' | 'error') => void;
   /** Real product parts: missing while the schematic stands in, ready once the GLB assembly is shown. */
@@ -39,7 +41,8 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
   const runtimeRef = useRef<ViewerRuntime | null>(null);
   const lastFitKeyRef = useRef('');
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const setSelectedPostId = (postId: string | null) => onSelectPost?.(postId);
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [selectedOpening, setSelectedOpening] = useState<OpeningSelection | null>(null);
   const dimensions = useMemo(() => previewDimensions(configuration), [configuration]);
   const layout = useMemo(() => assemblyLayoutFromConfiguration(configuration), [configuration]);
@@ -156,7 +159,7 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
         group.userData.dimensions = dimensions;
         runtime.scene.add(group);
         runtime.group = group;
-        markSelectedPost(group, selectedIndexRef.current);
+        markSelectedPost(group, selectedIndexRef.current, -1);
         markSelectedOpening(group, selectedOpeningIndexRef.current);
       }
       runtime.render();
@@ -184,6 +187,8 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
       if (cancelled) return;
       swapGroup(createAssemblyGroup(layout, parts, { includeGroundGuide: true, includePostControls: true }));
       setModelStatus('ready');
+      // Warm the other product in the background; this never changes the selected product.
+      window.setTimeout(() => preloadProductParts(layout.productId === 'prime' ? 'premium' : 'prime', runtime.library), 1500);
     }).catch(() => {
       // The schematic stays in place; the product model is reported as unavailable, never as ready.
       if (!cancelled) setModelStatus('error');
@@ -198,10 +203,10 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
     selectedOpeningIndexRef.current = activeOpening?.index ?? null;
     const runtime = runtimeRef.current;
     if (!runtime?.group) return;
-    markSelectedPost(runtime.group, selectedIndex);
+    markSelectedPost(runtime.group, selectedIndex, hoveredIndex);
     markSelectedOpening(runtime.group, activeOpening?.index ?? null);
     runtime.render();
-  }, [activeOpening?.index, dimensions, selectedIndex]);
+  }, [activeOpening?.index, dimensions, selectedIndex, hoveredIndex, modelStatus]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -212,13 +217,14 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
 
   useEffect(() => {
     const runtime = runtimeRef.current;
-    if (!runtime || !editPosts || !dimensions || !posts || widthMm === null || !onPostCentersChange) return;
+    if (!runtime || !dimensions || !posts || widthMm === null || !onPostCentersChange) return;
     const canvas = runtime.renderer.domElement;
     const raycaster = new Raycaster();
     const pointer = new Vector2();
     // Posts move along the gutter in the plane of their garden-facing faces (z = −depth).
     const dragPlane = new Plane(new Vector3(0, 0, 1), dimensions.depthM);
     let drag: { pointerId: number; index: number; initialMm: number; currentMm: number } | null = null;
+    let press: { x: number; y: number } | null = null;
     const setRay = (event: PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
       pointer.set(((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -234,8 +240,9 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
     const onPointerDown = (event: PointerEvent) => {
       if (event.button !== 0 || !runtime.group) return;
       setRay(event);
+      press = { x: event.clientX, y: event.clientY };
       const hits = raycaster.intersectObjects(runtime.group.children, true);
-      const hit = hits.find((entry) => Number.isInteger(entry.object.userData.postIndex));
+      const hit = hits.find((entry) => Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows);
       if (!hit) {
         const openingHit = hits.find((entry) => Number.isInteger(entry.object.userData.openingIndex));
         if (!openingHit) return;
@@ -252,7 +259,7 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
       if (!post) return;
       setSelectedPostId(post.id);
       setSelectedOpening(null);
-      markSelectedPost(runtime.group, index);
+      markSelectedPost(runtime.group, index, -1);
       runtime.render();
       drag = { pointerId: event.pointerId, index, initialMm: post.xMm, currentMm: post.xMm };
       runtime.controls.enabled = false;
@@ -261,7 +268,18 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
       event.stopPropagation();
     };
     const onPointerMove = (event: PointerEvent) => {
-      if (!drag || event.pointerId !== drag.pointerId || !runtime.group) return;
+      if (!runtime.group) return;
+      if (!drag) {
+        // Hover feedback: the post under the pointer is highlighted and the cursor shows it can be moved.
+        setRay(event);
+        const hover = raycaster.intersectObjects(runtime.group.children, true)
+          .find((entry) => Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows);
+        const index = hover ? (hover.object.userData.postIndex as number) : -1;
+        canvas.style.cursor = index >= 0 ? 'ew-resize' : '';
+        setHoveredIndex(index);
+        return;
+      }
+      if (event.pointerId !== drag.pointerId) return;
       setRay(event);
       const hit = raycaster.ray.intersectPlane(dragPlane, new Vector3());
       const range = postMoveRange(configuration.productId, widthMm, posts, drag.index);
@@ -273,7 +291,19 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
       event.preventDefault();
     };
     const finishDrag = (event: PointerEvent, cancelled: boolean) => {
-      if (!drag || event.pointerId !== drag.pointerId) return;
+      if (!drag) {
+        // A plain click on empty space (no orbit movement) clears the selection.
+        if (!cancelled && press && Math.hypot(event.clientX - press.x, event.clientY - press.y) < 4 && runtime.group) {
+          setRay(event);
+          const anyHit = raycaster.intersectObjects(runtime.group.children, true)
+            .some((entry) => Number.isInteger(entry.object.userData.postIndex) || Number.isInteger(entry.object.userData.openingIndex));
+          if (!anyHit) { setSelectedPostId(null); setSelectedOpening(null); }
+        }
+        press = null;
+        return;
+      }
+      if (event.pointerId !== drag.pointerId) return;
+      press = null;
       const finished = drag;
       drag = null;
       runtime.controls.enabled = true;
@@ -295,7 +325,14 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
     canvas.addEventListener('pointerup', onPointerUp, true);
     canvas.addEventListener('pointercancel', onPointerCancel, true);
     canvas.addEventListener('lostpointercapture', onLostPointerCapture, true);
+    const onLeave = () => { if (!drag) { canvas.style.cursor = ''; setHoveredIndex(-1); } };
+    canvas.addEventListener('pointerleave', onLeave);
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { setSelectedPostId(null); setSelectedOpening(null); } };
+    window.addEventListener('keydown', onKey);
     return () => {
+      canvas.removeEventListener('pointerleave', onLeave);
+      window.removeEventListener('keydown', onKey);
+      canvas.style.cursor = '';
       canvas.removeEventListener('pointerdown', onPointerDown, true);
       canvas.removeEventListener('pointermove', onPointerMove, true);
       canvas.removeEventListener('pointerup', onPointerUp, true);
@@ -304,9 +341,7 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
       if (drag) restorePost(drag.index, drag.initialMm);
       runtime.controls.enabled = true;
     };
-  }, [configuration.productId, dimensions, editPosts, onPostCentersChange, openingSpans, posts, widthMm]);
-
-  const commitPosts = (next: PostCenter[] | null) => { if (next) onPostCentersChange?.(next); };
+  }, [configuration.productId, dimensions, onPostCentersChange, onSelectPost, openingSpans, posts, widthMm]);
 
   const measurements = dimensions
     ? `${millimetresToCentimetres(configuration.dimensionsMm.width!)} × ${millimetresToCentimetres(configuration.dimensionsMm.depth!)} cm`
@@ -315,49 +350,6 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
   return (
     <div className="preview-viewer">
       <div className="preview-canvas" ref={hostRef} role="img" aria-label={measurements ? `Schematische 3D-Vorschau, ${measurements}` : 'Schematische 3D-Vorschau'} />
-      {editPosts && sceneStatus !== 'error' && <div className="preview-editor" role="group" aria-label="Träger bearbeiten">
-        <strong>Träger bearbeiten</strong>
-        {widthMm === null || widthMm <= 0 ? <span>Bitte zuerst die Breite eingeben.</span> : <>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => commitPosts(createMinimumPostLayout(configuration.productId, widthMm))}>Mindestanordnung</button>
-            <button type="button" disabled={!posts || !addPost(configuration.productId, widthMm, posts)}
-              onClick={() => posts && commitPosts(addPost(configuration.productId, widthMm, posts))}>Träger hinzufügen</button>
-          </div>
-          {posts?.length ? <>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {posts.map((post, index) => <button type="button" key={post.id} aria-pressed={selectedPostId === post.id}
-                onClick={() => { setSelectedPostId(post.id); setSelectedOpening(null); }}>{index + 1}</button>)}
-            </div>
-            {openingSpans.length > 0 && <div role="group" aria-label="Felder zwischen Trägerachsen">
-              <span>Felder zwischen Trägerachsen: </span>
-              {openingSpans.map((span) => <button type="button" key={JSON.stringify([span.leftPostId, span.rightPostId])}
-                aria-pressed={activeOpening?.index === span.index}
-                onClick={() => { setSelectedPostId(null); setSelectedOpening(span); }}>
-                Feld {span.index + 1}
-              </button>)}
-              {activeOpening && <span> Achsenabstand {millimetresToCentimetres(activeOpening.spanMm)} cm · lichte Weite {millimetresToCentimetres(activeOpening.clearMm)} cm.</span>}
-            </div>}
-            <div className="preview-position-row">
-            {selectedIndex >= 0 && selectedRange ? <>
-              <label htmlFor="post-position">Achse ab links (cm)</label>
-              <input id="post-position" type="number" min={selectedRange.minMm / 10} max={selectedRange.maxMm / 10}
-                step="0.1" defaultValue={posts[selectedIndex].xMm / 10} key={`${selectedPostId}:${posts[selectedIndex].xMm}`}
-                style={{ width: 82 }} onBlur={(event) => {
-                  const next = movePostFromCentimetres(configuration.productId, widthMm, posts, selectedIndex, event.currentTarget.value);
-                  event.currentTarget.value = String((next ?? posts)[selectedIndex].xMm / 10);
-                  commitPosts(next);
-                }} />
-              <button type="button" disabled={!removePost(configuration.productId, widthMm, posts, selectedIndex)}
-                onClick={() => {
-                  commitPosts(removePost(configuration.productId, widthMm, posts, selectedIndex));
-                  setSelectedPostId(null);
-                }}>Entfernen</button>
-            </> : <span>Wählen Sie einen Träger im Modell oder über seine Nummer.</span>}
-            </div>
-          </> : <span>Noch keine Träger gesetzt.</span>}
-          <small>Im Modell antippen und entlang der Rinne ziehen. Positionen beziehen sich auf die Trägerachse; die lichte Weite ist der Abstand zwischen den Trägerseiten.</small>
-        </>}
-      </div>}
       <p className="preview-note" role="status" aria-live="polite">
         {visibleSceneStatus === 'error' ? '3D-Vorschau nicht verfügbar. Ihre Angaben bleiben erhalten.'
           : sceneStatus === 'loading' ? '3D-Vorschau wird geladen …'
@@ -370,11 +362,12 @@ export function PreviewViewer({ configuration, editPosts = false, resetViewToken
   );
 }
 
-function markSelectedPost(group: Group, selectedIndex: number): void {
+function markSelectedPost(group: Group, selectedIndex: number, hoveredIndex: number): void {
   group.traverse((object) => {
     if (object.userData.selectionHalo) object.visible = object.userData.postIndex === selectedIndex;
+    if (object.userData.moveArrows) object.visible = object.userData.postIndex === selectedIndex;
     if (!object.userData.postVisual || !(object instanceof Mesh)) return;
-    const selected = object.userData.postIndex === selectedIndex;
+    const selected = object.userData.postIndex === selectedIndex || object.userData.postIndex === hoveredIndex;
     if (object.material instanceof MeshBasicMaterial) object.material.color.setHex(selected ? 0x20272c : 0x68747d);
     else if (object.material instanceof MeshStandardMaterial) {
       // Product parts share finishes; a selected post gets its own instance with an emissive tint.

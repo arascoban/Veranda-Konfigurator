@@ -27,6 +27,13 @@ export const MAX_WIDTH_MM = 12000;
 /** Confirmed 30 Sep 2026: both products, both roof materials. */
 export const MIN_WIDTH_MM = 2000;
 export const MIN_DEPTH_MM = 1000;
+/** Front height (ground to gutter underside) range confirmed 30 Sep 2026. */
+export const MIN_FRONT_HEIGHT_MM = 500;
+export const MAX_FRONT_HEIGHT_MM = 5000;
+/** Roofs wider than this need a drain pipe on both end posts (confirmed 30 Sep 2026). */
+export const DRAIN_BOTH_SIDES_ABOVE_MM = 8000;
+/** Default roof slope for a new draft; the angle is kept while the customer changes other measurements. */
+export const DEFAULT_SLOPE_DEGREES = 8;
 export const ROOF_SUPPORT_WIDTH_MM = 55;
 /** Measured from the gutter end to the outer face of the end post, not to its centre. */
 export const END_POST_MAX_INSET_MM = 500;

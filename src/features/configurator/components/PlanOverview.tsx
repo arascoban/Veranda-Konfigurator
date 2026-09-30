@@ -34,7 +34,7 @@ export function PlanOverview({ open, onClose, configuration, quote, revision, on
             <SummaryRow label="Höhe hinten" value={formatLength(configuration.dimensionsMm.rearHeight)} />
             <SummaryRow label="Höhe vorne" value={formatLength(configuration.dimensionsMm.frontHeight)} />
             <SummaryRow label="Dachfelder" value={configuration.roofBayCount === null ? 'Automatische Mindestaufteilung' : String(configuration.roofBayCount)} />
-            <SummaryRow label="Trägerpositionen" value={configuration.postCenters ? String(configuration.postCenters.length) : 'Noch nicht festgelegt'} />
+            <SummaryRow label="Pfosten" value={configuration.postCenters ? String(configuration.postCenters.length) : 'Noch nicht festgelegt'} />
           </dl>
         </section>
         <section className="overview-card" aria-labelledby="overview-roof-heading">

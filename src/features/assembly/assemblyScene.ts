@@ -1,11 +1,11 @@
 import {
-  CylinderGeometry, DoubleSide, GridHelper, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
+  ConeGeometry, CylinderGeometry, DoubleSide, GridHelper, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
   MeshStandardMaterial, Object3D, PlaneGeometry, Vector3, type Material,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { RoofMaterialId } from '../../catalog/catalog';
 import { millimetresToMetres } from '../../domain/units';
-import type { AssemblyLayout, PartPlacement } from './placements';
+import { basisDeterminant, type AssemblyLayout, type PartPlacement } from './placements';
 import { assemblySpecs, type PartRole } from './spec';
 
 /** Loads each GLB once; clones share geometry, so clones are flagged `sharedAsset` and never dispose it. */
@@ -21,7 +21,10 @@ export class PartLibrary {
     if (!pending) {
       pending = this.loader.loadAsync(url).then((gltf) => {
         gltf.scene.traverse((object) => {
-          if (object instanceof Mesh) object.userData.sharedAsset = true;
+          if (!(object instanceof Mesh)) return;
+          object.userData.sharedAsset = true;
+          // Split rafter pieces come without normals; lit materials need them.
+          if (!object.geometry.attributes.normal) object.geometry.computeVertexNormals();
         });
         return gltf.scene;
       });
@@ -30,6 +33,11 @@ export class PartLibrary {
     }
     return pending;
   }
+}
+
+/** Warms the cache for a product the customer has not chosen yet; failures are ignored and change nothing. */
+export function preloadProductParts(productId: keyof typeof assemblySpecs, library: PartLibrary): void {
+  for (const part of Object.values(assemblySpecs[productId].parts)) library.load(part.glb).catch(() => undefined);
 }
 
 export async function loadLayoutParts(layout: AssemblyLayout, library: PartLibrary): Promise<Map<string, Group>> {
@@ -61,13 +69,50 @@ function finishFor(role: PartRole, sourceName: string, finishes: ReturnType<type
 
 function applyPlacement(object: Object3D, placement: PartPlacement, offsetMm: readonly [number, number, number] = [0, 0, 0]): void {
   const { x, y, z } = placement.basis;
-  object.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(new Vector3(...x), new Vector3(...y), new Vector3(...z)));
-  object.scale.set(placement.scale[0], placement.scale[1], placement.scale[2]);
+  // A quaternion cannot hold a mirror: a left-handed basis (the mirrored side rafter) is expressed as the
+  // proper rotation with the local z axis flipped plus a negative z scale, which three.js renders correctly.
+  const mirrored = basisDeterminant(placement.basis) < 0;
+  const zAxis = mirrored ? new Vector3(-z[0], -z[1], -z[2]) : new Vector3(...z);
+  object.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(new Vector3(...x), new Vector3(...y), zAxis));
+  object.scale.set(placement.scale[0], placement.scale[1], mirrored ? -placement.scale[2] : placement.scale[2]);
   object.position.set(
     millimetresToMetres(placement.originMm[0] - offsetMm[0]),
     millimetresToMetres(placement.originMm[1] - offsetMm[1]),
     millimetresToMetres(placement.originMm[2] - offsetMm[2]),
   );
+}
+
+/**
+ * Editing helpers for one post, positioned relative to the post centre: an invisible hit cylinder, a
+ * selection halo and the move arrows shown while the post is selected (left/right along the gutter).
+ */
+export function createPostControls(postIndex: number, frontHeightM: number, depthM: number, towardsGardenM: number): Object3D[] {
+  const zCentre = -depthM + towardsGardenM / 2;
+  const hitArea = new Mesh(new CylinderGeometry(0.14, 0.14, frontHeightM, 12),
+    new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  hitArea.position.set(0, frontHeightM / 2, zCentre);
+  hitArea.userData.postIndex = postIndex;
+  const halo = new Mesh(new CylinderGeometry(0.16, 0.16, 0.01, 24),
+    new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0.55 }));
+  halo.position.set(0, 0.01, zCentre);
+  halo.userData.postIndex = postIndex;
+  halo.userData.selectionHalo = true;
+  halo.visible = false;
+  const arrows = new Group();
+  arrows.userData.postIndex = postIndex;
+  arrows.userData.moveArrows = true;
+  arrows.visible = false;
+  const arrowMaterial = new MeshBasicMaterial({ color: 0x20272b });
+  for (const direction of [1, -1]) {
+    const shaft = new Mesh(new CylinderGeometry(0.02, 0.02, 0.22, 10), arrowMaterial);
+    shaft.rotation.z = Math.PI / 2;
+    shaft.position.set(direction * 0.27, 0.35, zCentre - towardsGardenM / 2 - 0.08);
+    const head = new Mesh(new ConeGeometry(0.06, 0.12, 14), arrowMaterial);
+    head.rotation.z = direction > 0 ? -Math.PI / 2 : Math.PI / 2;
+    head.position.set(direction * 0.44, 0.35, zCentre - towardsGardenM / 2 - 0.08);
+    arrows.add(shaft, head);
+  }
+  return [hitArea, halo, arrows];
 }
 
 /** Builds the product model from loaded parts. Editing helpers mirror the schematic so the viewer code is shared. */
@@ -111,18 +156,7 @@ export function createAssemblyGroup(
       applyPlacement(clone, placement, [centreMm, 0, 0]);
       holder.add(clone);
       if (options.includePostControls) {
-        const hitArea = new Mesh(new CylinderGeometry(0.14, 0.14, frontHeightM, 12),
-          new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-        hitArea.position.set(0, frontHeightM / 2, -depthM + millimetresToMetres(spec.postSectionMm.towardsGarden) / 2);
-        hitArea.userData.postIndex = placement.postIndex;
-        holder.add(hitArea);
-        const halo = new Mesh(new CylinderGeometry(0.16, 0.16, 0.01, 24),
-          new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0.55 }));
-        halo.position.set(0, 0.01, -depthM + millimetresToMetres(spec.postSectionMm.towardsGarden) / 2);
-        halo.userData.postIndex = placement.postIndex;
-        halo.userData.selectionHalo = true;
-        halo.visible = false;
-        holder.add(halo);
+        holder.add(...createPostControls(placement.postIndex, frontHeightM, depthM, millimetresToMetres(spec.postSectionMm.towardsGarden)));
       }
       postCentersM.push(millimetresToMetres(centreMm));
       group.add(holder);

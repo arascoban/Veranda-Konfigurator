@@ -6,7 +6,7 @@ Usage:  python3 tools/prepare_models.py [prime|premium|all]
 - Sources under `Models/` (and the repaired caps under `PreparedModels/`) are never modified.
 - Output: `public/models/<product>/<part>.glb` plus `src/assets/manifest/<product>.measured.json`
   with the measured bounding box (cm), triangle count and SHA-256 of source and output.
-- Requires the `fbx2gltf` npm dev dependency (`npm ci`) and Python packages `trimesh numpy`.
+- Requires the `fbx2gltf` npm dev dependency (`npm ci`) and Python packages `trimesh numpy shapely`.
 
 The measured sizes are the facts the assembly code relies on; the placement rules themselves live
 in `src/features/assembly/` and stay unconfirmed until the user has checked the mounting drawings.
@@ -35,6 +35,9 @@ PARTS: dict[str, dict[str, str]] = {
         'gutter': 'Models/Terrassenüberdachungen/Prime/Regenrinne/regenrinne.fbx',
         'gutterCap': 'Models/Terrassenüberdachungen/Prime/Regenrinne/regenrinneDeckelLinksRechts.fbx',
         'post': 'Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitGeradeDeckel.fbx',
+        'postHalb': 'Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitHalbDeckel.fbx',
+        'postRohr': 'Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitGeradeDeckel.fbx',
+        'postRohrHalb': 'Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitHalbDeckel.fbx',
         'rafterMiddle': 'Models/Terrassenüberdachungen/Prime/Trager mittel/tragemittel.fbx',
         'rafterSide': 'Models/Terrassenüberdachungen/Prime/Trager Seiten/tragerseiten.fbx',
         'cover': 'Models/Terrassenüberdachungen/Prime/Zwischendeckel/Zwischendeckel.fbx',
@@ -49,6 +52,7 @@ PARTS: dict[str, dict[str, str]] = {
         'gutterCapLeft': 'PreparedModels/Premium/Regenrinne/RegenrinneDeckelLinks.fbx',
         'gutterCapRight': 'PreparedModels/Premium/Regenrinne/RegenrinneDeckelRechts.fbx',
         'post': 'Models/Terrassenüberdachungen/Premium/Pfosten/Pfosten.fbx',
+        'postRohr': 'Models/Terrassenüberdachungen/Premium/Pfosten/PfostenMitRohr.fbx',
         'rafterMiddle': 'Models/Terrassenüberdachungen/Premium/Trager mittel/tragermitte.fbx',
         'rafterSide': 'Models/Terrassenüberdachungen/Premium/Trager Seiten/trageseiten.fbx',
         'cover': 'Models/Terrassenüberdachungen/Premium/Zwischendeckel/Zwischendeckel.fbx',
@@ -100,6 +104,48 @@ def measure(path: Path) -> dict:
     }
 
 
+# Premium rafters: the 1 m body carries the roof; the top strip, cover and seals overhang 5 cm at the
+# gutter and 2 cm at the wall. They are split so the body can be stretched while the overhangs keep their size.
+SPLIT_RAFTERS = {'premium': ['rafterMiddle', 'rafterSide']}
+
+
+def split_rafter(product: str, part_id: str, target_dir: Path) -> dict[str, Path]:
+    import numpy as np
+    import trimesh
+
+    scene = trimesh.load(str(target_dir / f'{part_id}.glb'), force='scene')
+    groups: dict[str, list] = {'Body': [], 'Top': [], 'TopFront': [], 'TopRear': []}
+    for node in scene.graph.nodes_geometry:
+        transform, geometry_name = scene.graph[node]
+        mesh = scene.geometry[geometry_name].copy()
+        mesh.apply_transform(transform)
+        lo, hi = mesh.bounds
+        if lo[0] > -0.001 and hi[0] < 1.001:
+            groups['Body'].append(mesh)
+            continue
+        # Overhanging parts: cut at x = 0 and x = 1 m (open cuts sit inside the joined profile).
+        front = mesh.slice_plane([0, 0, 0], [-1, 0, 0], cap=False)
+        rear = mesh.slice_plane([1, 0, 0], [1, 0, 0], cap=False)
+        middle = mesh.slice_plane([0, 0, 0], [1, 0, 0], cap=False).slice_plane([1, 0, 0], [-1, 0, 0], cap=False)
+        for key, piece in (('TopFront', front), ('Top', middle), ('TopRear', rear)):
+            if piece is not None and len(piece.faces):
+                piece.visual = mesh.visual.copy() if hasattr(mesh.visual, 'copy') else mesh.visual
+                groups[key].append(piece)
+    outputs = {}
+    for key, meshes in groups.items():
+        out_scene = trimesh.Scene()
+        for index, mesh in enumerate(meshes):
+            material = getattr(mesh.visual, 'material', None)
+            name = getattr(material, 'name', None) or 'part'
+            # Keep the source material name so the viewer can tell seals from aluminium.
+            mesh.visual = trimesh.visual.TextureVisuals(material=trimesh.visual.material.PBRMaterial(name=name))
+            out_scene.add_geometry(mesh, node_name=f'{key}{index}', geom_name=f'{key}{index}')
+        path = target_dir / f'{part_id}{key}.glb'
+        out_scene.export(str(path))
+        outputs[f'{part_id}{key}'] = path
+    return outputs
+
+
 def prepare(product: str) -> None:
     binary = fbx2gltf_binary()
     out_dir = OUT / product
@@ -130,6 +176,15 @@ def prepare(product: str) -> None:
         }
         report['parts'][part_id] = entry
         print(f"{product}/{part_id:14s} {entry['glbBytes']:8d} B  {entry['triangles']:6d} tri  size cm {entry['sizeCm']}")
+        if part_id in SPLIT_RAFTERS.get(product, []):
+            for split_id, split_path in split_rafter(product, part_id, out_dir).items():
+                split_entry = {
+                    'source': relative, 'sourceSha256': entry['sourceSha256'], 'derivedFrom': part_id,
+                    'glb': f'models/{product}/{split_id}.glb', 'glbBytes': split_path.stat().st_size,
+                    'glbSha256': sha256(split_path), 'converterWarnings': [], **measure(split_path),
+                }
+                report['parts'][split_id] = split_entry
+                print(f"{product}/{split_id:14s} {split_entry['glbBytes']:8d} B  {split_entry['triangles']:6d} tri  size cm {split_entry['sizeCm']}")
     manifest = MANIFEST_DIR / f'{product}.measured.json'
     manifest.write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'wrote {manifest.relative_to(ROOT)}')

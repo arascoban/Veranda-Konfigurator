@@ -1,5 +1,5 @@
 import { attachmentReferences } from '../catalog/attachmentReference';
-import { MAX_WIDTH_MM, MIN_DEPTH_MM, MIN_WIDTH_MM, roofMaterials } from '../catalog/catalog';
+import { MAX_FRONT_HEIGHT_MM, MAX_WIDTH_MM, MIN_DEPTH_MM, MIN_FRONT_HEIGHT_MM, MIN_WIDTH_MM, roofMaterials } from '../catalog/catalog';
 import type { ConfigurationV1 } from './configuration';
 import { calculateRoofBayGeometry, minimumRoofBayCount, type RoofBayGeometry } from './geometry/roof';
 import { validatePostCenters } from './geometry/posts';
@@ -36,6 +36,9 @@ export function evaluateConfiguration(
     issues.push({ kind: 'invalid', field: 'dimensionsMm.width', code: 'width_above_1200_cm' });
   } else if (width !== null && width > 0 && width < MIN_WIDTH_MM) {
     issues.push({ kind: 'invalid', field: 'dimensionsMm.width', code: 'width_below_200_cm' });
+  }
+  if (frontHeight !== null && frontHeight > 0 && (frontHeight < MIN_FRONT_HEIGHT_MM || frontHeight > MAX_FRONT_HEIGHT_MM)) {
+    issues.push({ kind: 'invalid', field: 'dimensionsMm.frontHeight', code: 'front_height_outside_50_500_cm' });
   }
   const material = roofMaterials[configuration.roofMaterialId];
   if (depth !== null && depth > material.maxDepthMm) {

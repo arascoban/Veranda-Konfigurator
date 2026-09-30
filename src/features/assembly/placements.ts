@@ -1,4 +1,4 @@
-import { roofMaterials, type ProductId, type RoofMaterialId } from '../../catalog/catalog';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type ProductId, type RoofMaterialId } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { evaluateConfiguration } from '../../domain/evaluateConfiguration';
 import { assemblySpecs, type MeasuredPart, type PartRole, type ProductAssemblySpec } from './spec';
@@ -44,6 +44,18 @@ export function basisDeterminant(basis: PartPlacement['basis']): number {
   return dot(basis.x, cross(basis.y, basis.z));
 }
 
+/**
+ * Which end posts carry a drain pipe: the chosen side as seen from the garden (the customer's view of
+ * the model), both above 8 m width. Garden-left is the x = W end of the inside-left-based axis.
+ */
+export function drainPostIndices(widthMm: number, drainSide: 'left' | 'right', postCount: number): Set<number> {
+  const indices = new Set<number>();
+  if (postCount === 0) return indices;
+  if (widthMm > DRAIN_BOTH_SIDES_ABOVE_MM || drainSide === 'left') indices.add(postCount - 1);
+  if (widthMm > DRAIN_BOTH_SIDES_ABOVE_MM || drainSide === 'right') indices.add(0);
+  return indices;
+}
+
 function mmBounds(part: MeasuredPart): { min: Vec3; max: Vec3 } {
   return {
     min: [part.boundsMinCm[0] * 10, part.boundsMinCm[1] * 10, part.boundsMinCm[2] * 10],
@@ -66,6 +78,8 @@ function placeAt(partId: string, role: PartRole, basis: PartPlacement['basis'], 
 export type AssemblyInput = {
   productId: ProductId;
   roofMaterialId: RoofMaterialId;
+  postCapStyle: 'gerade' | 'halb';
+  drainSide: 'left' | 'right';
   widthMm: number;
   depthMm: number;
   rearHeightMm: number;
@@ -109,6 +123,11 @@ type Derived = {
   front: { z: number; y: number }; rear: { z: number; y: number }; length: number; d: Vec3; nrm: Vec3; allowance: number;
 };
 
+/** Garden-facing local x of a Prime post part: the body's front face, ignoring the protruding drain outlet. */
+function postFaceX(partId: string, bounds: { min: Vec3; max: Vec3 }): number {
+  return partId === 'postRohr' ? 110 : partId === 'postRohrHalb' ? 135 : bounds.max[0];
+}
+
 /** Prime parts are 1 m extrusions along local −Z with the cross-section at the origin. */
 function primePlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: Derived): PartPlacement[] {
   const { widthMm: W, depthMm: D, rearHeightMm: Hr, frontHeightMm: Hf } = input;
@@ -117,18 +136,26 @@ function primePlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: Der
   const identity = { x: X, y: Y, z: Z };
   const alongX = { x: Z, y: Y, z: neg(X) };          // local −Z → +X, local +X → +Z (towards the wall)
   const alongXBack = { x: neg(Z), y: Y, z: X };      // rotated 180° about Y
-  const post = mmBounds(spec.parts.post);
-
+  // Post files (Gerade/Halb/Rohr) are modelled with the garden-facing side along local +X and the
+  // post body along local −Z; the body height is 1 m. Local +X → scene −Z puts the drain outlet towards the garden.
+  const postTowardsGarden = { x: neg(Z), y: Y, z: X };
+  const drains = drainPostIndices(W, input.drainSide, input.postCentersMm.length);
   input.postCentersMm.forEach((xc, index) => {
-    out.push(placeAt('post', 'post', identity, [1, (Hf + spec.postIntoGutterMm) / (post.max[1] - post.min[1]), 1],
-      [post.min[0], post.min[1], post.min[2]], [xc - spec.postSectionMm.alongGutter / 2, 0, -D], { postIndex: index }));
+    const partId = drains.has(index)
+      ? (input.postCapStyle === 'halb' ? 'postRohrHalb' : 'postRohr')
+      : (input.postCapStyle === 'halb' ? 'postHalb' : 'post');
+    const bounds = mmBounds(spec.parts[partId]);
+    // Local z (−110..0) → scene x, local x max = garden face → −D. Scale the 1 m body (local y) to the post height.
+    out.push(placeAt(partId, 'post', postTowardsGarden, [1, (Hf + spec.postIntoGutterMm) / 1000, 1],
+      [postFaceX(partId, bounds), 0, bounds.min[2]], [xc - spec.postSectionMm.alongGutter / 2, 0, -D], { postIndex: index }));
   });
 
   const gutterFrontZ = -D - spec.gutterBeyondPostMm;
   out.push(placeAt('gutter', 'gutter', alongX, [1, 1, W / 1000], [0, 0, 0], [0, Hf, gutterFrontZ]));
-  // The single cap part sits at the far end of its 1 m extrusion; it is turned around for the left end.
+  // The single cap part is a plate at the far end of its 1 m extrusion. Both caps keep the gutter's
+  // orientation (the profile outline is asymmetric front/back); only the plate position differs.
   out.push(placeAt('gutterCap', 'gutterCap', alongX, [1, 1, 1], [0, 0, -1000], [W, Hf, gutterFrontZ]));
-  out.push(placeAt('gutterCap', 'gutterCap', alongXBack, [1, 1, 1], [0, 0, -1000], [0, Hf, gutterFrontZ + spec.gutterDepthMm]));
+  out.push(placeAt('gutterCap', 'gutterCap', alongX, [1, 1, 1], [0, 0, -1000], [-1, Hf, gutterFrontZ]));
 
   const wall = mmBounds(spec.parts.wallProfile);
   out.push(placeAt('wallProfile', 'wallProfile', alongXBack, [1, 1, W / (wall.max[2] - wall.min[2])], [0, 0, wall.max[2]], [W, Hr, 0]));
@@ -167,15 +194,18 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
   const out: PartPlacement[] = [];
   const identity = { x: X, y: Y, z: Z };
   const turned = { x: neg(X), y: Y, z: neg(Z) };
-  const post = mmBounds(spec.parts.post);
   const gutter = mmBounds(spec.parts.gutter);
   const wall = mmBounds(spec.parts.wallProfile);
   const cover = mmBounds(spec.parts.cover);
-  const rafter = mmBounds(spec.parts.rafterMiddle);
+  const rafterBody = mmBounds(spec.parts.rafterMiddleBody);
 
+  const drains = drainPostIndices(W, input.drainSide, input.postCentersMm.length);
   input.postCentersMm.forEach((xc, index) => {
-    out.push(placeAt('post', 'post', identity, [1, (Hf + spec.postIntoGutterMm) / (post.max[1] - post.min[1]), 1],
-      [post.min[0], post.min[1], post.min[2]], [xc - spec.postSectionMm.alongGutter / 2, 0, -D], { postIndex: index }));
+    const partId = drains.has(index) ? 'postRohr' : 'post';
+    const bounds = mmBounds(spec.parts[partId]);
+    // Body x 0..130, z −135..0 with the garden face at z = 0; turned 180° like the reference assembly.
+    out.push(placeAt(partId, 'post', turned, [1, (Hf + spec.postIntoGutterMm) / 1000, 1],
+      [bounds.min[0] + spec.postSectionMm.alongGutter, 0, 0], [xc - spec.postSectionMm.alongGutter / 2, 0, -D], { postIndex: index }));
   });
 
   const gutterFrontZ = -D - spec.gutterBeyondPostMm;
@@ -196,14 +226,20 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
   out.push(placeAt('wallCapLeft', 'wallCap', turned, [1, 1, 1], [wall.min[0] + 1000, wall.min[1] + capTopOffset, capL.min[2]], [0, Hr, 0]));
   out.push(placeAt('wallCapRight', 'wallCap', turned, [1, 1, 1], [wall.min[0], wall.min[1] + capTopOffset, capR.min[2]], [W, Hr, 0]));
 
-  // The Premium rafter file includes end fittings (107 cm in total); the whole part is scaled to the rafter length.
-  const rafterScale: Vec3 = [length / (rafter.max[0] - rafter.min[0]), 1, 1];
-  const up = { x: d, y: nrm, z: neg(X) };         // extrudes from the garden end towards the wall
-  const down = { x: neg(d), y: nrm, z: X };       // extrudes from the wall end towards the garden
+  // Premium rafters: the 1 m body is stretched between gutter and wall; the top strip, cover and seals
+  // are split into a stretched middle piece and fixed 5 cm (gutter) / 2 cm (wall) overhangs.
+  const bodyScale: Vec3 = [length / (rafterBody.max[0] - rafterBody.min[0]), 1, 1];
+  const up = { x: d, y: nrm, z: neg(X) };          // local +X runs from the garden end to the wall
+  const upMirrored = { x: d, y: nrm, z: X };       // the left side rafter is the mirrored component, as in the reference
   for (let i = 0; i <= n; i += 1) {
-    if (i === 0) out.push(placeAt('rafterSide', 'rafter', down, rafterScale, [rafter.min[0], rafter.min[1], 0], [0, rear.y, rear.z]));
-    else if (i === n) out.push(placeAt('rafterSide', 'rafter', up, rafterScale, [rafter.min[0], rafter.min[1], 0], [W, front.y, front.z]));
-    else out.push(placeAt('rafterMiddle', 'rafter', up, rafterScale, [rafter.min[0], rafter.min[1], 0], [supportLeft(i) + spec.supportWidthMm, front.y, front.z]));
+    const kind = i === 0 || i === n ? 'rafterSide' : 'rafterMiddle';
+    const basis = i === 0 ? upMirrored : up;
+    const x = i === 0 ? 0 : i === n ? W : supportLeft(i) + spec.supportWidthMm;
+    const at: Vec3 = [x, front.y, front.z];
+    out.push(placeAt(`${kind}Body`, 'rafter', basis, bodyScale, [0, rafterBody.min[1], 0], at));
+    out.push(placeAt(`${kind}Top`, 'rafter', basis, bodyScale, [0, rafterBody.min[1], 0], at));
+    out.push(placeAt(`${kind}TopFront`, 'rafter', basis, [1, 1, 1], [0, rafterBody.min[1], 0], at));
+    out.push(placeAt(`${kind}TopRear`, 'rafter', basis, [1, 1, 1], [1000, rafterBody.min[1], 0], [x, rear.y, rear.z]));
   }
 
   for (let i = 0; i < n; i += 1) {
@@ -229,6 +265,7 @@ export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1):
   if (!evaluation.roof?.valid || blocking) return null;
   return buildAssemblyLayout({
     productId: configuration.productId, roofMaterialId: configuration.roofMaterialId,
+    postCapStyle: configuration.postCapStyle, drainSide: configuration.drainSide,
     widthMm: width, depthMm: depth, rearHeightMm: rearHeight, frontHeightMm: frontHeight,
     bayCount: evaluation.roof.bayCount, postCentersMm: configuration.postCenters.map((post) => post.xMm),
   });

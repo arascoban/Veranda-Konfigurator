@@ -1,5 +1,7 @@
-import { END_POST_MAX_INSET_MM, MAX_WIDTH_MM, MIN_CLEAR_OPENING_MM, maxPostCenterGapMm, postWidthMm, type ProductId } from '../../catalog/catalog';
-import { clearOpeningMm, flushEndPostCenters, validatePostCenters, type PostCenter } from '../../domain/geometry/posts';
+import { END_POST_MAX_INSET_MM, MIN_CLEAR_OPENING_MM, maxPostCenterGapMm, postWidthMm, type ProductId } from '../../catalog/catalog';
+import { clearOpeningMm, createMinimumPostLayout, flushEndPostCenters, validatePostCenters, type PostCenter } from '../../domain/geometry/posts';
+
+export { createMinimumPostLayout, distributePostsEvenly } from '../../domain/geometry/posts';
 
 export type OpeningAxisSpan = {
   index: number; leftPostId: string; rightPostId: string;
@@ -25,19 +27,6 @@ export function openingAxisSpans(productId: ProductId, widthMm: number, posts: r
     spanMm: post.xMm - posts[offset].xMm,
     clearMm: clearOpeningMm(productId, posts[offset].xMm, post.xMm),
   }));
-}
-
-/** Default layout: end posts flush with the gutter ends, then the fewest posts under the centre-gap rule. */
-export function createMinimumPostLayout(productId: ProductId, widthMm: number): PostCenter[] | null {
-  if (!Number.isSafeInteger(widthMm) || widthMm <= 0 || widthMm > MAX_WIDTH_MM) return null;
-  const { leftMm: left, rightMm: right } = flushEndPostCenters(productId, widthMm);
-  const maxGap = maxPostCenterGapMm(productId, widthMm);
-  const gaps = Math.max(1, Math.ceil((right - left) / maxGap));
-  const posts = Array.from({ length: gaps + 1 }, (_, index) => ({
-    id: `post-${index + 1}`,
-    xMm: Math.round(left + ((right - left) * index) / gaps),
-  }));
-  return validatePostCenters(productId, widthMm, posts).length === 0 ? posts : null;
 }
 
 /** Limits preserve the confirmed end-inset and centre-gap rules while one post moves. */

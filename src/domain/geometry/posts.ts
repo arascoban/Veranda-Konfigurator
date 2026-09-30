@@ -1,4 +1,4 @@
-import { END_POST_MAX_INSET_MM, MIN_CLEAR_OPENING_MM, maxPostCenterGapMm, postWidthMm, type ProductId } from '../../catalog/catalog';
+import { END_POST_MAX_INSET_MM, MAX_WIDTH_MM, MIN_CLEAR_OPENING_MM, maxPostCenterGapMm, postWidthMm, type ProductId } from '../../catalog/catalog';
 
 export type PostCenter = { id: string; xMm: number };
 export type PostIssue =
@@ -19,6 +19,29 @@ export function clearOpeningMm(productId: ProductId, leftCenterMm: number, right
 export function flushEndPostCenters(productId: ProductId, widthMm: number): { leftMm: number; rightMm: number } {
   const half = postWidthMm(productId) / 2;
   return { leftMm: Math.ceil(half), rightMm: widthMm - Math.ceil(half) };
+}
+
+/** Default layout: end posts flush with the gutter ends, then the fewest posts under the centre-gap rule. */
+export function createMinimumPostLayout(productId: ProductId, widthMm: number): PostCenter[] | null {
+  if (!Number.isSafeInteger(widthMm) || widthMm <= 0 || widthMm > MAX_WIDTH_MM) return null;
+  const { leftMm: left, rightMm: right } = flushEndPostCenters(productId, widthMm);
+  const maxGap = maxPostCenterGapMm(productId, widthMm);
+  const gaps = Math.max(1, Math.ceil((right - left) / maxGap));
+  const posts = Array.from({ length: gaps + 1 }, (_, index) => ({
+    id: `post-${index + 1}`,
+    xMm: Math.round(left + ((right - left) * index) / gaps),
+  }));
+  return validatePostCenters(productId, widthMm, posts).length === 0 ? posts : null;
+}
+
+/** Keeps the end posts and spreads the inner posts evenly between them; ids are preserved. */
+export function distributePostsEvenly(productId: ProductId, widthMm: number, posts: readonly PostCenter[]): PostCenter[] | null {
+  if (posts.length < 2) return null;
+  const left = posts[0].xMm;
+  const right = posts[posts.length - 1].xMm;
+  const gaps = posts.length - 1;
+  const next = posts.map((post, index) => ({ ...post, xMm: Math.round(left + ((right - left) * index) / gaps) }));
+  return validatePostCenters(productId, widthMm, next).length === 0 ? next : null;
 }
 
 export function minimumPostCountForSpan(spanMm: number, maxGapMm: number): number | null {

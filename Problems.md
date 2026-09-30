@@ -797,3 +797,14 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/assembly/placements.ts`.
 - Tek çözüm denemesi: Kapak ve profilin (y,z) dış hatları sayısal olarak karşılaştırıldı (en iyi örtüşme: aynalama yok, z ötelemesi +110 mm). Yerleşim, kapağın yerel z-min'ini duvar yüzüne ve üst kenarını profil üst kenarına hizalayacak şekilde değiştirildi.
 - Doğrulama: Yeni köşe görüntüsünde kapak profil ucuna oturuyor; 89 test ve tip kontrolü geçti.
+
+## CLAUDE-K03-004 — Aynalanmış yan taşıyıcı parçaları yanlış yönde çizildi
+
+- Durum: Çözüldü
+- Tarih: 30 Eylül 2026.
+- Bildiren / çözen: Claude; K03 ikinci tur.
+- Ortam: three 0.186.1, Chromium (yazılım WebGL).
+- Kanıt: Premium genel görünümde sol yan taşıyıcının üst şeridi oluğun üstünde yatay "tahta" gibi duruyordu. Neden: sol yan taşıyıcı referanstaki gibi aynalanmış eksen tabanıyla (determinant −1) yerleştiriliyordu; `quaternion.setFromRotationMatrix` aynayı temsil edemediği için rastgele bir dönüşe çevirdi.
+- Etkilenen dosya: `src/features/assembly/assemblyScene.ts`.
+- Tek çözüm denemesi: Determinant negatifse z ekseni ters çevrilmiş uygun dönüş + negatif z ölçeği uygulandı (three.js negatif ölçekte yüzey yönünü kendisi düzeltir).
+- Doğrulama: Yeni ekran görüntüsünde sol yan taşıyıcı diğerleriyle aynı; `placements.test.ts` sol yan taşıyıcı için det −1, diğer parçalar için +1 bekliyor; 95 test geçti.

@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { CATALOG_VERSION, products, roofMaterials } from '../catalog/catalog';
+import { attachmentReferences } from '../catalog/attachmentReference';
+import { CATALOG_VERSION, DEFAULT_SLOPE_DEGREES, products, roofMaterials } from '../catalog/catalog';
+import { createMinimumPostLayout } from './geometry/posts';
+import { rearHeightForSlope } from './geometry/slope';
 
 const nullableMillimetres = z.number().int().safe().nullable();
 
@@ -23,6 +26,10 @@ export const configurationV1Schema = z.object({
   }).strict()).nullable(),
   /** No infill products have been confirmed for the first catalogue revision. */
   openingOptions: z.array(z.never()),
+  /** Prime post cover style chosen by the customer; Premium has one post type. */
+  postCapStyle: z.enum(['gerade', 'halb']).default('gerade'),
+  /** End post carrying the drain pipe, as seen from the garden; widths above 8 m get a pipe on both ends. */
+  drainSide: z.enum(['left', 'right']).default('left'),
 }).strict();
 
 export type ConfigurationV1 = z.infer<typeof configurationV1Schema>;
@@ -64,5 +71,21 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     roofBayCount: null,
     postCenters: null,
     openingOptions: [],
+    postCapStyle: 'gerade',
+    drainSide: 'left',
   };
+}
+
+/** Start of a new draft (decided 30 Sep 2026): Prime, 500 × 300 cm, front height 230 cm, 8° slope. */
+export function createDefaultConfiguration(): ConfigurationV1 {
+  const configuration = createEmptyConfiguration();
+  const width = 5000;
+  const depth = 3000;
+  const frontHeight = 2300;
+  configuration.dimensionsMm = {
+    width, depth, frontHeight,
+    rearHeight: rearHeightForSlope(depth, frontHeight, DEFAULT_SLOPE_DEGREES, attachmentReferences[configuration.productId]),
+  };
+  configuration.postCenters = createMinimumPostLayout(configuration.productId, width);
+  return configuration;
 }

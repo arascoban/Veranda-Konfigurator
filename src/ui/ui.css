@@ -249,3 +249,17 @@
 @media (prefers-reduced-motion: reduce) {
   .ui-button { transition: none; }
 }
+
+/* Stepper dimension fields and post list (30 Sep 2026) */
+.dimension-field__control--stepper { padding: 0 2px; }
+.dimension-field__step { flex: 0 0 40px; height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--color-anthracite); font-size: 20px; font-weight: 600; cursor: pointer; }
+.dimension-field__step:hover:not(:disabled) { background: rgb(56 62 66 / 8%); }
+.dimension-field__step:disabled { color: #b5bec3; cursor: not-allowed; }
+.dimension-field__control--stepper .dimension-field__input { text-align: center; padding-inline: 4px; }
+.post-row__name { border: 0; background: transparent; text-align: left; cursor: pointer; padding: 6px 4px; border-radius: 8px; }
+.post-row__name[aria-pressed="true"] { color: var(--color-ink); }
+.post-row--selected { border-color: var(--color-anthracite); box-shadow: 0 0 0 1px var(--color-anthracite) inset; }
+.post-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.option-row { display: grid; gap: 8px; margin-top: 16px; }
+.option-row__label { color: var(--color-muted-strong); font-size: 14px; font-weight: 600; }
+.option-row .product-switch__option:disabled { cursor: not-allowed; opacity: .55; }

@@ -119,11 +119,11 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
         ],
       },
       {
-        heading: 'Stützen',
+        heading: 'Pfosten',
         rows: [
           { label: 'Anzahl', value: String(posts.length) },
           { label: 'Querschnitt', value: `${postSections[configuration.productId].alongGutterMm / 10} × ${postSections[configuration.productId].towardsGardenMm / 10} cm` },
-          { label: 'Achsen ab links', value: posts.map((x) => numberDe.format(x / 10)).join(' · ') + ' cm' },
+          { label: 'Achsen ab links (vom Garten)', value: [...posts].reverse().map((x) => numberDe.format((width - x) / 10)).join(' · ') + ' cm' },
           { label: 'Achsabstände', value: gaps.map((gap) => numberDe.format(gap / 10)).join(' · ') + ' cm' },
           { label: 'Lichte Weiten', value: gaps.map((gap) => numberDe.format((gap - postWidthMm(configuration.productId)) / 10)).join(' · ') + ' cm' },
         ],
@@ -136,7 +136,7 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
         (_, index) => ROOF_SUPPORT_WIDTH_MM / 2 + index * supportPitch),
       postCentersMm: posts,
       postSectionMm: { ...postSections[configuration.productId] },
-      caption: 'Schematische Draufsicht, Blick von der Hauswand. Keine Produktabbildung, nicht für die Fertigung.',
+      caption: 'Schematische Draufsicht, Blick vom Garten (Hauswand unten). Keine Produktabbildung, nicht für die Fertigung.',
     },
     price,
     notes: [

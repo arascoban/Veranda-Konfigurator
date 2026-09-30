@@ -18,6 +18,7 @@ describe('PDF template', () => {
     expect(text).not.toMatch(/0,00\s?€/);
     expect(template.notes.join(' ')).toContain('Kein Angebot');
     expect(template.plan.postCentersMm).toEqual([500, 2650, 4800]);
+    expect(template.sections[2].rows.find((row) => row.label.startsWith('Achsen'))?.value).toBe('50 · 265 · 480 cm');
     expect(template.meta[1].value).toBe('30.09.2026, 12:15');
     expect(template.fileName).toBe('Planungsentwurf-PE-20260930-TEST.pdf');
   });

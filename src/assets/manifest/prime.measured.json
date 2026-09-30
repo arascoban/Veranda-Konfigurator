@@ -165,6 +165,106 @@
         "M_1k_Aluminium"
       ]
     },
+    "postHalb": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenMitHalbDeckel.fbx",
+      "sourceSha256": "9a333150b08e324d06a69321348f3508103d9bf22e7b4cbbbbeca8f46df44ef3",
+      "glb": "models/prime/postHalb.glb",
+      "glbBytes": 10772,
+      "glbSha256": "238b5ba5a3fd2a39c71f0e1d4d6ade0c09c46cf86079fc4fd69e1d13b17db02b",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        1.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        14.5,
+        100.0,
+        0.0
+      ],
+      "sizeCm": [
+        13.5,
+        100.0,
+        11.0
+      ],
+      "triangles": 156,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "postRohr": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitGeradeDeckel.fbx",
+      "sourceSha256": "3385290ae7c511f492d1a7516a3e3a16f3183caf986fa24e7c46f1b4f976d013",
+      "glb": "models/prime/postRohr.glb",
+      "glbBytes": 57844,
+      "glbSha256": "72f3980e8b22ef4d26d3a210db1645b383ef3bc0563e87f3f12019395cad3e65",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        15.924,
+        100.4,
+        0.0
+      ],
+      "sizeCm": [
+        15.924,
+        100.4,
+        11.0
+      ],
+      "triangles": 952,
+      "meshes": 3,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M08_Obsidian_Black",
+        "M_1k_Aluminium"
+      ]
+    },
+    "postRohrHalb": {
+      "source": "Models/Terrassenüberdachungen/Prime/Pfosten/PfostenRohrMitHalbDeckel.fbx",
+      "sourceSha256": "b82d9c200903a50ba6105772930b2bbb5fdc70a1db1faf08401e50380fd8b13f",
+      "glb": "models/prime/postRohrHalb.glb",
+      "glbBytes": 63176,
+      "glbSha256": "b172ff7822784b6135b7fa348f1a095cd7afe590d6817551c92d3eadff6d4045",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        -11.0
+      ],
+      "boundsMaxCm": [
+        15.924,
+        100.4,
+        0.0
+      ],
+      "sizeCm": [
+        15.924,
+        100.4,
+        11.0
+      ],
+      "triangles": 1092,
+      "meshes": 3,
+      "materials": [
+        "M03_Pewter_Shine",
+        "M08_Obsidian_Black",
+        "M_1k_Aluminium"
+      ]
+    },
     "rafterMiddle": {
       "source": "Models/Terrassenüberdachungen/Prime/Trager mittel/tragemittel.fbx",
       "sourceSha256": "2bbd6c65ec6fb851a2dd60f06aa369e69178ecfae40f9dd4128ad23b095f6fc4",
