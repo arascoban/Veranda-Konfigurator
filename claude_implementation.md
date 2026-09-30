@@ -180,6 +180,18 @@ Doğrulama: 95 test, derleme; tarayıcıda ölçü katmanı ve Feld etiketi ("Fr
 
 Doğrulama: `npm run check`, 95 test, `npm run build`; Playwright ekran görüntüleri: kartlar + renk örnekleri, RAL 9001 gövde + altın ölçüler, Premium köşelerde yan taşıyıcı, sürüklerken canlı "Front 2", yüksek kalitede çatı gölgesi + ayak dibinde AO (Prime/Premium, iki kamera açısı), otomatik düşüşte rozet "Niedrig". Piksel okuması: AO bandı zemin renginden koyu (203 → 171–197), gölge 175/161 → görsel "açık halka" izlenimi yanılsama, hata değil.
 
+## 9. İş — Orta kalite, stüdyo ışıkları, mavi seçim, kalın ölçü çizgileri, buton düzeni (30 Eylül, yedinci tur)
+
+- **Kalite kademeleri:** `RenderQuality = 'low' | 'medium' | 'high'`. Niedrig: düz; **Mittel**: yalnız ambient occlusion (GTAO); Hoch: AO + sabit güneşten gölge. Orta ve yüksek yalnız masaüstünde; otomatik düşüş yine 3 s sonra < 58 FPS ise Niedrig'e.
+- **Stüdyo ışıkları:** Gölge üretmeyen dört `DirectionalLight` (tam karşıdan bahçe yönünden, sol çapraz, sağ çapraz, üstten çapraz) her kalitede açık; hedefleri yapı merkezine grup değişiminde ayarlanır (`runtime.studio`). Ambient/hemisphere/güneş şiddetleri buna göre düşürüldü (0,45 / 0,7 / 1,6) ki toplam pozlama değişmesin.
+- **Bemaßungen:** Çizgiler artık 2 cm kalınlığında altın çubuklar (`thickSegments`, WebGL çizgi kalınlığını yok saydığı için). Bahçeden bakışta **Gesamthöhe (C)** kendi çizgisinin solunda (x = W + 155 cm), **Höhe hinten (D)** kendi çizgisinin sağında (x = W + 125 cm); yazılar çakışmıyor.
+- **Ayak sürüklerken** ok üstündeki kalan mesafe yazıları siyah.
+- **Seçili ayak:** parlak mavi kenar çizgisi (`EdgesGeometry` + `LineBasicMaterial 0x2f9dff`, derinlik testi kapalı) ve hafif mavi emissive; hover gri kalır. Çizgiler raycast/dışa aktarma dışında.
+- **Boru:** `Pewter/Obsidian` kaynak malzemeleri gri metal (`finishes.pipe`, 0x9aa3a8) → boru antrasit ayaktan ayırt ediliyor.
+- **Pfosten bölümü:** açıklama paragrafı kaldırıldı; dört düğme 2 sütunlu ızgarada, sığmayan metin alt satıra geçer, ortalı. Tüm düğmelerde köşe yarıçapı düşürüldü (`.ui-button` 12 px, ürün anahtarı 12/9 px, kartlar 10 px, FPS rozeti 10 px); ikon düğmeleri yuvarlak kaldı.
+
+Doğrulama: `npm run check`, 95 test, `npm run build`; Playwright: menüde üç kalite, rozet "Mittel"; arka yükseklik yazıları ayrı; sürüklemede siyah sayılar; seçili ayak mavi kenarlı (yüksek kalitede gölgeyle birlikte); Premium boru ağzı gri.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

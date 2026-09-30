@@ -43,9 +43,11 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
     { id: 'depth', label: `Tiefe (A)\n${cm(D)}`, fromMm: [W + gap + 350, 0, 0], toMm: [W + gap + 350, 0, -D], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [200, 0, 0] },
     { id: 'depthLeft', label: `Tiefe links\n${cm(behindPost)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, 0, -behindPost], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [-200, 0, 0] },
     { id: 'depthRight', label: `Tiefe rechts\n${cm(behindPost)}`, fromMm: [-gap, 0, 0], toMm: [-gap, 0, -behindPost], tick: [1, 0, 0], plane: 'ground', labelOffsetMm: [200, 0, 0] },
-    // Both rear heights stand on the garden-left side (x = W end); labels sit beside their lines, further left.
-    { id: 'rearHeight', label: `Höhe hinten (D)\n${cm(Hr)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, Hr, 0], tick: [-1, 0, 0], plane: 'wall', labelOffsetMm: [-520, 0, 0] },
-    { id: 'totalHeight', label: `Gesamthöhe (C)\n${cm(Hr + spec.wallProfileHeightMm)}`, fromMm: [W + gap + 700, 0, 0], toMm: [W + gap + 700, Hr + spec.wallProfileHeightMm, 0], tick: [-1, 0, 0], plane: 'wall', labelOffsetMm: [-560, 0, 0] },
+    // Both rear heights stand on the garden-left side (x = W end). Seen from the garden, "Höhe hinten" reads to
+    // the right of its line (towards the structure) and "Gesamthöhe" to the left of its line (outwards), so the
+    // two labels never overlap (user request 30 Sep 2026).
+    { id: 'rearHeight', label: `Höhe hinten (D)\n${cm(Hr)}`, fromMm: [W + 1250, 0, 0], toMm: [W + 1250, Hr, 0], tick: [-1, 0, 0], plane: 'wall', labelOffsetMm: [-700, 0, 0] },
+    { id: 'totalHeight', label: `Gesamthöhe (C)\n${cm(Hr + spec.wallProfileHeightMm)}`, fromMm: [W + 1550, 0, 0], toMm: [W + 1550, Hr + spec.wallProfileHeightMm, 0], tick: [1, 0, 0], plane: 'wall', labelOffsetMm: [700, 0, 0] },
     { id: 'frontHeight', label: `Durchgangshöhe (E)\n${cm(Hf)}`, fromMm: [-gap, 0, -D], toMm: [-gap, Hf, -D], tick: [1, 0, 0], plane: 'wall', labelOffsetMm: [-560, 0, 0] },
   ];
   const posts = configuration.postCenters ?? [];

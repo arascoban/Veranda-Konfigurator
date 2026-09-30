@@ -1,4 +1,4 @@
-import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, postSections, type FrameColorId } from '../../../catalog/catalog';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, type FrameColorId } from '../../../catalog/catalog';
 import { assemblySpecs } from '../../../features/assembly/spec';
 import { dimensionRange, withDimension, type DimensionKey } from '../../../domain/adjustDimensions';
 import type { ConfigurationV1 } from '../../../domain/configuration';
@@ -35,7 +35,6 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
   const commitPosts = (next: ConfigurationV1['postCenters']) => { if (next) onChange({ ...configuration, postCenters: next }); };
   const selectedIndex = posts.findIndex((post) => post.id === selectedPostId);
   const drainBoth = widthMm !== null && widthMm > DRAIN_BOTH_SIDES_ABOVE_MM;
-  const section = postSections[configuration.productId];
 
   return (
     <section aria-labelledby="construction-heading">
@@ -80,9 +79,6 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
       </div>
 
       <h3 className="section-subheading">Pfosten</h3>
-      <p className="field-hint">Pfosten im Modell antippen und entlang der Rinne ziehen oder hier die Position eingeben
-        (Achsmaß ab dem linken Rinnenende, vom Garten aus gesehen).
-        Querschnitt {de.products[configuration.productId]}: {section.alongGutterMm / 10} × {section.towardsGardenMm / 10} cm.</p>
       {posts.length ? (
         <div className="post-list">
           {gardenOrder.map(({ post, index }, number) => (

@@ -1,5 +1,5 @@
 import {
-  BufferGeometry, CanvasTexture, DoubleSide, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial,
+  BoxGeometry, BufferGeometry, CanvasTexture, DoubleSide, Float32BufferAttribute, Group, LineSegments, Mesh, MeshBasicMaterial, Quaternion,
   PlaneGeometry, RingGeometry, Shape, ShapeGeometry, Sprite, SpriteMaterial, Vector3,
 } from 'three';
 import { millimetresToMetres } from '../../domain/units';
@@ -109,12 +109,36 @@ export function createDimensionGroup(lines: DimensionLine[]): Group {
     if (line.labelOffsetMm) label.position.add(new Vector3(...line.labelOffsetMm.map(millimetresToMetres)));
     group.add(label);
   }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
-  const segments = new LineSegments(geometry, new LineBasicMaterial({ color: ARROW_GOLD, depthTest: false }));
-  segments.renderOrder = 9;
-  group.add(segments);
+  // WebGL ignores line widths, so every segment is a thin gold bar (2 cm) that stays visible from afar.
+  const bars = new Mesh(thickSegments(positions, 0.02), new MeshBasicMaterial({ color: ARROW_GOLD, depthTest: false }));
+  bars.renderOrder = 9;
+  group.add(bars);
   return group;
+}
+
+/** Merges thin boxes along each segment of a flat position list (a1,b1,a2,b2,…) into one geometry. */
+function thickSegments(positions: number[], thicknessM: number): BufferGeometry {
+  const vertices: number[] = [];
+  const bar = new BoxGeometry(1, thicknessM, thicknessM);
+  const start = new Vector3(), end = new Vector3(), direction = new Vector3();
+  const rotation = new Quaternion();
+  for (let i = 0; i + 5 < positions.length; i += 6) {
+    start.set(positions[i], positions[i + 1], positions[i + 2]);
+    end.set(positions[i + 3], positions[i + 4], positions[i + 5]);
+    const length = start.distanceTo(end);
+    if (length === 0) continue;
+    direction.subVectors(end, start).normalize();
+    rotation.setFromUnitVectors(new Vector3(1, 0, 0), direction);
+    const piece = bar.clone().scale(length, 1, 1).applyQuaternion(rotation).translate(
+      (start.x + end.x) / 2, (start.y + end.y) / 2, (start.z + end.z) / 2);
+    const array = piece.toNonIndexed().getAttribute('position').array as Float32Array;
+    vertices.push(...Array.from(array));
+    piece.dispose();
+  }
+  bar.dispose();
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
+  return geometry;
 }
 
 /** Flat arrow lying on the ground, pointing along +X (rotate for other directions). */
@@ -160,7 +184,7 @@ export function setMarkerLimits(marker: Object3D, plusXcm: number, minusXcm: num
   }
   const format = (cm: number) => `${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(cm)} cm`;
   for (const [direction, cm] of [[1, plusXcm], [-1, minusXcm]] as const) {
-    const label = createFlatLabel(format(cm), 'ground', 0.16, '#7a5f14');
+    const label = createFlatLabel(format(cm), 'ground', 0.16, '#111111');
     label.position.set(direction * (halfWidthM + 0.27), 0.016, zCentreM - 0.14);
     label.userData.limitLabel = true;
     marker.add(label);

@@ -147,7 +147,7 @@ Tablo aritmetik örnektir; fiyat veya bütün montajın üretim onayı değildir
 
 - **Yan taşıyıcı yönü (30 Eylül 2026, kullanıcı onayı):** Premium'da iki köşede yan taşıyıcı (`Seitenträger`) kullanılır; conta/oluk tarafı cama bakar. x = W ucundaki parça aynalı yerleştirilir. Prime'da uç taşıyıcılar oluk kapaklarının içinde kalır.
 - **Profil renkleri (30 Eylül 2026, kullanıcı kararı):** Satış renkleri **RAL 7016 Anthrazit** (varsayılan) ve **RAL 9001 Cremeweiß**. Renk tüm alüminyum profillere uygulanır; cam/polikarbonat ve boru/kapak sabit malzemeleri değişmez. Başka renk kataloğu verilmedi.
-- **Görüntü kalitesi (30 Eylül 2026):** Masaüstünde "Hohe Qualität" (sabit güneşten gölge + ambient occlusion) seçilebilir; ortalama kare hızı 60'ın altına düşerse otomatik düşük kaliteye dönülür. Telefon/tablet yalnız düşük kalitede çalışır; ileride orta kalite eklenebilir. FPS rozeti müşteriye görünür.
+- **Görüntü kalitesi (30 Eylül 2026):** Üç kademe: Niedrig (düz), Mittel (ambient occlusion), Hoch (ambient occlusion + sabit güneşten gölge). Ortalama kare hızı 60'ın altına düşerse otomatik Niedrig'e dönülür. Telefon/tablet yalnız Niedrig; Mittel/Hoch masaüstünde. Dört gölgesiz stüdyo ışığı her kademede açık. FPS rozeti müşteriye görünür. Seçili ayak modelde mavi kenar çizgisiyle gösterilir; boru gri.
 
 ## 7. Sol/Luna planına eklenecek kabul ölçütleri
 

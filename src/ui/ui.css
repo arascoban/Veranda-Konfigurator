@@ -254,7 +254,8 @@
 .post-row__name { border: 0; background: transparent; text-align: left; cursor: pointer; padding: 6px 4px; border-radius: 8px; }
 .post-row__name[aria-pressed="true"] { color: var(--color-ink); }
 .post-row--selected { border-color: var(--color-anthracite); box-shadow: 0 0 0 1px var(--color-anthracite) inset; }
-.post-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.post-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.post-actions .ui-button { min-height: 44px; padding: 6px 10px; white-space: normal; text-align: center; }
 .option-row { display: grid; gap: 8px; margin-top: 16px; }
 .option-row__label { color: var(--color-muted-strong); font-size: 14px; font-weight: 600; }
 .option-row .product-switch__option:disabled { cursor: not-allowed; opacity: .55; }
@@ -309,3 +310,10 @@ body, .configurator-app { font-size: 14px; }
 .color-swatch[aria-checked="true"] .color-swatch__disc { outline: 3px solid #fff; box-shadow: 0 0 0 2px var(--color-anthracite), 0 3px 8px rgb(24 31 34 / 18%); }
 .color-swatch[aria-checked="true"] { color: var(--color-ink); }
 @media (max-width: 767px) { .section-cards { padding: 0 16px 8px; } }
+
+/* Softer corners on all buttons (user request 30 Sep 2026): pills only for the icon buttons. */
+.ui-button { border-radius: 12px; }
+.product-switch { border-radius: 12px; }
+.product-switch__option { border-radius: 9px; }
+.section-card { border-radius: 10px; }
+.color-swatch { border-radius: 10px; }

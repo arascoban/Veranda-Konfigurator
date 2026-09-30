@@ -34,13 +34,20 @@ type ViewerRuntime = {
   composer: EffectComposer | null;
   gtao: GTAOPass | null;
   sun: DirectionalLight;
+  /** Shadow-free studio lights aimed at the structure centre. */
+  studio: DirectionalLight[];
   /** Structure bounds (metres) that receive ambient occlusion; the huge ground canvas outside is left alone. */
   aoBox: Box3 | null;
   setQuality: (quality: RenderQuality) => void;
 };
 
-export type RenderQuality = 'low' | 'high';
+/** low: plain; medium: ambient occlusion; high: ambient occlusion + shadows from the fixed sun. */
+export type RenderQuality = 'low' | 'medium' | 'high';
 /** Phones and tablets always stay on low quality (decided 30 Sep 2026). */
+const qualityLabel: Record<RenderQuality, string> = { low: 'Niedrig', medium: 'Mittel', high: 'Hoch' };
+const qualityOption: Record<RenderQuality, string> = {
+  low: 'Niedrige Qualität', medium: 'Mittlere Qualität (Ambient Occlusion)', high: 'Hohe Qualität (Ambient Occlusion, Schatten)',
+};
 const highQualityAvailable = () => typeof window !== 'undefined'
   && !window.matchMedia('(pointer: coarse)').matches && window.innerWidth >= 768;
 
@@ -105,26 +112,38 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
 
     const scene = new Scene();
     scene.background = new Color(0xf4f7f8);
-    scene.add(new AmbientLight(0xffffff, 0.9));
-    scene.add(new HemisphereLight(0xffffff, 0xb8c0c6, 1.2));
+    scene.add(new AmbientLight(0xffffff, 0.45));
+    scene.add(new HemisphereLight(0xffffff, 0xb8c0c6, 0.7));
     // Fixed sun: garden side, high, slightly from the right; casts shadows in high quality.
-    const light = new DirectionalLight(0xffffff, 2.2);
+    const light = new DirectionalLight(0xffffff, 1.6);
     light.position.set(4, 8, -5);
     light.shadow.mapSize.set(2048, 2048);
     light.shadow.bias = -0.0005;
     light.shadow.normalBias = 0.02;
     scene.add(light);
     scene.add(light.target);
-    const fill = new DirectionalLight(0xffffff, 0.8);
-    fill.position.set(-6, 4, 3);
-    scene.add(fill);
+    // Studio lights (no shadows, every quality level): straight from the garden, left and right diagonal,
+    // one from above at an angle. Directions are relative to the structure centre (set on group swap).
+    const studio = [
+      { direction: new Vector3(0, 0.35, -1), intensity: 0.7 },
+      { direction: new Vector3(-1, 0.5, -0.8), intensity: 0.5 },
+      { direction: new Vector3(1, 0.5, -0.8), intensity: 0.5 },
+      { direction: new Vector3(-0.4, 1, 0.5), intensity: 0.6 },
+    ].map(({ direction, intensity }) => {
+      const lamp = new DirectionalLight(0xffffff, intensity);
+      lamp.userData.direction = direction.normalize();
+      lamp.position.copy(direction).multiplyScalar(12);
+      scene.add(lamp);
+      scene.add(lamp.target);
+      return lamp;
+    });
     // Near plane 5 cm: depth precision feeds shadows and ambient occlusion (CLAUDE-K03-007).
     const camera = new PerspectiveCamera(45, 1, 0.05, 1000);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = false;
     controls.minDistance = 0.4;
     let render = () => {
-      if (runtime.quality === 'high' && runtime.composer) runtime.composer.render();
+      if (runtime.quality !== 'low' && runtime.composer) runtime.composer.render();
       else renderer.render(scene, camera);
     };
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('d03perf') === '1') {
@@ -148,14 +167,14 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
     }
     const runtime: ViewerRuntime = {
       scene, camera, renderer, controls, render, group: null, library: new PartLibrary(import.meta.env.BASE_URL),
-      quality: 'low', composer: null, gtao: null, sun: light, aoBox: null,
+      quality: 'low', composer: null, gtao: null, sun: light, studio, aoBox: null,
       setQuality: (next) => {
         if (runtime.quality === next) return;
         runtime.quality = next;
         renderer.shadowMap.enabled = next === 'high';
         renderer.shadowMap.type = PCFShadowMap;
         light.castShadow = next === 'high';
-        if (next === 'high' && !runtime.composer) {
+        if (next !== 'low' && !runtime.composer) {
           const composer = new EffectComposer(renderer);
           composer.addPass(new RenderPass(scene, camera));
           const gtao = new GTAOPass(scene, camera, renderer.domElement.width, renderer.domElement.height);
@@ -199,7 +218,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         const average = durations.reduce((sum, value) => sum + value, 0) / durations.length;
         const current = Math.round(1000 / average);
         setFps(current);
-        if (runtime.quality === 'high') {
+        if (runtime.quality !== 'low') {
           if (!highSince) highSince = now;
           // Below 60 fps for a while after the switch → back to low quality, automatically.
           if (now - highSince > 3000 && current < 58) {
@@ -266,6 +285,11 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         const span = Math.max(dimensions.widthM, dimensions.depthM, dimensions.rearHeightM) + 2;
         runtime.sun.position.set(dimensions.widthM / 2 + span * 0.4, span * 1.2, -dimensions.depthM / 2 - span * 0.6);
         runtime.sun.target.position.set(dimensions.widthM / 2, 0, -dimensions.depthM / 2);
+        const centre = new Vector3(dimensions.widthM / 2, Math.max(dimensions.rearHeightM, dimensions.frontHeightM) / 2, -dimensions.depthM / 2);
+        for (const lamp of runtime.studio) {
+          lamp.target.position.copy(centre);
+          lamp.position.copy(centre).add((lamp.userData.direction as Vector3).clone().multiplyScalar(span * 2));
+        }
         const cam = runtime.sun.shadow.camera;
         cam.left = -span; cam.right = span; cam.top = span; cam.bottom = -span; cam.near = 0.5; cam.far = span * 4;
         cam.updateProjectionMatrix();
@@ -502,19 +526,19 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       {sceneStatus !== 'error' && <div className="fps-badge">
         <button type="button" className="fps-badge__button" aria-haspopup="menu" aria-expanded={qualityMenuOpen}
           onClick={() => setQualityMenuOpen((open) => !open)}>
-          <strong>{fps ?? '–'}</strong> FPS · {quality === 'high' ? 'Hoch' : 'Niedrig'}
+          <strong>{fps ?? '–'}</strong> FPS · {qualityLabel[quality]}
         </button>
         {qualityMenuOpen && <div className="fps-badge__menu" role="menu" aria-label="Darstellungsqualität">
-          {(['low', 'high'] as const).map((option) => (
+          {(['low', 'medium', 'high'] as const).map((option) => (
             <button key={option} type="button" role="menuitemradio" aria-checked={quality === option}
-              disabled={option === 'high' && !canUseHigh}
+              disabled={option !== 'low' && !canUseHigh}
               onClick={() => {
                 runtimeRef.current?.setQuality(option);
                 setQualityState(option);
                 setAutoLowered(false);
                 setQualityMenuOpen(false);
               }}>
-              {option === 'high' ? 'Hohe Qualität (Schatten, Ambient Occlusion)' : 'Niedrige Qualität'}
+              {qualityOption[option]}
             </button>
           ))}
           <small>{!canUseHigh ? 'Auf Telefon und Tablet läuft die niedrige Qualität.'
@@ -546,17 +570,17 @@ function markSelectedPost(group: Group, selectedIndex: number, hoveredIndex: num
     if (object.userData.selectionHalo) object.visible = object.userData.postIndex === selectedIndex;
     if (object.userData.moveArrows) object.visible = object.userData.postIndex === selectedIndex;
     if (!object.userData.postVisual || !(object instanceof Mesh)) return;
-    const selected = object.userData.postIndex === selectedIndex || object.userData.postIndex === hoveredIndex;
+    const isSelected = object.userData.postIndex === selectedIndex;
+    const selected = isSelected || object.userData.postIndex === hoveredIndex;
     if (object.material instanceof MeshBasicMaterial) object.material.color.setHex(selected ? 0x20272c : 0x68747d);
     else if (object.material instanceof MeshStandardMaterial) {
-      // Product parts share finishes; a selected post gets its own instance with an emissive tint.
+      // Product parts share finishes; a selected/hovered post gets its own instance with an emissive tint
+      // (blue when selected, matching the edge outline; a soft grey glow on hover).
       if (selected && !object.userData.ownMaterial) {
         object.material = object.material.clone();
-        object.material.emissive.setHex(0x1f2a33);
         object.userData.ownMaterial = true;
-      } else if (!selected && object.userData.ownMaterial) {
-        object.material.emissive.setHex(0x000000);
       }
+      if (object.userData.ownMaterial) object.material.emissive.setHex(isSelected ? 0x0a2a4e : selected ? 0x1f2a33 : 0x000000);
     }
   });
 }

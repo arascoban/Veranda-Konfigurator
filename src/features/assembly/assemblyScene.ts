@@ -1,6 +1,5 @@
 import {
-  CylinderGeometry, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
-  MeshStandardMaterial, Object3D, PlaneGeometry, ShadowMaterial, Vector3, type Material,
+  CylinderGeometry, DoubleSide, EdgesGeometry, Group, LineBasicMaterial, LineSegments, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, ShadowMaterial, Vector3, type Material,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { frameColors, type FrameColorId, type RoofMaterialId } from '../../catalog/catalog';
@@ -8,6 +7,9 @@ import { millimetresToMetres } from '../../domain/units';
 import { basisDeterminant, type AssemblyLayout, type PartPlacement } from './placements';
 import { assemblySpecs, type PartRole } from './spec';
 import { createSelectionMarker } from './annotations';
+
+/** Selection colour of a post in the model (edge outline + tint). */
+export const SELECTION_BLUE = 0x2f9dff;
 
 /** Loads each GLB once; clones share geometry, so clones are flagged `sharedAsset` and never dispose it. */
 export class PartLibrary {
@@ -59,6 +61,8 @@ export function createFinishMaterials(roofMaterialId: RoofMaterialId, frameColor
       ? new MeshStandardMaterial({ color: frame.hex, metalness: 0.15, roughness: 0.5 })
       : new MeshStandardMaterial({ color: frame.hex, metalness: 0.45, roughness: 0.48 }),
     rubber: new MeshStandardMaterial({ color: 0x2b2f33, metalness: 0, roughness: 0.9 }),
+    // Drain pipe and its fittings: grey so they stand out from the anthracite post (user request 30 Sep 2026).
+    pipe: new MeshStandardMaterial({ color: 0x9aa3a8, metalness: 0.55, roughness: 0.4 }),
     roof: roofMaterialId === 'glass'
       ? new MeshPhysicalMaterial({ color: 0xa9c4d3, transparent: true, opacity: 0.35, roughness: 0.05, metalness: 0, side: DoubleSide, depthWrite: false })
       : new MeshPhysicalMaterial({ color: 0xe6ebee, transparent: true, opacity: 0.8, roughness: 0.6, metalness: 0, side: DoubleSide, depthWrite: false }),
@@ -68,6 +72,7 @@ export function createFinishMaterials(roofMaterialId: RoofMaterialId, frameColor
 function finishFor(role: PartRole, sourceName: string, finishes: ReturnType<typeof createFinishMaterials>): Material {
   if (role === 'panel') return finishes.roof;
   if (/Material2|Charcoal|Gummi|Rubber/i.test(sourceName)) return finishes.rubber;
+  if (/Pewter|Obsidian|Rohr|Pipe/i.test(sourceName)) return finishes.pipe;
   return finishes.aluminium;
 }
 
@@ -151,6 +156,16 @@ export function createAssemblyGroup(
       if (placement.postIndex !== undefined) {
         object.userData.postIndex = placement.postIndex;
         object.userData.postVisual = true;
+        // Bright blue edge outline, shown only while this post is selected.
+        const outline = new LineSegments(new EdgesGeometry(object.geometry, 20),
+          new LineBasicMaterial({ color: SELECTION_BLUE, depthTest: false, transparent: true, opacity: 0.95 }));
+        outline.renderOrder = 10;
+        outline.visible = false;
+        outline.userData.selectionHalo = true;
+        outline.userData.postIndex = placement.postIndex;
+        outline.userData.exportable = false;
+        outline.raycast = () => undefined;
+        object.add(outline);
       }
     });
     if (placement.postIndex !== undefined) {
