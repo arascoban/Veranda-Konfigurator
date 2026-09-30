@@ -93,9 +93,9 @@ describe('assembly placements (provisional reference offsets)', () => {
       productId: 'premium', roofMaterialId: 'polycarbonate', postCapStyle: 'gerade', drainSide: 'right', widthMm: 6000, depthMm: 3000, rearHeightMm: 2900, frontHeightMm: 2300,
       bayCount: 6, postCentersMm: [65, 5935],
     });
-    // Only the left side rafter is the mirrored component (as in the SketchUp reference).
+    // Only the right side rafter is the mirrored component; both grooves face the glass.
     for (const placement of layout.placements) {
-      const mirrored = placement.partId.startsWith('rafterSide') && placement.originMm[0] < 100;
+      const mirrored = placement.partId.startsWith('rafterSide') && placement.originMm[0] > 3000;
       expect(basisDeterminant(placement.basis)).toBeCloseTo(mirrored ? -1 : 1, 9);
     }
     const byRole = (role: string) => layout.placements.filter((placement) => placement.role === role);

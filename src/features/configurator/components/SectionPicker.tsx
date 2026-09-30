@@ -1,20 +1,17 @@
-import type { ChangeEvent } from 'react';
 import { de } from '../../../content/de';
-import { Icon } from '../../../ui/Icon';
 
 export type ConfiguratorSection = keyof typeof de.sections;
 
+/** Three directly selectable cards (Konstruktion, Dach, Ausstattung); no wizard order, no dropdown. */
 export function SectionPicker({ value, onChange }: { value: ConfiguratorSection; onChange: (section: ConfiguratorSection) => void }) {
-  const choose = (event: ChangeEvent<HTMLSelectElement>) => onChange(event.currentTarget.value as ConfiguratorSection);
   return (
-    <div className="section-picker">
-      <label className="section-picker__label" htmlFor="configurator-section">Bereich auswählen</label>
-      <div className="section-picker__control">
-        <select id="configurator-section" className="section-picker__select" value={value} onChange={choose}>
-          {Object.entries(de.sections).map(([id, section]) => <option key={id} value={id}>{section.label}</option>)}
-        </select>
-        <Icon className="ui-icon" name="chevron-down" />
-      </div>
+    <div className="section-cards" role="tablist" aria-label="Bereich auswählen">
+      {(Object.entries(de.sections) as [ConfiguratorSection, { label: string; description: string }][]).map(([id, section]) => (
+        <button key={id} type="button" role="tab" className="section-card" aria-selected={value === id}
+          onClick={() => onChange(id)}>
+          <span className="section-card__label">{section.label}</span>
+        </button>
+      ))}
     </div>
   );
 }

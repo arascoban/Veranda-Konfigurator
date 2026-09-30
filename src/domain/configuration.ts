@@ -30,6 +30,8 @@ export const configurationV1Schema = z.object({
   postCapStyle: z.enum(['gerade', 'halb']).default('gerade'),
   /** End post carrying the drain pipe, as seen from the garden; widths above 8 m get a pipe on both ends. */
   drainSide: z.enum(['left', 'right']).default('left'),
+  /** Aluminium colour of the whole frame; seals and glazing are unaffected. */
+  frameColor: z.enum(['ral7016', 'ral9001']).default('ral7016'),
 }).strict();
 
 export type ConfigurationV1 = z.infer<typeof configurationV1Schema>;
@@ -73,6 +75,7 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     openingOptions: [],
     postCapStyle: 'gerade',
     drainSide: 'left',
+    frameColor: 'ral7016',
   };
 }
 

@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AmbientLight, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshStandardMaterial,
-  PerspectiveCamera, Plane, Raycaster, Scene, Sprite, Vector2, Vector3, WebGLRenderer,
+  AmbientLight, Box3, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshStandardMaterial,
+  PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Sprite, Vector2, Vector3, WebGLRenderer,
 } from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary, preloadProductParts } from '../assembly/assemblyScene';
@@ -25,7 +29,20 @@ type ViewerRuntime = {
   render: () => void;
   group: Group | null;
   library: PartLibrary;
+  /** High quality: shadows from a fixed sun and screen-space ambient occlusion through a composer. */
+  quality: RenderQuality;
+  composer: EffectComposer | null;
+  gtao: GTAOPass | null;
+  sun: DirectionalLight;
+  /** Structure bounds (metres) that receive ambient occlusion; the huge ground canvas outside is left alone. */
+  aoBox: Box3 | null;
+  setQuality: (quality: RenderQuality) => void;
 };
+
+export type RenderQuality = 'low' | 'high';
+/** Phones and tablets always stay on low quality (decided 30 Sep 2026). */
+const highQualityAvailable = () => typeof window !== 'undefined'
+  && !window.matchMedia('(pointer: coarse)').matches && window.innerWidth >= 768;
 
 export type ProductModelStatus = 'loading' | 'ready' | 'missing' | 'error';
 
@@ -49,6 +66,11 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
   const setSelectedPostId = (postId: string | null) => onSelectPost?.(postId);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [hoveredOpening, setHoveredOpening] = useState(-1);
+  const [fps, setFps] = useState<number | null>(null);
+  const [quality, setQualityState] = useState<RenderQuality>('low');
+  const [autoLowered, setAutoLowered] = useState(false);
+  const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
+  const canUseHigh = highQualityAvailable();
   const [selectedOpening, setSelectedOpening] = useState<OpeningSelection | null>(null);
   const dimensions = useMemo(() => previewDimensions(configuration), [configuration]);
   const layout = useMemo(() => assemblyLayoutFromConfiguration(configuration), [configuration]);
@@ -85,16 +107,26 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
     scene.background = new Color(0xf4f7f8);
     scene.add(new AmbientLight(0xffffff, 0.9));
     scene.add(new HemisphereLight(0xffffff, 0xb8c0c6, 1.2));
+    // Fixed sun: garden side, high, slightly from the right; casts shadows in high quality.
     const light = new DirectionalLight(0xffffff, 2.2);
     light.position.set(4, 8, -5);
+    light.shadow.mapSize.set(2048, 2048);
+    light.shadow.bias = -0.0005;
+    light.shadow.normalBias = 0.02;
     scene.add(light);
+    scene.add(light.target);
     const fill = new DirectionalLight(0xffffff, 0.8);
     fill.position.set(-6, 4, 3);
     scene.add(fill);
-    const camera = new PerspectiveCamera(45, 1, 0.01, 1000);
+    // Near plane 5 cm: depth precision feeds shadows and ambient occlusion (CLAUDE-K03-007).
+    const camera = new PerspectiveCamera(45, 1, 0.05, 1000);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = false;
-    let render = () => renderer.render(scene, camera);
+    controls.minDistance = 0.4;
+    let render = () => {
+      if (runtime.quality === 'high' && runtime.composer) runtime.composer.render();
+      else renderer.render(scene, camera);
+    };
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('d03perf') === '1') {
       const normalRender = render;
       const cpuSamplesMs: number[] = [];
@@ -114,9 +146,72 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         renderer.domElement.dataset.d03RenderCpuMaxMs = ordered[ordered.length - 1].toFixed(2);
       };
     }
-    const runtime: ViewerRuntime = { scene, camera, renderer, controls, render, group: null, library: new PartLibrary(import.meta.env.BASE_URL) };
+    const runtime: ViewerRuntime = {
+      scene, camera, renderer, controls, render, group: null, library: new PartLibrary(import.meta.env.BASE_URL),
+      quality: 'low', composer: null, gtao: null, sun: light, aoBox: null,
+      setQuality: (next) => {
+        if (runtime.quality === next) return;
+        runtime.quality = next;
+        renderer.shadowMap.enabled = next === 'high';
+        renderer.shadowMap.type = PCFShadowMap;
+        light.castShadow = next === 'high';
+        if (next === 'high' && !runtime.composer) {
+          const composer = new EffectComposer(renderer);
+          composer.addPass(new RenderPass(scene, camera));
+          const gtao = new GTAOPass(scene, camera, renderer.domElement.width, renderer.domElement.height);
+          gtao.output = GTAOPass.OUTPUT.Default;
+          gtao.updateGtaoMaterial({ radius: 0.2 });
+          if (runtime.aoBox) gtao.setSceneClipBox(runtime.aoBox);
+          composer.addPass(gtao);
+          composer.addPass(new OutputPass());
+          runtime.composer = composer;
+          runtime.gtao = gtao;
+          composer.setSize(renderer.domElement.width, renderer.domElement.height);
+        }
+        // Materials compiled without shadow support must be rebuilt when the shadow map is switched.
+        scene.traverse((object) => {
+          if (object instanceof Mesh && !Array.isArray(object.material)) object.material.needsUpdate = true;
+        });
+        render();
+      },
+    };
     runtimeRef.current = runtime;
+    // Review aid only: lets screenshot scripts inspect and toggle the render pipeline.
+    if (import.meta.env.DEV) (window as unknown as { __d03runtime?: ViewerRuntime }).__d03runtime = runtime;
     setSceneStatus('ready');
+
+    // Continuous render loop: measures the real frame rate and drives the automatic quality fallback.
+    let frame = 0;
+    let lastTime = performance.now();
+    let lastReport = lastTime;
+    const durations: number[] = [];
+    let highSince = 0;
+    // Review aid only: ?d03loop=0 renders on demand (screenshot scripts on software GL).
+    const continuous = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('d03loop') === '0');
+    const loop = (now: number) => {
+      if (continuous) frame = requestAnimationFrame(loop);
+      durations.push(now - lastTime);
+      lastTime = now;
+      if (durations.length > 90) durations.shift();
+      render();
+      if (now - lastReport > 500 && durations.length >= 10) {
+        lastReport = now;
+        const average = durations.reduce((sum, value) => sum + value, 0) / durations.length;
+        const current = Math.round(1000 / average);
+        setFps(current);
+        if (runtime.quality === 'high') {
+          if (!highSince) highSince = now;
+          // Below 60 fps for a while after the switch → back to low quality, automatically.
+          if (now - highSince > 3000 && current < 58) {
+            runtime.setQuality('low');
+            setQualityState('low');
+            setAutoLowered(true);
+            highSince = 0;
+          }
+        } else highSince = 0;
+      }
+    };
+    frame = requestAnimationFrame(loop);
     const onContextLost = (event: Event) => {
       event.preventDefault();
       setSceneStatus('error');
@@ -130,6 +225,8 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      runtime.composer?.setSize(renderer.domElement.width, renderer.domElement.height);
+      runtime.gtao?.setSize(renderer.domElement.width, renderer.domElement.height);
       if (runtime.group) fitCamera(runtime, dimensionsFromGroup(runtime.group), width / height);
       render();
     };
@@ -138,6 +235,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
     resize();
 
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       controls.removeEventListener('change', render);
       controls.dispose();
@@ -165,6 +263,17 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         group.userData.dimensions = dimensions;
         runtime.scene.add(group);
         runtime.group = group;
+        const span = Math.max(dimensions.widthM, dimensions.depthM, dimensions.rearHeightM) + 2;
+        runtime.sun.position.set(dimensions.widthM / 2 + span * 0.4, span * 1.2, -dimensions.depthM / 2 - span * 0.6);
+        runtime.sun.target.position.set(dimensions.widthM / 2, 0, -dimensions.depthM / 2);
+        const cam = runtime.sun.shadow.camera;
+        cam.left = -span; cam.right = span; cam.top = span; cam.bottom = -span; cam.near = 0.5; cam.far = span * 4;
+        cam.updateProjectionMatrix();
+        runtime.aoBox = new Box3(
+          new Vector3(-1, -0.2, -dimensions.depthM - 1),
+          new Vector3(dimensions.widthM + 1, Math.max(dimensions.rearHeightM, dimensions.frontHeightM) + 1, 1),
+        );
+        runtime.gtao?.setSceneClipBox(runtime.aoBox);
         markSelectedPost(group, selectedIndexRef.current, -1);
         markSelectedOpening(group, selectedOpeningIndexRef.current, -1, openingSpans.length);
       }
@@ -227,9 +336,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
   useEffect(() => {
     const runtime = runtimeRef.current;
     if (!runtime) return;
-    const previous = runtime.scene.getObjectByName('Bemaßungen');
-    if (previous instanceof Group) { runtime.scene.remove(previous); disposeAnnotations(previous); }
-    if (showDimensions && dimensions) runtime.scene.add(createDimensionGroup(buildDimensionLines(configuration)));
+    applyDimensionLayer(runtime, showDimensions && dimensions ? configuration : null);
     runtime.render();
   }, [showDimensions, configuration, dimensions]);
 
@@ -320,6 +427,16 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       if (xMm === drag.currentMm) return;
       drag.currentMm = xMm;
       restorePost(drag.index, xMm);
+      // Live feedback while dragging: field widths and the remaining travel on the arrows follow the post.
+      const livePosts = posts.map((post, index) => index === drag!.index ? { ...post, xMm } : post);
+      if (showDimensions) applyDimensionLayer(runtime, { ...configuration, postCenters: livePosts });
+      const section = postSections[configuration.productId];
+      runtime.group.traverse((object) => {
+        if (object.userData.moveArrows && object.userData.postIndex === drag!.index) {
+          setMarkerLimits(object, (range.maxMm - xMm) / 10, (xMm - range.minMm) / 10,
+            -dimensions.depthM + section.towardsGardenMm / 2000, section.alongGutterMm / 2000);
+        }
+      });
       event.preventDefault();
     };
     const finishDrag = (event: PointerEvent, cancelled: boolean) => {
@@ -373,7 +490,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       if (drag) restorePost(drag.index, drag.initialMm);
       runtime.controls.enabled = true;
     };
-  }, [configuration.productId, dimensions, onPostCentersChange, onSelectPost, openingSpans, posts, widthMm]);
+  }, [configuration, dimensions, onPostCentersChange, onSelectPost, openingSpans, posts, widthMm, showDimensions]);
 
   const measurements = dimensions
     ? `${millimetresToCentimetres(configuration.dimensionsMm.width!)} × ${millimetresToCentimetres(configuration.dimensionsMm.depth!)} cm`
@@ -382,6 +499,29 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
   return (
     <div className="preview-viewer">
       <div className="preview-canvas" ref={hostRef} role="img" aria-label={measurements ? `Schematische 3D-Vorschau, ${measurements}` : 'Schematische 3D-Vorschau'} />
+      {sceneStatus !== 'error' && <div className="fps-badge">
+        <button type="button" className="fps-badge__button" aria-haspopup="menu" aria-expanded={qualityMenuOpen}
+          onClick={() => setQualityMenuOpen((open) => !open)}>
+          <strong>{fps ?? '–'}</strong> FPS · {quality === 'high' ? 'Hoch' : 'Niedrig'}
+        </button>
+        {qualityMenuOpen && <div className="fps-badge__menu" role="menu" aria-label="Darstellungsqualität">
+          {(['low', 'high'] as const).map((option) => (
+            <button key={option} type="button" role="menuitemradio" aria-checked={quality === option}
+              disabled={option === 'high' && !canUseHigh}
+              onClick={() => {
+                runtimeRef.current?.setQuality(option);
+                setQualityState(option);
+                setAutoLowered(false);
+                setQualityMenuOpen(false);
+              }}>
+              {option === 'high' ? 'Hohe Qualität (Schatten, Ambient Occlusion)' : 'Niedrige Qualität'}
+            </button>
+          ))}
+          <small>{!canUseHigh ? 'Auf Telefon und Tablet läuft die niedrige Qualität.'
+            : autoLowered ? 'Automatisch auf niedrig gestellt, weil die Bildrate unter 60 fiel.'
+              : 'Fällt die Bildrate unter 60, wird automatisch auf niedrig gestellt.'}</small>
+        </div>}
+      </div>}
       <p className="preview-note" role="status" aria-live="polite">
         {visibleSceneStatus === 'error' ? '3D-Vorschau nicht verfügbar. Ihre Angaben bleiben erhalten.'
           : sceneStatus === 'loading' ? '3D-Vorschau wird geladen …'
@@ -392,6 +532,13 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       </p>
     </div>
   );
+}
+
+/** Replaces the "Bemaßungen" layer; null removes it. */
+function applyDimensionLayer(runtime: ViewerRuntime, configuration: ConfigurationV1 | null): void {
+  const previous = runtime.scene.getObjectByName('Bemaßungen');
+  if (previous instanceof Group) { runtime.scene.remove(previous); disposeAnnotations(previous); }
+  if (configuration) runtime.scene.add(createDimensionGroup(buildDimensionLines(configuration)));
 }
 
 function markSelectedPost(group: Group, selectedIndex: number, hoveredIndex: number): void {

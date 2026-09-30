@@ -41,7 +41,7 @@ function textCanvas(text: string, options: { background?: string; color?: string
  * Text fixed in the scene (it does not turn with the camera): lying on the ground or standing parallel to
  * the wall, both readable from the garden side.
  */
-export function createFlatLabel(text: string, plane: 'ground' | 'wall', heightM = 0.28, color = '#20272B'): Mesh {
+export function createFlatLabel(text: string, plane: 'ground' | 'wall', heightM = 0.28, color = '#111111'): Mesh {
   const canvas = textCanvas(text, { bold: true, color });
   heightM = heightM * (text.split('\n').length > 1 ? 1.75 : 1);
   const texture = new CanvasTexture(canvas);
@@ -111,7 +111,7 @@ export function createDimensionGroup(lines: DimensionLine[]): Group {
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
-  const segments = new LineSegments(geometry, new LineBasicMaterial({ color: ANTHRACITE, depthTest: false }));
+  const segments = new LineSegments(geometry, new LineBasicMaterial({ color: ARROW_GOLD, depthTest: false }));
   segments.renderOrder = 9;
   group.add(segments);
   return group;
@@ -120,10 +120,10 @@ export function createDimensionGroup(lines: DimensionLine[]): Group {
 /** Flat arrow lying on the ground, pointing along +X (rotate for other directions). */
 function flatArrow(lengthM: number, color: number): Mesh {
   const shape = new Shape();
-  const shaft = lengthM * 0.55;
-  const w = 0.045;
-  shape.moveTo(0, -w); shape.lineTo(shaft, -w); shape.lineTo(shaft, -w * 2.4); shape.lineTo(lengthM, 0);
-  shape.lineTo(shaft, w * 2.4); shape.lineTo(shaft, w); shape.lineTo(0, w); shape.closePath();
+  const shaft = lengthM * 0.6;
+  const w = 0.022;
+  shape.moveTo(0, -w); shape.lineTo(shaft, -w); shape.lineTo(shaft, -w * 3); shape.lineTo(lengthM, 0);
+  shape.lineTo(shaft, w * 3); shape.lineTo(shaft, w); shape.lineTo(0, w); shape.closePath();
   const mesh = new Mesh(new ShapeGeometry(shape), new MeshBasicMaterial({ color, transparent: true, opacity: 0.95, polygonOffset: true, polygonOffsetFactor: -2 }));
   mesh.rotation.x = -Math.PI / 2;
   mesh.renderOrder = 8;
@@ -136,7 +136,7 @@ export function createSelectionMarker(postIndex: number, zCentreM: number, halfW
   marker.userData.postIndex = postIndex;
   marker.userData.moveArrows = true;
   marker.visible = false;
-  const ring = new Mesh(new RingGeometry(halfWidthM + 0.06, halfWidthM + 0.1, 40),
+  const ring = new Mesh(new RingGeometry(halfWidthM + 0.06, halfWidthM + 0.085, 40),
     new MeshBasicMaterial({ color: ANTHRACITE, transparent: true, opacity: 0.9, polygonOffset: true, polygonOffsetFactor: -2 }));
   ring.rotation.x = -Math.PI / 2;
   ring.position.set(0, 0.012, zCentreM);

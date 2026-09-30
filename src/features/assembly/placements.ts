@@ -1,4 +1,4 @@
-import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type ProductId, type RoofMaterialId } from '../../catalog/catalog';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type FrameColorId, type ProductId, type RoofMaterialId } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { evaluateConfiguration } from '../../domain/evaluateConfiguration';
 import { assemblySpecs, type MeasuredPart, type PartRole, type ProductAssemblySpec } from './spec';
@@ -24,6 +24,7 @@ export type PartPlacement = {
 export type AssemblyLayout = {
   productId: ProductId;
   roofMaterialId: RoofMaterialId;
+  frameColor: FrameColorId;
   widthMm: number;
   depthMm: number;
   rearHeightMm: number;
@@ -82,6 +83,7 @@ export type AssemblyInput = {
   roofMaterialId: RoofMaterialId;
   postCapStyle: 'gerade' | 'halb';
   drainSide: 'left' | 'right';
+  frameColor?: FrameColorId;
   widthMm: number;
   depthMm: number;
   rearHeightMm: number;
@@ -115,7 +117,7 @@ export function buildAssemblyLayout(input: AssemblyInput): AssemblyLayout {
     : premiumPlacements(spec, input, { c, n, bayLeft, supportLeft, front, rear, length, d, nrm, allowance });
 
   return {
-    productId: input.productId, roofMaterialId: input.roofMaterialId, widthMm: W, depthMm: D,
+    productId: input.productId, roofMaterialId: input.roofMaterialId, frameColor: input.frameColor ?? 'ral7016', widthMm: W, depthMm: D,
     rearHeightMm: Hr, frontHeightMm: Hf, slopeDegrees, rafterLengthMm: length, bayCount: n, capWidthMm: c, placements,
   };
 }
@@ -247,11 +249,15 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
   // are split into a stretched middle piece and fixed 5 cm (gutter) / 2 cm (wall) overhangs.
   const bodyScale: Vec3 = [length / (rafterBody.max[0] - rafterBody.min[0]), 1, 1];
   const up = { x: d, y: nrm, z: neg(X) };          // local +X runs from the garden end to the wall
-  const upMirrored = { x: d, y: nrm, z: X };       // the left side rafter is the mirrored component, as in the reference
+  const upMirrored = { x: d, y: nrm, z: X };       // one side rafter is the mirrored component, as in the reference
+  // The side rafter has its seal/groove on the local z = 0 side only; that side must face the glass.
+  // Left (x = 0): local z runs towards −X, so the groove at z ≈ 0 lies at x = sideWidth (inside).
+  // Right (x = W): mirrored, local z runs towards +X, groove at x = W − sideWidth (inside).
+  const sideWidth = mmBounds(spec.parts.rafterSideTop).max[2];
   for (let i = 0; i <= n; i += 1) {
     const kind = i === 0 || i === n ? 'rafterSide' : 'rafterMiddle';
-    const basis = i === 0 ? upMirrored : up;
-    const x = i === 0 ? 0 : i === n ? W : supportLeft(i) + spec.supportWidthMm;
+    const basis = i === n ? upMirrored : up;
+    const x = i === 0 ? sideWidth : i === n ? W - sideWidth : supportLeft(i) + spec.supportWidthMm;
     const at: Vec3 = [x, front.y, front.z];
     out.push(placeAt(`${kind}Body`, 'rafter', basis, bodyScale, [0, rafterBody.min[1], 0], at));
     out.push(placeAt(`${kind}Top`, 'rafter', basis, bodyScale, [0, rafterBody.min[1], 0], at));
@@ -286,7 +292,7 @@ export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1):
   if (!evaluation.roof?.valid || blocking) return null;
   return buildAssemblyLayout({
     productId: configuration.productId, roofMaterialId: configuration.roofMaterialId,
-    postCapStyle: configuration.postCapStyle, drainSide: configuration.drainSide,
+    postCapStyle: configuration.postCapStyle, drainSide: configuration.drainSide, frameColor: configuration.frameColor,
     widthMm: width, depthMm: depth, rearHeightMm: rearHeight, frontHeightMm: frontHeight,
     bayCount: evaluation.roof.bayCount, postCentersMm: configuration.postCenters.map((post) => post.xMm),
   });

@@ -145,6 +145,10 @@ Tablo aritmetik örnektir; fiyat veya bütün montajın üretim onayı değildir
 - **Premium oluk kapakları düzeltildi:** yanlış ölçekli orijinaller korunur. Kullanılacak doğrulanmış kopyalar `PreparedModels/Premium/Regenrinne/` altında; ölçek, yön ve konum tamamlanmış Premium montajıyla eşleştirildi. `model-repairs/README.md` ve `MODEL-001-validation.json` entegrasyon referansıdır. `MODEL-001` çözüldü; web/AR kabulü ayrıca yapılacak.
 - Kullanıcının kaynak dosyaları değiştirilmedi; kapakların düzeltilmiş türev kopyaları hazırlandı. Telefonda gerçek AR ve tarayıcı performans kabulü yapılmadı.
 
+- **Yan taşıyıcı yönü (30 Eylül 2026, kullanıcı onayı):** Premium'da iki köşede yan taşıyıcı (`Seitenträger`) kullanılır; conta/oluk tarafı cama bakar. x = W ucundaki parça aynalı yerleştirilir. Prime'da uç taşıyıcılar oluk kapaklarının içinde kalır.
+- **Profil renkleri (30 Eylül 2026, kullanıcı kararı):** Satış renkleri **RAL 7016 Anthrazit** (varsayılan) ve **RAL 9001 Cremeweiß**. Renk tüm alüminyum profillere uygulanır; cam/polikarbonat ve boru/kapak sabit malzemeleri değişmez. Başka renk kataloğu verilmedi.
+- **Görüntü kalitesi (30 Eylül 2026):** Masaüstünde "Hohe Qualität" (sabit güneşten gölge + ambient occlusion) seçilebilir; ortalama kare hızı 60'ın altına düşerse otomatik düşük kaliteye dönülür. Telefon/tablet yalnız düşük kalitede çalışır; ileride orta kalite eklenebilir. FPS rozeti müşteriye görünür.
+
 ## 7. Sol/Luna planına eklenecek kabul ölçütleri
 
 - **P02:** iki satış ürünü ve dört ayrı ölçü alanı bulunur; nominal ölçü tanımları yukarıdaki tabloyla eşleşir.

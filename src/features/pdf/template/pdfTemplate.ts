@@ -113,6 +113,7 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
         heading: 'Dach',
         rows: [
           { label: 'Eindeckung', value: snapshot.roofMaterialNameDe },
+          { label: 'Farbe', value: de.frameColors[configuration.frameColor] },
           { label: 'Dachfelder', value: `${roof.bayCount}${configuration.roofBayCount === null ? ' (automatisch)' : ' (gewählt)'}` },
           { label: 'Dachträger', value: String(roof.supportCount) },
           { label: 'Plattenbreite', value: `ca. ${formatCentimetres(Math.round(panelWidthMm))}` },

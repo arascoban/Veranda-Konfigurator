@@ -1,16 +1,15 @@
-import type { ProductId, RoofMaterialId } from '../catalog/catalog';
+import type { FrameColorId, ProductId, RoofMaterialId } from '../catalog/catalog';
 
 export const de = {
   brand: 'Terrassenplaner',
   sections: {
     construction: { label: 'Konstruktion', title: 'Aufbau und Maße', description: 'Grundmaße, Dachneigung und Pfosten festlegen.' },
     roof: { label: 'Dach', title: 'Dach und Material', description: 'Eindeckung und Dachfelder festlegen.' },
-    equipment: { label: 'Ausstattung', title: 'Ausstattung', description: 'Ergänzungen für Ihre Planung.' },
-    opening: { label: 'Feld', title: 'Felder und Seiten', description: 'Optionen für einzelne Öffnungen.' },
-    overview: { label: 'Übersicht', title: 'Ihre Planung', description: 'Maße, Auswahl und Ausgabestatus im Überblick.' },
+    equipment: { label: 'Ausstattung', title: 'Ausstattung', description: 'Seitenwände, Schiebeelemente und weitere Ergänzungen je Feld.' },
   },
   products: { prime: 'Prime', premium: 'Premium' } satisfies Record<ProductId, string>,
   roofMaterials: { glass: 'Glas', polycarbonate: 'Polycarbonat' } satisfies Record<RoofMaterialId, string>,
+  frameColors: { ral7016: 'RAL 7016 Anthrazit', ral9001: 'RAL 9001 Cremeweiß' } satisfies Record<FrameColorId, string>,
   dimensions: {
     width: { label: 'Breite (B)', help: 'Breite der Regenrinne.' },
     depth: { label: 'Tiefe (A)', help: 'Von der Wand bis zur Vorderkante des Pfostens.' },

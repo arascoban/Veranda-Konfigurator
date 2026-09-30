@@ -1,4 +1,4 @@
-import { DRAIN_BOTH_SIDES_ABOVE_MM, postSections } from '../../../catalog/catalog';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, postSections, type FrameColorId } from '../../../catalog/catalog';
 import { assemblySpecs } from '../../../features/assembly/spec';
 import { dimensionRange, withDimension, type DimensionKey } from '../../../domain/adjustDimensions';
 import type { ConfigurationV1 } from '../../../domain/configuration';
@@ -66,6 +66,17 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
         <ReadOnlyValue label="Gesamthöhe (C)"
           value={configuration.dimensionsMm.rearHeight === null ? '–'
             : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`} />
+      </div>
+
+      <h3 className="section-subheading">Farbe</h3>
+      <div className="color-swatches" role="radiogroup" aria-label="Farbe der Aluminiumprofile">
+        {(Object.keys(frameColors) as FrameColorId[]).map((id) => (
+          <button key={id} type="button" role="radio" className="color-swatch" aria-checked={configuration.frameColor === id}
+            onClick={() => onChange({ ...configuration, frameColor: id })}>
+            <span className="color-swatch__disc" style={{ '--swatch': frameColors[id].hex } as React.CSSProperties} aria-hidden="true" />
+            <span className="color-swatch__name">{frameColors[id].ral}<br />{frameColors[id].nameDe}</span>
+          </button>
+        ))}
       </div>
 
       <h3 className="section-subheading">Pfosten</h3>

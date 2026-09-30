@@ -1,9 +1,9 @@
 import {
   CylinderGeometry, DoubleSide, Group, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
-  MeshStandardMaterial, Object3D, PlaneGeometry, Vector3, type Material,
+  MeshStandardMaterial, Object3D, PlaneGeometry, ShadowMaterial, Vector3, type Material,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { RoofMaterialId } from '../../catalog/catalog';
+import { frameColors, type FrameColorId, type RoofMaterialId } from '../../catalog/catalog';
 import { millimetresToMetres } from '../../domain/units';
 import { basisDeterminant, type AssemblyLayout, type PartPlacement } from './placements';
 import { assemblySpecs, type PartRole } from './spec';
@@ -52,9 +52,12 @@ export async function loadLayoutParts(layout: AssemblyLayout, library: PartLibra
  * Placeholder finishes: the product colour catalogue has not been supplied, so aluminium is shown as
  * neutral metal, seals as dark rubber and the roof as glass or milky polycarbonate.
  */
-export function createFinishMaterials(roofMaterialId: RoofMaterialId) {
+export function createFinishMaterials(roofMaterialId: RoofMaterialId, frameColor: FrameColorId = 'ral7016') {
+  const frame = frameColors[frameColor];
   return {
-    aluminium: new MeshStandardMaterial({ color: 0xb9bec2, metalness: 0.55, roughness: 0.42 }),
+    aluminium: frameColor === 'ral9001'
+      ? new MeshStandardMaterial({ color: frame.hex, metalness: 0.15, roughness: 0.5 })
+      : new MeshStandardMaterial({ color: frame.hex, metalness: 0.45, roughness: 0.48 }),
     rubber: new MeshStandardMaterial({ color: 0x2b2f33, metalness: 0, roughness: 0.9 }),
     roof: roofMaterialId === 'glass'
       ? new MeshPhysicalMaterial({ color: 0xa9c4d3, transparent: true, opacity: 0.35, roughness: 0.05, metalness: 0, side: DoubleSide, depthWrite: false })
@@ -103,6 +106,15 @@ export function createGround(widthM: number, depthM: number): Mesh {
   ground.position.set(widthM / 2, -0.005, -depthM / 2);
   ground.userData.exportable = false;
   ground.userData.ground = true;
+  // Shadow catcher: only draws where shadows fall, so the plain canvas stays plain in low quality.
+  // It lies in the ground plane itself and wins the depth test through polygon offset; a millimetre lift
+  // z-fights with the canvas at typical viewing distances (CLAUDE-K03-007).
+  const shadows = new Mesh(new PlaneGeometry(200, 200), new ShadowMaterial({
+    opacity: 0.4, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+  }));
+  shadows.receiveShadow = true;
+  shadows.userData.exportable = false;
+  ground.add(shadows);
   return ground;
 }
 
@@ -115,7 +127,7 @@ export function createAssemblyGroup(
   const group = new Group();
   group.name = `Produktmodell ${layout.productId} — Montagebezüge vorläufig`;
   group.userData.productModel = true;
-  const finishes = createFinishMaterials(layout.roofMaterialId);
+  const finishes = createFinishMaterials(layout.roofMaterialId, layout.frameColor);
   const spec = assemblySpecs[layout.productId];
   const widthM = millimetresToMetres(layout.widthMm);
   const depthM = millimetresToMetres(layout.depthMm);
@@ -131,6 +143,9 @@ export function createAssemblyGroup(
       if (!(object instanceof Mesh)) return;
       const sourceName = Array.isArray(object.material) ? object.material.map((m) => m.name).join(' ') : object.material.name;
       object.material = finishFor(placement.role, sourceName, finishes);
+      // Shadows only appear when the renderer's shadow map is on (high quality).
+      object.castShadow = true;
+      object.receiveShadow = placement.role !== 'panel';
       object.userData.sharedAsset = true;
       object.userData.role = placement.role;
       if (placement.postIndex !== undefined) {

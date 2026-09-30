@@ -70,8 +70,6 @@ export function ConfiguratorShell({
 
   const update = (next: ConfigurationV1) => onConfigurationChange(structuredClone(next));
   const changeProduct = (productId: ConfigurationV1['productId']) => update(withProduct(configuration, productId));
-  const quoteNote = quote.status === 'ready' && 'revision' in quote && quote.revision === revision
-    ? 'Preisstand ' + quote.priceVersion : 'Preis wird erst mit vollständigen Preisdaten angezeigt.';
 
   return (
     <main className={`configurator-app ${opaque ? 'opaque-mode' : ''} ${sceneExpanded ? 'configurator-app--scene-expanded' : ''}`}>
@@ -101,15 +99,11 @@ export function ConfiguratorShell({
               </div>
             </>}
             {section === 'roof' && <RoofSettings configuration={configuration} evaluation={evaluation} onChange={update} />}
-            {section === 'equipment' && <ComingSoon title="Ausstattung folgt" message="Weitere Ausstattung erscheint hier, sobald Varianten und Produktregeln bestätigt sind." />}
-            {section === 'opening' && <ComingSoon title="Noch keine Feldoption verfügbar" message="Seitenwände und Schiebeelemente werden ergänzt, sobald die jeweilige Konfiguration freigegeben ist." />}
-            {section === 'overview' && <OverviewSection configuration={configuration} quote={quote} revision={revision} quoteNote={quoteNote}
-              onPdf={onCreatePdf} pdfStatus={pdfStatus} onOpenOverview={() => setOverviewOpen(true)} />}
+            {section === 'equipment' && <ComingSoon title="Ausstattung folgt" message="Seitenwände, Schiebeelemente, Festglas und Markisen werden je Feld ergänzt, sobald die jeweilige Konfiguration freigegeben ist. Ein Feld im Modell antippen zeigt seinen Namen." />}
           </div>
           <footer className="configurator-panel__footer">
             <span className="configurator-panel__footer-hint">Bereich frei wählen</span>
-            {section !== 'overview' && <Button variant="primary" size="small" icon="arrow-right"
-              onClick={() => setSection('overview')}>Zur Übersicht</Button>}
+            <Button variant="primary" size="small" icon="arrow-right" onClick={() => setOverviewOpen(true)}>Zur Übersicht</Button>
           </footer>
         </aside>
 
@@ -147,35 +141,6 @@ export function ConfiguratorShell({
 
 function ComingSoon({ title, message }: { title: string; message: string }) {
   return <div className="coming-soon-card"><h3>{title}</h3><p>{message}</p></div>;
-}
-
-function OverviewSection({ configuration, quote, revision, quoteNote, onPdf, pdfStatus, onOpenOverview }: {
-  configuration: ConfigurationV1; quote: QuoteState; revision: number; quoteNote: string;
-  onPdf?: () => void; pdfStatus: 'unavailable' | 'ready' | 'working' | 'error'; onOpenOverview: () => void;
-}) {
-  const currentQuoteReady = quote.status === 'ready' && quote.revision === revision;
-  const tone: StatusTone = currentQuoteReady ? 'success' : quote.status === 'error' ? 'error' : 'warning';
-  return <section className="overview-section" aria-label="Zusammenfassung">
-    <div className="overview-card">
-      <h3>{de.products[configuration.productId]} · {de.roofMaterials[configuration.roofMaterialId]}</h3>
-      <dl className="overview-list">
-        <SummaryLine label="Breite" value={formatLength(configuration.dimensionsMm.width)} />
-        <SummaryLine label="Tiefe" value={formatLength(configuration.dimensionsMm.depth)} />
-        <SummaryLine label="Höhe hinten" value={formatLength(configuration.dimensionsMm.rearHeight)} />
-        <SummaryLine label="Höhe vorne" value={formatLength(configuration.dimensionsMm.frontHeight)} />
-      </dl>
-    </div>
-    <StatusMessage tone={tone} title={currentQuoteReady ? formatPrice(quote.amountMinor, quote.currency) : 'Preis noch nicht verfügbar'}>{quoteNote}</StatusMessage>
-    <StatusMessage tone="info" title="Technischer Hinweis">Die Konfiguration ist noch nicht zur Fertigung freigegeben.</StatusMessage>
-    <Button onClick={onOpenOverview} icon="external">Übersicht öffnen</Button>
-    <Button variant="secondary" onClick={onPdf} disabled={!onPdf || pdfStatus !== 'ready'} icon="save">
-      {pdfStatus === 'ready' ? 'PDF-Entwurf speichern' : 'PDF noch nicht verfügbar'}
-    </Button>
-  </section>;
-}
-
-function SummaryLine({ label, value }: { label: string; value: string }) {
-  return <div className="overview-list__row"><dt>{label}</dt><dd>{value}</dd></div>;
 }
 
 function ActionFeedback({ title, status }: { title: string; status: ConfiguratorActionStatus }) {

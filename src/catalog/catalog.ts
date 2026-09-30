@@ -23,6 +23,13 @@ export const roofMaterials = {
   },
 } as const;
 
+/** Frame (aluminium) colours offered to the customer (confirmed 30 Sep 2026). Hex values are screen approximations. */
+export const frameColors = {
+  ral7016: { id: 'ral7016', ral: 'RAL 7016', nameDe: 'Anthrazit', hex: '#383E42' },
+  ral9001: { id: 'ral9001', ral: 'RAL 9001', nameDe: 'Cremeweiß', hex: '#FDF4E3' },
+} as const;
+export type FrameColorId = keyof typeof frameColors;
+
 export const MAX_WIDTH_MM = 12000;
 /** Confirmed 30 Sep 2026: both products, both roof materials. */
 export const MIN_WIDTH_MM = 2000;

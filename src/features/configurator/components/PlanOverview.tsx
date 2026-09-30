@@ -41,6 +41,7 @@ export function PlanOverview({ open, onClose, configuration, quote, revision, on
           <h3 id="overview-roof-heading">Eindeckung und Material</h3>
           <dl className="overview-list">
             <SummaryRow label="Dachmaterial" value={roofMaterials[configuration.roofMaterialId].nameDe} />
+            <SummaryRow label="Farbe" value={de.frameColors[configuration.frameColor]} />
             <SummaryRow label="Max. Plattenbreite" value={formatLength(roofMaterials[configuration.roofMaterialId].maxPanelWidthMm)} />
             <SummaryRow label="Preiswährung" value={ready ? quote.currency : 'Noch nicht verfügbar'} />
           </dl>

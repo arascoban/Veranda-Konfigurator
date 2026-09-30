@@ -10,3 +10,11 @@
   .preview-viewer { height: auto; }
   .preview-canvas { flex: none; height: clamp(260px, 40svh, 400px); }
 }
+.fps-badge { position: absolute; top: 14px; right: 14px; z-index: 3; }
+.fps-badge__button { min-height: 32px; padding: 0 12px; border: 1px solid rgb(255 255 255 / 75%); border-radius: 999px; background: rgb(255 255 255 / 55%); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); color: #252c30; font-size: 12px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.fps-badge__button strong { font-weight: 700; }
+.fps-badge__menu { position: absolute; right: 0; top: 38px; display: grid; gap: 4px; width: 280px; padding: 8px; border: 1px solid rgb(255 255 255 / 75%); border-radius: 14px; background: rgb(255 255 255 / 82%); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 10px 30px rgb(24 31 34 / 14%); }
+.fps-badge__menu button { min-height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: 10px; background: transparent; text-align: left; font-size: 13px; cursor: pointer; }
+.fps-badge__menu button[aria-checked="true"] { background: #383e42; color: #fff; }
+.fps-badge__menu button:disabled { opacity: .5; cursor: not-allowed; }
+.fps-badge__menu small { padding: 4px 6px 2px; color: #53616a; font-size: 11px; }

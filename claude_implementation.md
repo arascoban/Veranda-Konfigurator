@@ -165,6 +165,21 @@ Doğrulama: 95 test, derleme; tarayıcıda ölçü katmanı ve Feld etiketi ("Fr
 - Görüntüleyici sağ sütunun tamamını kaplıyor; araç çubuğu, "3D-Vorschau" başlığı, not ve "Ihre Planung" kartı cam (blur/saturate) katman olarak modelin üstünde.
 - Panelde yatay kaydırma (Neigung ipucu taşması) kapatıldı; genel yazı boyutları küçültüldü (gövde 14 px).
 
+## 8. İş — Renkler, kalite/FPS, bölüm kartları, canlı ölçüler (30 Eylül, altıncı tur)
+
+| Konu | Uygulama |
+| --- | --- |
+| Renk | Alüminyum profil rengi `frameColor`: **RAL 7016 Anthrazit** (varsayılan) ve **RAL 9001 Cremeweiß** (`catalog.ts` `frameColors`). Konstruktion kartında yuvarlak renk örnekleri + isim (`.color-swatch`), dropdown yok. Renk 3D malzemeye (`createFinishMaterials`), Übersicht ve PDF "Farbe" satırına işlenir. UI rengi ürün boyasını değiştirmez. |
+| Sol panel | Dropdown kaldırıldı; üç kart **Konstruktion / Dach / Ausstattung** (`SectionPicker`, `role="tablist"`). Feld bölümü Ausstattung'a alındı; Übersicht sadece "Zur Übersicht" düğmesiyle açılır. |
+| Oklar / canlı ölçü | Hareket okları inceltildi (`flatArrow` w = 0,022). Sürüklerken Bemaßungen katmanı ve ok limitleri her hareket olayında yenilenir (`applyDimensionLayer`, `setMarkerLimits` `onPointerMove` içinde); "Front n" ve Tiefe links/rechts canlı değişir. |
+| Bemaßungen görünümü | Çizgiler altın `#D4AF37`, yazılar siyah, arka plansız. Höhe hinten (D) ve Gesamthöhe (C) ikisi de bahçeden sol tarafta (x = W ucu), yazılar çizginin solunda (`labelOffsetMm`). |
+| Premium yan taşıyıcı | İki köşede `rafterSide*` (conta/oluk tarafı cama bakacak şekilde: x = 0 ucu normal, x = W ucu aynalı basis). Orta taşıyıcılar `rafterMiddle*`. Test `placements.test.ts` güncellendi. |
+| FPS / kalite | Sağ üstte cam rozet "**n FPS · Niedrig/Hoch**", müşteriye görünür. Tıklayınca menü: *Niedrige Qualität* / *Hohe Qualität (Schatten, Ambient Occlusion)*. Yüksek kalite = sabit güneş (`DirectionalLight`, 2048 gölge haritası, PCF) + `GTAOPass` (yarıçap 0,2 m, yapı kutusuyla sınırlı) + `OutputPass`. Sürekli render döngüsü gerçek kare süresini ölçer; yüksek kalitede 3 s sonra ortalama < 58 FPS ise otomatik *Niedrig* (menüde açıklama). Telefon/tablet (`pointer: coarse` veya < 768 px) yalnız düşük; yüksek seçeneği masaüstünde açılır. |
+| Gölge yakalayıcı | Zemin kanvası `MeshBasicMaterial` kalır; gölge yalnız üstündeki `ShadowMaterial` düzlemine düşer. Düzlem zemin düzleminde, `polygonOffset` ile derinlik testini kazanır (bkz. `CLAUDE-K03-007`). Kamera yakın düzlemi 0,05 m. |
+| Geliştirici yardımı | Yalnız DEV: `?d03loop=0` (isteğe bağlı render, Playwright/yazılım GL), `window.__d03runtime` (kalite/gölge/AO denetimi). Üretim derlemesine girmez. |
+
+Doğrulama: `npm run check`, 95 test, `npm run build`; Playwright ekran görüntüleri: kartlar + renk örnekleri, RAL 9001 gövde + altın ölçüler, Premium köşelerde yan taşıyıcı, sürüklerken canlı "Front 2", yüksek kalitede çatı gölgesi + ayak dibinde AO (Prime/Premium, iki kamera açısı), otomatik düşüşte rozet "Niedrig". Piksel okuması: AO bandı zemin renginden koyu (203 → 171–197), gölge 175/161 → görsel "açık halka" izlenimi yanılsama, hata değil.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

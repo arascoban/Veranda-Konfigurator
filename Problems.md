@@ -827,3 +827,17 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosyalar: `placements.ts`, `assemblyScene.ts`.
 - Tek çözüm denemesi: Ayak yerleşimlerine `postCentreMm` eklendi; tutucu bu aksa kuruldu.
 - Doğrulama: Üstten görünüşte halka ayak merkezinde; tıklama/sürükleme testi ve 95 test geçti.
+
+## CLAUDE-K03-007 — Yüksek kalitede çatı gölgesi bazı kamera açılarında görünmüyordu
+
+- Durum: Çözüldü
+- Tarih: 30 Eylül 2026.
+- Görev/model: K03 yüksek kalite (gölge + GTAO), Claude.
+- Ortam: three.js 0.186, Chromium/SwiftShader (Playwright), Vite dev.
+- Beklenen: "Hohe Qualität" seçilince çatı gölgesi her kamera açısından zeminde görünür.
+- Gerçek: Kamera (7.5, 4.5, −8.5) → hedef (2.5, 1.2, −1.5) konumunda gölge hiç çizilmiyor; (−3.5, 3.2, −7.5) konumunda çiziliyor. Kanıt: `hq3-Prime-A/B.png`, `hq5-A-shadow-near01.png` (yakın düzlem 0,1 m'de gölge şeritli çıkıyor = z-fight).
+- Neden: Gölge yakalayıcı `ShadowMaterial` düzlemi zemin kanvasının 1 mm üstündeydi; kamera yakın düzlemi 0,01 m olduğundan ~10 m mesafede derinlik çözünürlüğü 1 mm'yi ayıramıyor, yakalayıcı zemine karşı derinlik testini kaybediyordu. Aynı düşük derinlik hassasiyeti GTAO'yu da zayıflatıyordu.
+- Etkilenen dosyalar: `src/features/assembly/assemblyScene.ts` (`createGround`), `src/features/viewer/PreviewViewer.tsx`.
+- Tek çözüm denemesi: Yakalayıcı zemin düzleminin kendisine alındı, `polygonOffset` (−2/−4) ve `depthWrite: false` ile derinlik testini kazanıyor; kamera yakın düzlemi 0,05 m, `OrbitControls.minDistance` 0,4 m; GTAO yapı kutusuyla (`setSceneClipBox`) sınırlandı, yarıçap 0,2 m; gölge opaklığı lineer karışım için 0,4.
+- Doğrulama: İki kamera açısı ve iki üründe gölge + AO görünür (`final-prime-high.png`, `final-premium-high.png`); piksel okuması gölge 203→161, AO bandı 203→171–197; `npm run check`, 95 test.
+
