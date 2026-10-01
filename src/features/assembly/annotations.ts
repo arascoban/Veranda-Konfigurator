@@ -198,7 +198,12 @@ export function disposeAnnotations(group: Object3D): void {
       object.material.dispose();
     } else if (object instanceof Mesh || object instanceof LineSegments) {
       object.geometry.dispose();
-      if (!Array.isArray(object.material)) object.material.dispose();
+      if (!Array.isArray(object.material)) {
+        // Flat labels draw a canvas texture; it has to go with its material (ASTRA-GP-07).
+        const map = (object.material as MeshBasicMaterial).map;
+        if (map) map.dispose();
+        object.material.dispose();
+      }
     }
   });
 }

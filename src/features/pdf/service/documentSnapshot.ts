@@ -25,8 +25,10 @@ export type PdfDocumentSnapshot = {
   roofMaterialNameDe: string;
   price: PdfPrice;
   engineeringReviewRequired: true;
-  /** The current scene is a schematic test model, not approved product imagery. */
+  /** The plan drawing is schematic; the views below are rendered from the real part assembly. */
   imageStatus: 'schematic_demo_only';
+  /** Rendered views of the same configuration revision, attached by the export flow. */
+  views?: Array<{ id: string; title: string; png: Uint8Array; width: number; height: number }>;
 };
 
 export type PdfSnapshotResult =

@@ -841,3 +841,18 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Tek çözüm denemesi: Yakalayıcı zemin düzleminin kendisine alındı, `polygonOffset` (−2/−4) ve `depthWrite: false` ile derinlik testini kazanıyor; kamera yakın düzlemi 0,05 m, `OrbitControls.minDistance` 0,4 m; GTAO yapı kutusuyla (`setSceneClipBox`) sınırlandı, yarıçap 0,2 m; gölge opaklığı lineer karışım için 0,4.
 - Doğrulama: İki kamera açısı ve iki üründe gölge + AO görünür (`final-prime-high.png`, `final-premium-high.png`); piksel okuması gölge 203→161, AO bandı 203→171–197; `npm run check`, 95 test.
 
+## CLAUDE-GP-001 — Astra güncel planı (01_Ocak_AstraGuncelPlan.md) GP-01…07 düzeltmeleri
+
+- Durum: Çözüldü (GP-01…09 ve GP-12); GP-10/11 **Bilgi bekliyor** (aşağıda).
+- Tarih: 1 Ekim 2026. Görev/model: Astra planı uygulaması, Claude.
+- Ortam: Node 22, npm 11.12.1 kilidi, three.js 0.186, Chromium/SwiftShader (Playwright), Vite dev.
+- **GP-01 bağımlılık:** Bu ortamda `pdf-lib@1.17.1` kurulu (`npm ls pdf-lib`); tip kontrolü, 106 test ve üretim derlemesi geçiyor. Astra'nın ortamındaki eksik kurulum yeniden üretilemedi; kilit dosyası değiştirilmedi. Temiz kurulumda `npx npm@11.12.1 ci` önerilir (bkz. CLAUDE-P07-001).
+- **GP-02 ilk sürükleme:** Neden: `onSelectPost`/`onPostCentersChange` her render'da yeni fonksiyon; pointer effect'i bağımlılık olarak bunları taşıyordu, seçim güncellenince temizlenip aktif sürükleme kayboluyordu. Çözüm: geri çağrılar `useRef` ile kararlı tutuldu, effect bağımlılıklarından çıkarıldı. Doğrulama: seçilmemiş orta ayak ilk basılı tutup sürüklemede 250 → 325 cm, geri al etkin (Playwright `gp.cjs`).
+- **GP-03 profil penceresi:** Ana montaj durumu yerine ayrı `ProfileViewer` (kendi renderer'ı, seçili ürünün orta taşıyıcı parçaları; Premium'da gövde + üst + uç parçaları) ve ayrı `profileStatus`. "Detailmodell geladen" ancak parçalar yüklenip çizilince görünür; pencere kapanınca kaynaklar bırakılır. Doğrulama: Prime ve Premium için doğru profil görüntüsü ve durum.
+- **GP-04 PDF yönü:** Tek yardımcı `gardenOrder` (bahçeden soldan sağa); eksenler, aralıklar ve lichte Weiten aynı diziden. Kabul örneği testte: 50/200/480 iç → 50 · 330 · 480 cm, 280 · 150 cm, 269 · 139 cm.
+- **GP-05 PDF seçenekleri:** Pfosten bölümüne Wasserablauf (bahçeden; 800 cm üzeri "Links und rechts") ve yalnız Prime'da Pfostendeckel. Querschnitt Almanca biçimde (11 × 13,5 cm). Testler eklendi.
+- **GP-06 çözünürlük:** Composer'a fiziksel piksel yerine CSS boyutu + renderer piksel oranı veriliyor; GTAO ayrıca yeniden boyutlanmıyor. Ölçüm DPR 2, CSS 1026×794: canvas 2052×1588, composer/readBuffer 2052×1588 (önce 4104×3176 olurdu).
+- **GP-07 kaynak temizliği:** `disposeSchematicGroup` paylaşılan geometriyi korur, montaja ait malzemeleri (ve dokularını) bir kez bırakır; ölçü etiketlerinin canvas dokuları da bırakılıyor; kapanışta composer/GTAO dispose. Ölçüm (renderer.info, ısınmadan sonra 30 renk/ölçü değişimi + ürün döngüleri): geometri 104 → 104, doku 1 → 1 (düzeltme öncesi 1 → 28), program 7 → 7.
+- Etkilenen dosyalar: `PreviewViewer.tsx`, `schematicGeometry.ts`, `annotations.ts`, `ProfileViewer.tsx` (yeni), `ProfileInspector.tsx`, `ConfiguratorShell.tsx`, `ConfiguratorApp.tsx`, `pdfTemplate.ts` (+test), `renderPdf.ts` (+test), `documentSnapshot.ts`, `pdfExport.ts`, `captureViews.ts` (yeni).
+- **GP-10/11 (e-posta ile PDF) Bilgi bekliyor:** e-posta sağlayıcısı ve gönderen adres/alan adı, kullanım koşulları metni ve sürümü, idempotency/hız sınırı için kalıcı depo (ör. Vercel KV) kullanıcı kararı. Sunucu anahtarı olmadan uçtan uca doğrulanamaz; form müşteriye "gönderildi" diyemeyeceği için şimdilik eklenmedi.
+

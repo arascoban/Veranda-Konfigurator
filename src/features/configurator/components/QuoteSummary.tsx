@@ -2,6 +2,12 @@ import type { QuoteState } from '../../../state/configuratorStore';
 import { Button } from '../../../ui/Button';
 import { StatusMessage } from '../../../ui/StatusMessage';
 
+/**
+ * Test download without e-mail (ASTRA-GP-12): on in development or with VITE_PDF_TEST_DOWNLOAD=1. The customer
+ * e-mail flow (GP-10/11) is not built yet, so the production button still downloads the same document.
+ */
+const PDF_TEST_DOWNLOAD = import.meta.env.DEV || import.meta.env.VITE_PDF_TEST_DOWNLOAD === '1';
+
 export function QuoteSummary({ quote, revision, productName, materialName, measurements, onOverview, onPdf, onAr,
   pdfState = 'unavailable', arState = 'unavailable' }: {
   quote: QuoteState; revision: number; productName: string; materialName: string; measurements: string;
@@ -28,7 +34,8 @@ export function QuoteSummary({ quote, revision, productName, materialName, measu
       <StatusMessage className="quote-card__status" tone={price.tone} title={price.title}>{price.text}</StatusMessage>
       <div className="quote-card__actions">
         <Button variant="primary" onClick={onOverview} disabled={!onOverview}>Übersicht</Button>
-        <Button onClick={onPdf} disabled={!onPdf || pdfState !== 'ready'} aria-label={pdfText}>PDF</Button>
+        <Button className="quote-pdf-button" onClick={onPdf} disabled={!onPdf || pdfState !== 'ready'} aria-label={pdfText} title={PDF_TEST_DOWNLOAD ? 'Test-PDF herunterladen (ohne E-Mail)' : pdfText}>
+          {PDF_TEST_DOWNLOAD ? 'Test-PDF' : 'PDF'}</Button>
         <Button onClick={onAr} disabled={!onAr || arState !== 'ready'} aria-label={arText}>AR</Button>
       </div>
       {(pdfState === 'unavailable' || arState === 'unavailable') &&

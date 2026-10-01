@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { awningFabrics, awningRules, MAX_EXTRA_ROOF_BAYS, roofFinishes, type RoofFinishId } from '../../../catalog/catalog';
 import { awningAvailability, awningChangeNotice, awningDepthMm, createAwning, defaultTwoWidths, type AwningType } from '../../../domain/awning';
 import type { ConfigurationV1 } from '../../../domain/configuration';
@@ -9,7 +10,7 @@ import { de, issueTextDe } from '../../../content/de';
 import { useNoticeStore } from '../../../state/noticeStore';
 import { Icon } from '../../../ui/Icon';
 import { InfoTip } from '../../../ui/InfoTip';
-import { AddOnToggle, SectionHead } from '../../../ui/SectionHead';
+import { AddOnToggle, CollapseToggle, SectionHead } from '../../../ui/SectionHead';
 import { StatusMessage } from '../../../ui/StatusMessage';
 import { DimensionField } from './DimensionField';
 
@@ -25,6 +26,9 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
   onSelectRoofField?: (index: number | null) => void;
 }) {
   const pushNotice = useNoticeStore((state) => state.push);
+  const [fieldsOpen, setFieldsOpen] = useState(false);
+  // A field tapped in the model opens the list so its tone can be chosen.
+  useEffect(() => { if (selectedRoofField !== null) setFieldsOpen(true); }, [selectedRoofField]);
   const roof = evaluation.roof;
   const width = configuration.dimensionsMm.width;
   const depth = configuration.dimensionsMm.depth;
@@ -47,7 +51,8 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
   };
   const awning = configuration.awning;
   const applyAwning = (next: ConfigurationV1['awning']) => {
-    const notice = awningChangeNotice(configuration.awning, next, configuration);
+    // Notices explain automatic adjustments only; a removal chosen by the customer stays silent.
+    const notice = next ? awningChangeNotice(configuration.awning, next, configuration) : null;
     if (notice) pushNotice(notice);
     onChange({ ...configuration, awning: next, roofFieldFinishes: [] });
   };
@@ -73,7 +78,7 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
 
   return (
     <section aria-labelledby="roof-heading">
-      <SectionHead title="Dacheindeckung" picture="roof"
+      <SectionHead title="Dacheindeckung"
         info="Gilt für alle Dachfelder. Die Farbe einzelner Felder lässt sich in der Feldliste oder durch Antippen eines Feldes im Modell ändern. Alle Eindeckungen sind für Prime und Premium möglich." />
       <div className="roof-finish-grid" role="radiogroup" aria-label="Dacheindeckung">
         {(Object.keys(roofFinishes) as RoofFinishId[]).map((id) => (
@@ -87,8 +92,9 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
         ))}
       </div>
 
-      <SectionHead title="Dachfelder" picture="fields"
-        info={`Mindestens die berechnete Anzahl, höchstens ${MAX_EXTRA_ROOF_BAYS} Felder mehr. Mit einer Markise über 600 cm Breite ist die Aufteilung fest: Mitte für die Markise, zwei Seitenfelder in Milchglas. Dachfeld 1 liegt vom Garten aus links.`} />
+      <SectionHead title="Dachfelder" picture="dachfelder.jpg" chip={roof ? `${roof.bayCount} Felder · ${roof.supportCount} Träger` : undefined}
+        info={`Mindestens die berechnete Anzahl, höchstens ${MAX_EXTRA_ROOF_BAYS} Felder mehr. Mit einer Markise über 600 cm Breite ist die Aufteilung fest: Mitte für die Markise, zwei Seitenfelder in Milchglas. Dachfeld 1 liegt vom Garten aus links; die Liste zeigt die Farbe jedes Feldes.`}
+        action={roof ? <CollapseToggle open={fieldsOpen} label="Dachfelder einzeln anzeigen" onToggle={() => setFieldsOpen((open) => !open)} /> : undefined} />
       {roof && minimum !== null ? <>
         <div className="number-stepper" aria-label="Anzahl der Dachfelder">
           <button className="number-stepper__button" type="button" aria-label="Dachfeld entfernen"
@@ -98,7 +104,7 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
             disabled={!canIncrease} onClick={() => changeCount(1)}><Icon name="plus" /></button>
         </div>
         {roof.reasons.map((reason) => <StatusMessage key={reason} tone="error">{issueTextDe[reason]}</StatusMessage>)}
-        <ul className="roof-field-list" aria-label="Dachfelder vom Garten aus gesehen">
+        {fieldsOpen && <ul className="roof-field-list" aria-label="Dachfelder vom Garten aus gesehen">
           {gardenOrder.map((index) => {
             const selected = selectedRoofField === index;
             return (
@@ -121,12 +127,12 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
               </li>
             );
           })}
-        </ul>
+        </ul>}
       </> : <StatusMessage tone="info">Geben Sie zuerst eine gültige Breite ein, um Dachfelder zu berechnen.</StatusMessage>}
 
-      <SectionHead title="Markise" picture="awning" chip={awning ? de.awningTypes[awning.type] : 'Aufglas oder Unterglas'}
+      <SectionHead title="Markise" picture="markise.jpg" chip={awning ? de.awningTypes[awning.type] : 'Aufglas oder Unterglas'}
         info={`Nur mit Glasdach. Eine Markise misst höchstens ${cm(awningRules.maxWidthMm)} × ${cm(awningRules.maxDepthMm)} und mindestens ${cm(awningRules.minWidthMm)} × ${cm(awningRules.minDepthMm)}. Über 600 cm Breite werden die äußeren Felder Milchglas (mindestens 15 cm, höchstens 86 cm); darüber sind zwei Markisen nötig. Die Unterglas-Markise reicht von der Pfostenrückseite bis zur Wand, die Aufglas-Markise ist so lang wie die Trägerabdeckung.`}
-        action={availability.available ? <AddOnToggle active={Boolean(awning)} label="Markise" onAdd={addAwning} /> : undefined} />
+        action={availability.available ? <AddOnToggle active={Boolean(awning)} label="Markise" onAdd={addAwning} onRemove={() => applyAwning(null)} /> : undefined} />
       {availability.reason === 'polycarbonate' ? (
         <StatusMessage tone="info">Markisen sind nur mit Glasdach möglich.</StatusMessage>
       ) : !availability.available ? (
@@ -195,9 +201,9 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
         ))}
       </div>}
 
-      <SectionHead title="Beleuchtung" picture="led" chip="Anzahl LED je Träger"
+      <SectionHead title="Beleuchtung" picture="led.jpg" chip="Anzahl LED je Träger"
         info={`Je Träger höchstens eine LED je Meter Tiefe (ab 50 cm aufgerundet), bei dieser Tiefe ${ledMax}. Die Eckträger erhalten keine LED. Schaltbar und dimmbar unterscheiden sich im Preis.`}
-        action={ledMax > 0 ? <AddOnToggle active={ledActive} label="Beleuchtung" onAdd={addLed} /> : undefined} />
+        action={ledMax > 0 ? <AddOnToggle active={ledActive} label="Beleuchtung" onAdd={addLed} onRemove={() => onChange({ ...configuration, ledPerRafter: 0 })} /> : undefined} />
       {ledActive && <div className="addon-body">
         <div className="option-row">
           <span className="option-row__label">Anzahl LED je Träger</span>

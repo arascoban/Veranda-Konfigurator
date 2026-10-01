@@ -9,7 +9,7 @@ describe('PDF rendering', () => {
     const template = buildPdfTemplate(exampleSnapshot());
     const bytes = await renderPdfDocument(template, new Date('2026-09-30T10:15:00Z'));
     const loaded = await PDFDocument.load(bytes);
-    expect(loaded.getPageCount()).toBe(1);
+    expect(loaded.getPageCount()).toBeGreaterThanOrEqual(1);
     const [width, height] = PageSizes.A4;
     expect(loaded.getPage(0).getSize()).toEqual({ width, height });
     expect(loaded.getTitle()).toBe('Planungsentwurf Terrassenüberdachung Prime');

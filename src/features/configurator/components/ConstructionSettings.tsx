@@ -69,7 +69,7 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
             : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`} />
       </div>
 
-      <SectionHead title="Farbe" picture="colour" info="Farbe aller Aluminiumprofile. Dichtungen, Glas und Ablaufrohr bleiben unverändert." />
+      <SectionHead title="Farbe" info="Farbe aller Aluminiumprofile. Dichtungen, Glas und Ablaufrohr bleiben unverändert." />
       <div className="color-swatches" role="radiogroup" aria-label="Farbe der Aluminiumprofile">
         {(Object.keys(frameColors) as FrameColorId[]).map((id) => (
           <button key={id} type="button" role="radio" className="color-swatch" aria-checked={configuration.frameColor === id}
@@ -80,7 +80,7 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
         ))}
       </div>
 
-      <SectionHead title="Pfosten" picture="posts" info="Pfosten im Modell antippen und entlang der Rinne ziehen oder hier die Position eingeben (Achsmaß ab dem linken Rinnenende, vom Garten aus gesehen). Pfosten 1 steht vom Garten aus links." />
+      <SectionHead title="Pfosten" info="Pfosten im Modell antippen und entlang der Rinne ziehen oder hier die Position eingeben (Achsmaß ab dem linken Rinnenende, vom Garten aus gesehen). Pfosten 1 steht vom Garten aus links." />
       {posts.length ? (
         <div className="post-list">
           {gardenOrder.map(({ post, index }, number) => (
@@ -153,7 +153,7 @@ function ReadOnlyValue({ label, value, limit, info, tone }: { label: string; val
   return (
     <div className={`dimension-field readonly-value ${tone === 'error' ? 'dimension-field--error' : ''}`}>
       <div className="dimension-field__label-row">
-        <span className="dimension-field__label">{label}{info && <span className="info-dot" tabIndex={0} role="note" aria-label={info} data-tip={info}>i</span>}</span>
+        <span className="dimension-field__label">{label}{info && <InfoTip text={info} />}</span>
         {limit && <span className="dimension-field__limit">{limit}</span>}
       </div>
       <div className="dimension-field__control readonly-value__control" aria-readonly="true">

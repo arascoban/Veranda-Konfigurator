@@ -2,6 +2,7 @@ import { de, issueTextDe } from '../../../content/de';
 import { evaluateConfiguration } from '../../../domain/evaluateConfiguration';
 import { roofSummaryDe } from '../../../domain/roofSummary';
 import { ROOF_SUPPORT_WIDTH_MM, postSections, postWidthMm } from '../../../catalog/catalog';
+import { drainPostIndices } from '../../assembly/placements';
 import type { PdfDocumentSnapshot } from '../service/documentSnapshot';
 
 export type PdfRow = { label: string; value: string };
@@ -17,6 +18,9 @@ export type PdfPlanDrawing = {
   caption: string;
 };
 
+/** Rendered product view for the PDF; produced by captureViews in the browser. */
+export type PdfViewImage = { id: string; title: string; png: Uint8Array; width: number; height: number };
+
 export type PdfTemplate = {
   brand: string;
   documentLabel: string;
@@ -25,6 +29,8 @@ export type PdfTemplate = {
   meta: PdfRow[];
   sections: PdfSection[];
   plan: PdfPlanDrawing;
+  /** Five fixed views of the real part assembly (ASTRA-GP-08); empty only in unit tests without a GPU. */
+  views: PdfViewImage[];
   price: { available: boolean; headline: string; details: string[]; lines: PdfRow[] };
   notes: string[];
   footer: string;
@@ -72,8 +78,18 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
 
   const panelWidthMm = roof.finalPanelWidthMm.numerator / roof.finalPanelWidthMm.denominator;
   const posts = configuration.postCenters.map((post) => post.xMm);
-  const gaps = posts.slice(1).map((x, index) => x - posts[index]);
-  const supportPitch = (width - ROOF_SUPPORT_WIDTH_MM) / roof.bayCount;
+  // One ordering for everything the customer reads: garden view, left to right (ASTRA-GP-04).
+  const gardenPosts = gardenOrder(posts, width);
+  const gaps = gardenPosts.slice(1).map((x, index) => x - gardenPosts[index]);
+  // Roof supports from the (possibly unequal) cap widths: left edge of each support plus half its width.
+  const supportCenters = roof.capWidthsMm.reduce<number[]>((centres, cap, index) => {
+    const left = index === 0 ? 0 : centres[index - 1] + ROOF_SUPPORT_WIDTH_MM / 2 + roof.capWidthsMm[index - 1];
+    centres.push(left + ROOF_SUPPORT_WIDTH_MM / 2);
+    return centres;
+  }, []);
+  supportCenters.push(supportCenters[supportCenters.length - 1] + ROOF_SUPPORT_WIDTH_MM + roof.capWidthsMm[roof.capWidthsMm.length - 1]);
+  const drains = drainPostIndices(width, configuration.drainSide, posts.length);
+  const drainText = drains.size >= 2 ? 'Links und rechts (ab 800 cm Breite)' : configuration.drainSide === 'left' ? 'Links (vom Garten gesehen)' : 'Rechts (vom Garten gesehen)';
 
   const price: PdfTemplate['price'] = snapshot.price.status === 'ready'
     ? priceReady(snapshot.price)
@@ -126,22 +142,24 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
         heading: 'Pfosten',
         rows: [
           { label: 'Anzahl', value: String(posts.length) },
-          { label: 'Querschnitt', value: `${postSections[configuration.productId].alongGutterMm / 10} × ${postSections[configuration.productId].towardsGardenMm / 10} cm` },
-          { label: 'Achsen ab links (vom Garten)', value: [...posts].reverse().map((x) => numberDe.format((width - x) / 10)).join(' · ') + ' cm' },
+          { label: 'Querschnitt', value: `${numberDe.format(postSections[configuration.productId].alongGutterMm / 10)} × ${numberDe.format(postSections[configuration.productId].towardsGardenMm / 10)} cm` },
+          { label: 'Achsen ab links (vom Garten)', value: gardenPosts.map((x) => numberDe.format(x / 10)).join(' · ') + ' cm' },
           { label: 'Achsabstände', value: gaps.map((gap) => numberDe.format(gap / 10)).join(' · ') + ' cm' },
           { label: 'Lichte Weiten', value: gaps.map((gap) => numberDe.format((gap - postWidthMm(configuration.productId)) / 10)).join(' · ') + ' cm' },
+          { label: 'Wasserablauf', value: drainText },
+          ...(configuration.productId === 'prime' ? [{ label: 'Pfostendeckel', value: configuration.postCapStyle === 'halb' ? 'Halb' : 'Gerade' }] : []),
         ],
       },
     ],
     plan: {
       widthMm: width,
       depthMm: depth,
-      roofSupportCentersMm: Array.from({ length: roof.supportCount },
-        (_, index) => ROOF_SUPPORT_WIDTH_MM / 2 + index * supportPitch),
+      roofSupportCentersMm: supportCenters,
       postCentersMm: posts,
       postSectionMm: { ...postSections[configuration.productId] },
       caption: 'Schematische Draufsicht, Blick vom Garten (Hauswand unten). Keine Produktabbildung, nicht für die Fertigung.',
     },
+    views: snapshot.views ?? [],
     price,
     notes: [
       'Unverbindlicher Planungsentwurf. Kein Angebot und keine Auftragsbestätigung.',
@@ -167,4 +185,9 @@ function priceReady(price: Extract<PdfDocumentSnapshot['price'], { status: 'read
       value: formatMoneyDe(line.lineAmountMinor, line.currency) ?? '–',
     })),
   };
+}
+
+/** Post axes as seen from the garden, left to right (mirror of the inside coordinates). */
+export function gardenOrder(postsMm: readonly number[], widthMm: number): number[] {
+  return postsMm.map((x) => widthMm - x).sort((a, b) => a - b);
 }

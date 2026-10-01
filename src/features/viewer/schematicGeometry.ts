@@ -1,22 +1,28 @@
 import {
-  BoxGeometry, BufferGeometry, DoubleSide, Float32BufferAttribute, PlaneGeometry,
-  Group, Mesh, MeshBasicMaterial,
+  BoxGeometry, BufferGeometry, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Texture, type Material,
 } from 'three';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { createGround, createPostControls } from '../assembly/assemblyScene';
 import type { PreviewDimensions } from './previewGeometry';
 
 /** Disposes helper geometry; meshes cloned from the shared part library keep their geometry. */
+/**
+ * Frees everything a scene group owns: geometries created for this group and every material it uses,
+ * each once. Geometry flagged `sharedAsset` belongs to the part library cache and is kept; its materials
+ * were created for this assembly and are disposed with it (ASTRA-GP-07).
+ */
 export function disposeSchematicGroup(group: Group): void {
+  const materials = new Set<Material>();
   group.traverse((object) => {
     if (!('geometry' in object && 'material' in object)) return;
-    if (object.userData.sharedAsset) return;
     const drawable = object as Mesh;
-    drawable.geometry.dispose();
-    for (const material of Array.isArray(drawable.material) ? drawable.material : [drawable.material]) {
-      material.dispose();
-    }
+    if (!object.userData.sharedAsset) drawable.geometry.dispose();
+    for (const material of Array.isArray(drawable.material) ? drawable.material : [drawable.material]) materials.add(material);
   });
+  for (const material of materials) {
+    for (const value of Object.values(material)) if (value instanceof Texture) value.dispose();
+    material.dispose();
+  }
 }
 
 /** Temporary schematic only. Profile dimensions and roof attachment offsets are not implied. */

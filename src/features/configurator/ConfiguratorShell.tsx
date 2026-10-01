@@ -29,6 +29,8 @@ export type ConfiguratorShellProps = {
   sceneStatus?: 'loading' | 'ready' | 'missing' | 'error';
   productModelStatus?: ProductModelStatus;
   profileModel?: ReactNode;
+  /** Loading state of the isolated profile viewer, independent of the main assembly. */
+  profileStatus?: 'loading' | 'ready' | 'missing' | 'error';
   pdfStatus?: 'unavailable' | 'ready' | 'working' | 'error';
   arStatus?: 'unavailable' | 'ready' | 'working' | 'error';
   profileArStatus?: 'unavailable' | 'ready' | 'working' | 'error';
@@ -54,7 +56,7 @@ export type ConfiguratorShellProps = {
 };
 
 export function ConfiguratorShell({
-  configuration, revision, quote, scene, sceneStatus = 'missing', productModelStatus = 'missing', profileModel,
+  configuration, revision, quote, scene, sceneStatus = 'missing', productModelStatus = 'missing', profileModel, profileStatus = 'missing',
   pdfStatus = 'unavailable', arStatus = 'unavailable', profileArStatus = 'unavailable', saveStatus = { state: 'idle' }, openStatus = { state: 'idle' },
   pdfFeedback = { state: 'idle' },
   onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, selectedPostId = null, onSelectPost, selectedRoofField = null, onSelectRoofField, onUndo, onRedo, onResetView, showDimensions = false, onToggleDimensions,
@@ -100,7 +102,7 @@ export function ConfiguratorShell({
             {section === 'construction' && <>
               <ConstructionSettings configuration={configuration} evaluation={evaluation} onChange={update} selectedPostId={selectedPostId} onSelectPost={onSelectPost} />
               <div className="construction-actions">
-                <ProfileInspector productId={configuration.productId} modelStatus={productModelStatus} profileModel={profileModel}
+                <ProfileInspector productId={configuration.productId} modelStatus={profileStatus} profileModel={profileModel}
                   arReady={profileArStatus === 'ready'} onShowAr={onShowProfileAr} />
               </div>
             </>}

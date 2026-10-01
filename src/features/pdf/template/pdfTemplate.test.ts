@@ -45,3 +45,27 @@ describe('PDF template', () => {
     expect(template.price.lines[0].label).toBe('Grundpreis');
   });
 });
+
+describe('PDF garden-view ordering and options (ASTRA-GP-04/05)', () => {
+  it('derives post axes, pitches and clear openings from one garden-view ordering', () => {
+    const snapshot = exampleSnapshot();
+    snapshot.configuration.postCenters = [{ id: 'a', xMm: 500 }, { id: 'b', xMm: 2000 }, { id: 'c', xMm: 4800 }];
+    const rows = buildPdfTemplate(snapshot).sections.find((section) => section.heading === 'Pfosten')!.rows;
+    const value = (label: string) => rows.find((row) => row.label === label)?.value;
+    expect(value('Achsen ab links (vom Garten)')).toBe('50 · 330 · 480 cm');
+    expect(value('Achsabstände')).toBe('280 · 150 cm');
+    expect(value('Lichte Weiten')).toBe('269 · 139 cm');
+    expect(value('Wasserablauf')).toBe('Links (vom Garten gesehen)');
+    expect(value('Pfostendeckel')).toBe('Gerade');
+  });
+
+  it('reports both drains above 800 cm and hides the cap style on Premium', () => {
+    const snapshot = exampleSnapshot();
+    snapshot.configuration.productId = 'premium';
+    snapshot.configuration.dimensionsMm.width = 8500;
+    snapshot.configuration.postCenters = [{ id: 'a', xMm: 65 }, { id: 'b', xMm: 4250 }, { id: 'c', xMm: 8435 }];
+    const rows = buildPdfTemplate(snapshot).sections.find((section) => section.heading === 'Pfosten')!.rows;
+    expect(rows.find((row) => row.label === 'Wasserablauf')?.value).toBe('Links und rechts (ab 800 cm Breite)');
+    expect(rows.some((row) => row.label === 'Pfostendeckel')).toBe(false);
+  });
+});

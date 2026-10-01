@@ -1,6 +1,6 @@
 import type { QuoteResult } from '../../../domain/pricing/quote';
 import { buildPdfTemplate } from '../template/pdfTemplate';
-import { buildPdfDocumentSnapshot } from './documentSnapshot';
+import { buildPdfDocumentSnapshot, type PdfDocumentSnapshot } from './documentSnapshot';
 
 export type PdfSource = {
   configuration: unknown;
@@ -24,7 +24,11 @@ export function createDraftDocumentId(now: Date, random: () => number = Math.ran
  * Builds the draft PDF from one revision. If the configuration changes while the document
  * is rendered, the result is discarded instead of being offered as current.
  */
-export async function createPdfDraft(read: () => PdfSource, options: { now?: Date; documentId?: string } = {}): Promise<PdfExportResult> {
+export async function createPdfDraft(read: () => PdfSource, options: {
+  now?: Date; documentId?: string;
+  /** Renders the five product views of the snapshot (browser only). When it fails, no PDF is produced. */
+  captureViews?: (configuration: PdfDocumentSnapshot['configuration']) => Promise<NonNullable<PdfDocumentSnapshot['views']>>;
+} = {}): Promise<PdfExportResult> {
   const now = options.now ?? new Date();
   const source = read();
   const snapshotResult = buildPdfDocumentSnapshot({
@@ -37,6 +41,10 @@ export async function createPdfDraft(read: () => PdfSource, options: { now?: Dat
   let bytes: Uint8Array;
   let fileName: string;
   try {
+    if (options.captureViews) {
+      snapshot.views = await options.captureViews(snapshot.configuration);
+      if (read().revision !== snapshot.revision) return { status: 'stale' };
+    }
     const template = buildPdfTemplate(snapshot);
     fileName = template.fileName;
     // Loaded on demand so the PDF library is not part of the first page load.

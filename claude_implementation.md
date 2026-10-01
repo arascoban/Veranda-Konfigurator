@@ -224,6 +224,24 @@ Fiyat: cam/polikarbonat m² birim fiyatları, markise ve LED adet fiyatları kul
 - **"+" panelleri:** `SectionHead` (resim placeholder'ı + başlık + rozet + "i") ve `AddOnToggle` ("+" → yeşil ✓, başlık yeşil). Markise: + ile Unterglas varsayılan eklenir; Art, Anzahl, genişlikler, Ausfall (salt okunur), Antriebsseite Links/Rechts, Stoff (9 placeholder), Entfernen. Beleuchtung: + ile taşıyıcı başına min(2, maks) LED; +/-; Steuerung Schaltbar/Dimmbar; Entfernen.
 - Doğrulama: `npm run check`, 104 test, derleme; Playwright: 650 cm → "+" Markise → bildirim kutusu metni, 9 bölme (kenarlar 19,5 cm cap = 25 cm pitch), 6,5 s sonra kutu kapandı; Beleuchtung paneli 8 Träger × 2 = 16; bahçeden bakışta Unterglas plakası taşıyıcı altında.
 
+## 13. İş — Dach UI düzeltmeleri ve Astra güncel planı (GP-01…09, GP-12) (1 Ekim, üçüncü tur)
+
+Kullanıcı istekleri:
+- Bölüm resimleri: Pfosten, Farbe, Dacheindeckung'da resim yok; Markise, Beleuchtung ve Dachfelder için kullanıcının render'ları (`public/images/sections/markise.jpg`, `led.jpg`, `dachfelder.jpg`).
+- **Dachfelder** artık açılır menü: başlıkta "n Felder · m Träger" rozeti ve aç/kapa düğmesi; liste yalnız açıldığında görünür; modelde bir alana tıklanınca liste kendiliğinden açılır.
+- **"i" ipuçları** belge düzeyinde (portal) çiziliyor ve ekran içinde tutuluyor; sol kenardan taşma yok (ölçüm: kutu x = 58 px).
+- **✓ yeniden tıklanınca kaldırır** (Markise, Beleuchtung; `AddOnToggle.onRemove`).
+- "Markise entfernt" bildirimi yalnız markise müşterinin kontrolü dışında kaldırıldığında (ölçü/malzeme değişimi) çıkar; elle kaldırma sessiz.
+
+Astra planı (`01_Ocak_AstraGuncelPlan.md`, depoya eklendi; Schweng incelemesi `schweng.md`):
+- GP-01…07 ayrıntıları ve ölçümleri `Problems.md` → `CLAUDE-GP-001`.
+- **GP-08 beş görünüş:** `src/features/pdf/service/captureViews.ts` geçici sahnede aynı montaj oluşturucuyla (ekrandaki kamera değişmez) Vorderansicht, Rechte/Linke Seitenansicht, Draufsicht (ortografik, sınır kutusuna oturtulmuş, üst görünüşte duvar yukarıda, müşterinin solu solda) ve Perspektive von vorne links (perspektif) üretir, 1600×1000 px, DPR'den bağımsız. Seçim çizgileri/oklar/etiketler görüntüye girmez. Görüntüler sırayla üretilir, iş bitince renderer ve geçici kaynaklar bırakılır. Revizyon üretim sırasında değişirse PDF "stale" sayılır.
+- **GP-09 yerleşim:** 1. sayfa özet + perspektif; sonraki sayfalarda sayfa başına en fazla iki büyük görünüş ve Almanca başlıklar; ardından ayrı başlıklı "Schematische Draufsicht" (şematik çizim gerçek görüntülerle karışmaz) ve Hinweise. Görsel kontrol: 4 sayfa, 5 görüntü, yönler asimetrik ayak (5,5 · 250 · 372,2 · 494,5 cm) ve sağ tahliye ile doğrulandı. Şematik planda genişlik ölçüsü ile başlık çakışması giderildi.
+- **GP-12 test indirmesi:** Geliştirmede veya `VITE_PDF_TEST_DOWNLOAD=1` ile düğme "Test-PDF" (title: "Test-PDF herunterladen (ohne E-Mail)"), aynı belge hattı. E-posta akışı (GP-10/11) henüz yok; bu yüzden yayında da şimdilik aynı indirme çalışır.
+- **GP-10/11** bilgi bekliyor (sağlayıcı, gönderen, koşullar metni, depo).
+
+Doğrulama: `npm run check`, 106 test (yeni: PDF bahçe sırası, iki uç tahliye/Premium kapak), `npm run build`; Playwright: ilk sürükleme, DPR 2 composer boyutu, 30 değişimde kaynak sayıları, beş görüntülü PDF (pymupdf ile sayfalar incelendi), Prime/Premium profil penceresi, ipucu konumu, Dachfelder aç/kapa, ✓ ile kaldırma, elle kaldırmada bildirim yok.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

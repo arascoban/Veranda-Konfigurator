@@ -118,8 +118,9 @@ function drawPlan(layout: Layout, fonts: Fonts, plan: PdfPlanDrawing, x: number,
   const page = layout.page;
   page.drawRectangle({ x, y: top - height, width, height, borderColor: colors.border, borderWidth: 0.6 });
   const padX = 34;
-  const padTop = 34;
-  const padBottom = 40;
+  // Top padding holds the width dimension (14 + text) and the caption line without overlap.
+  const padTop = 50;
+  const padBottom = 38;
   const scale = Math.min((width - padX * 2) / plan.widthMm, (height - padTop - padBottom) / plan.depthMm);
   const w = plan.widthMm * scale;
   const d = plan.depthMm * scale;
@@ -209,17 +210,27 @@ export async function renderPdfDocument(template: PdfTemplate, createdAt: Date):
   });
   layout.y = metaBottom - 10;
 
-  // Two columns: facts on the left, the schematic plan on the right.
+  // Two columns: facts on the left; on the right the perspective view (or, without views, the plan).
   const gutter = 24;
   const leftWidth = 232;
   const rightX = MARGIN + leftWidth + gutter;
   const rightWidth = CONTENT_WIDTH - leftWidth - gutter;
   const columnsTop = layout.y;
   const firstPage = layout.page;
-  const planHeight = 250;
-  drawPlan(layout, fonts, template.plan, rightX, columnsTop - 6, rightWidth, planHeight);
-  layout.y = columnsTop - 6 - planHeight - 6;
-  layout.paragraph(template.plan.caption, rightX, rightWidth, 8, fonts.regular, colors.secondary, 11);
+  const perspective = template.views.find((view) => view.id === 'perspective');
+  const otherViews = template.views.filter((view) => view.id !== 'perspective');
+  if (perspective) {
+    const image = await doc.embedPng(perspective.png);
+    const imageHeight = rightWidth * (image.height / image.width);
+    layout.page.drawImage(image, { x: rightX, y: columnsTop - 6 - imageHeight, width: rightWidth, height: imageHeight });
+    layout.y = columnsTop - 6 - imageHeight - 4;
+    layout.paragraph(perspective.title, rightX, rightWidth, 8.5, fonts.bold, colors.secondary, 11);
+  } else {
+    const planHeight = 250;
+    drawPlan(layout, fonts, template.plan, rightX, columnsTop - 6, rightWidth, planHeight);
+    layout.y = columnsTop - 6 - planHeight - 6;
+    layout.paragraph(template.plan.caption, rightX, rightWidth, 8, fonts.regular, colors.secondary, 11);
+  }
   const rightBottom = layout.y;
 
   layout.y = columnsTop;
@@ -250,6 +261,31 @@ export async function renderPdfDocument(template: PdfTemplate, createdAt: Date):
     priceY -= 13;
   }
   layout.y = boxTop - priceHeight - 10;
+
+  // Remaining views: two per page, each with its German title (ASTRA-GP-09).
+  if (otherViews.length) {
+    layout.addPage(false);
+    layout.heading('Ansichten', MARGIN, CONTENT_WIDTH);
+    let onPage = 0;
+    for (const view of otherViews) {
+      const image = await doc.embedPng(view.png);
+      const imageHeight = CONTENT_WIDTH * (image.height / image.width);
+      if (onPage === 2 || layout.y - imageHeight - 24 < FOOTER_SPACE) { layout.addPage(false); onPage = 0; }
+      layout.page.drawImage(image, { x: MARGIN, y: layout.y - imageHeight, width: CONTENT_WIDTH, height: imageHeight });
+      layout.y -= imageHeight + 4;
+      layout.paragraph(view.title, MARGIN, CONTENT_WIDTH, 9, fonts.bold, colors.secondary, 12);
+      layout.y -= 14;
+      onPage += 1;
+    }
+    // The schematic plan keeps its place as a drawing, clearly separated from the rendered views.
+    const planHeight = 230;
+    layout.ensureSpace(planHeight + 40);
+    layout.heading('Schematische Draufsicht', MARGIN, CONTENT_WIDTH);
+    drawPlan(layout, fonts, template.plan, MARGIN, layout.y, CONTENT_WIDTH, planHeight);
+    layout.y -= planHeight + 6;
+    layout.paragraph(template.plan.caption, MARGIN, CONTENT_WIDTH, 8, fonts.regular, colors.secondary, 11);
+    layout.y -= 10;
+  }
 
   layout.heading('Hinweise', MARGIN, CONTENT_WIDTH);
   for (const note of template.notes) {

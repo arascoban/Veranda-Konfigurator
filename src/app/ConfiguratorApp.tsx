@@ -12,6 +12,7 @@ import { createConfigurationHistory } from '../state/configurationHistory';
 import { useConfiguratorStore } from '../state/configuratorStore';
 
 const PreviewViewer = lazy(() => import('../features/viewer/PreviewViewer').then(({ PreviewViewer: Component }) => ({ default: Component })));
+const ProfileViewer = lazy(() => import('../features/viewer/ProfileViewer').then(({ ProfileViewer: Component }) => ({ default: Component })));
 
 export function ConfiguratorApp() {
   const configuration = useConfiguratorStore((state) => state.configuration);
@@ -25,6 +26,8 @@ export function ConfiguratorApp() {
   const [resetViewToken, setResetViewToken] = useState(0);
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
   const [productModelStatus, setProductModelStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('missing');
+  // The profile dialog has its own viewer and its own loading state (ASTRA-GP-03).
+  const [profileStatus, setProfileStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('missing');
   const [saveStatus, setSaveStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
   const [openStatus, setOpenStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
   const [pdfStatus, setPdfStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
@@ -86,6 +89,9 @@ export function ConfiguratorApp() {
     const result = await createPdfDraft(() => {
       const state = useConfiguratorStore.getState();
       return { configuration: state.configuration, revision: state.revision, quote: null };
+    }, {
+      // Five fixed views of the same revision, rendered from the real part assembly (ASTRA-GP-08).
+      captureViews: async (configuration) => (await import('../features/pdf/service/captureViews')).captureConfigurationViews(configuration),
     });
     if (result.status === 'ready') {
       try {
@@ -109,7 +115,9 @@ export function ConfiguratorApp() {
       onSceneStatusChange={setSceneStatus} onProductModelStatusChange={setProductModelStatus}
       onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
     </Suspense>}
-    sceneStatus={sceneStatus} productModelStatus={productModelStatus} pdfStatus={!pdfPossible ? 'unavailable' : pdfStatus.state === 'pending' ? 'working' : 'ready'}
+    sceneStatus={sceneStatus} productModelStatus={productModelStatus} profileStatus={profileStatus}
+    profileModel={<Suspense fallback={<p role="status">Profil wird geladen …</p>}><ProfileViewer productId={configuration.productId} frameColor={configuration.frameColor} onStatusChange={setProfileStatus} /></Suspense>}
+    pdfStatus={!pdfPossible ? 'unavailable' : pdfStatus.state === 'pending' ? 'working' : 'ready'}
     pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable" profileArStatus="unavailable"
     saveStatus={saveStatus} openStatus={openStatus}
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}

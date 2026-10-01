@@ -73,7 +73,11 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
   const runtimeRef = useRef<ViewerRuntime | null>(null);
   const lastFitKeyRef = useRef('');
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const setSelectedPostId = (postId: string | null) => onSelectPost?.(postId);
+  // Latest callbacks live in a ref so the pointer handlers are not torn down (and an active drag lost)
+  // just because the parent re-rendered with new function identities (ASTRA-GP-02).
+  const callbacks = useRef({ onSelectPost, onSelectRoofField, onPostCentersChange });
+  callbacks.current = { onSelectPost, onSelectRoofField, onPostCentersChange };
+  const setSelectedPostId = (postId: string | null) => callbacks.current.onSelectPost?.(postId);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [hoveredOpening, setHoveredOpening] = useState(-1);
   const [hoveredRoofField, setHoveredRoofField] = useState(-1);
@@ -181,7 +185,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         if (next !== 'low' && !runtime.composer) {
           const composer = new EffectComposer(renderer);
           composer.addPass(new RenderPass(scene, camera));
-          const gtao = new GTAOPass(scene, camera, renderer.domElement.width, renderer.domElement.height);
+          const gtao = new GTAOPass(scene, camera, host.clientWidth, host.clientHeight);
           gtao.output = GTAOPass.OUTPUT.Default;
           gtao.updateGtaoMaterial({ radius: 0.2 });
           if (runtime.aoBox) gtao.setSceneClipBox(runtime.aoBox);
@@ -189,7 +193,9 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
           composer.addPass(new OutputPass());
           runtime.composer = composer;
           runtime.gtao = gtao;
-          composer.setSize(renderer.domElement.width, renderer.domElement.height);
+          // CSS size: the composer multiplies by its own pixel ratio, so physical pixels would double it (ASTRA-GP-06).
+          composer.setPixelRatio(renderer.getPixelRatio());
+          composer.setSize(host.clientWidth, host.clientHeight);
         }
         // Materials compiled without shadow support must be rebuilt when the shadow map is switched.
         scene.traverse((object) => {
@@ -248,8 +254,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      runtime.composer?.setSize(renderer.domElement.width, renderer.domElement.height);
-      runtime.gtao?.setSize(renderer.domElement.width, renderer.domElement.height);
+      runtime.composer?.setSize(width, height);
       if (runtime.group) fitCamera(runtime, dimensionsFromGroup(runtime.group), width / height);
       render();
     };
@@ -263,7 +268,11 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       controls.removeEventListener('change', render);
       controls.dispose();
       renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
-      if (runtime.group) disposeSchematicGroup(runtime.group);
+      if (runtime.group) { scene.remove(runtime.group); disposeSchematicGroup(runtime.group); }
+      const dims = scene.getObjectByName('Bemaßungen');
+      if (dims) disposeAnnotations(dims);
+      runtime.gtao?.dispose();
+      runtime.composer?.dispose();
       scene.clear();
       renderer.dispose();
       renderer.forceContextLoss();
@@ -389,7 +398,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
 
   useEffect(() => {
     const runtime = runtimeRef.current;
-    if (!runtime || !dimensions || !posts || widthMm === null || !onPostCentersChange) return;
+    if (!runtime || !dimensions || !posts || widthMm === null) return;
     const canvas = runtime.renderer.domElement;
     const raycaster = new Raycaster();
     const pointer = new Vector2();
@@ -421,7 +430,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       if (Number.isInteger(nearest.object.userData.roofFieldIndex)) {
         setSelectedPostId(null);
         setSelectedOpening(null);
-        onSelectRoofField?.(nearest.object.userData.roofFieldIndex as number);
+        callbacks.current.onSelectRoofField?.(nearest.object.userData.roofFieldIndex as number);
         event.preventDefault();
         event.stopPropagation();
         return;
@@ -430,7 +439,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         const opening = openingSpans.find((span) => span.index === nearest.object.userData.openingIndex);
         if (!opening) return;
         setSelectedPostId(null);
-        onSelectRoofField?.(null);
+        callbacks.current.onSelectRoofField?.(null);
         setSelectedOpening(opening);
         event.preventDefault();
         event.stopPropagation();
@@ -442,7 +451,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       if (!post) return;
       setSelectedPostId(post.id);
       setSelectedOpening(null);
-      onSelectRoofField?.(null);
+      callbacks.current.onSelectRoofField?.(null);
       markSelectedPost(runtime.group, index, -1);
       runtime.render();
       drag = { pointerId: event.pointerId, index, initialMm: post.xMm, currentMm: post.xMm, started: false, startX: event.clientX };
@@ -503,7 +512,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
           const anyHit = raycaster.intersectObjects(runtime.group.children, true)
             .some((entry) => Number.isInteger(entry.object.userData.postIndex) || Number.isInteger(entry.object.userData.openingIndex)
               || Number.isInteger(entry.object.userData.roofFieldIndex));
-          if (!anyHit) { setSelectedPostId(null); setSelectedOpening(null); onSelectRoofField?.(null); }
+          if (!anyHit) { setSelectedPostId(null); setSelectedOpening(null); callbacks.current.onSelectRoofField?.(null); }
         }
         press = null;
         return;
@@ -517,7 +526,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       else {
         const next = finishPostDrag(configuration.productId, widthMm, posts, finished.index,
           finished.initialMm, finished.currentMm, false);
-        if (next) onPostCentersChange(next);
+        if (next) callbacks.current.onPostCentersChange?.(next);
         else if (finished.currentMm !== finished.initialMm) restorePost(finished.index, finished.initialMm);
       }
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
@@ -547,7 +556,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       if (drag) restorePost(drag.index, drag.initialMm);
       runtime.controls.enabled = true;
     };
-  }, [configuration, dimensions, onPostCentersChange, onSelectPost, onSelectRoofField, openingSpans, posts, widthMm, showDimensions]);
+  }, [configuration, dimensions, openingSpans, posts, widthMm, showDimensions]);
 
   const measurements = dimensions
     ? `${millimetresToCentimetres(configuration.dimensionsMm.width!)} × ${millimetresToCentimetres(configuration.dimensionsMm.depth!)} cm`

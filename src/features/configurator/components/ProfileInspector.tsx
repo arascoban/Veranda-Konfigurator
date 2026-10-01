@@ -18,8 +18,8 @@ export function ProfileInspector({ productId, modelStatus = 'missing', profileMo
   const [open, setOpen] = useState(false);
   const status = {
     loading: { tone: 'pending' as const, title: 'Detailmodell wird geladen', text: 'Ihre ausgewählte Produktvariante bleibt aktiv.' },
-    ready: { tone: 'success' as const, title: 'Detailmodell geladen', text: 'Ansicht und Maße gehören zum gewählten Produkt.' },
-    missing: { tone: 'warning' as const, title: 'Einzelmodell noch nicht verfügbar', text: 'Das freigegebene Profilmodell wird nachgereicht.' },
+    ready: { tone: 'success' as const, title: 'Detailmodell geladen', text: 'Trägerprofil des gewählten Produkts, ein Meter Länge.' },
+    missing: { tone: 'pending' as const, title: 'Detailmodell wird vorbereitet', text: 'Das Profil wird beim Öffnen geladen.' },
     error: { tone: 'error' as const, title: 'Modell konnte nicht geladen werden', text: 'Die normale Konfiguration bleibt geöffnet.' },
   }[modelStatus];
   return <>
@@ -28,7 +28,7 @@ export function ProfileInspector({ productId, modelStatus = 'missing', profileMo
       onClose={() => setOpen(false)} size="wide">
       <div className="profile-modal-grid">
         <div className="profile-modal__model">
-          {profileModel ?? <div className="profile-modal__placeholder">
+          {open && profileModel ? profileModel : <div className="profile-modal__placeholder">
             <div className="profile-modal__beam" aria-hidden="true" />
             <p>Einzelmodell wird hier angezeigt, sobald es geladen ist.</p>
           </div>}
