@@ -1,4 +1,5 @@
 import { roofMaterials } from '../../../catalog/catalog';
+import { roofSummaryDe } from '../../../domain/roofSummary';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import type { QuoteState } from '../../../state/configuratorStore';
 import { de } from '../../../content/de';
@@ -12,6 +13,7 @@ export function PlanOverview({ open, onClose, configuration, quote, revision, on
   /** The page-level feedback is hidden behind the dialog, so the result is repeated here. */
   pdfFeedback?: { state: 'idle' | 'pending' | 'success' | 'error'; message?: string };
 }) {
+  const roofSummary = roofSummaryDe(configuration);
   const quoteCurrent = 'revision' in quote && quote.revision === revision;
   const ready = quoteCurrent && quote.status === 'ready';
   const priceStatus = !quoteCurrent || quote.status === 'missing_data'
@@ -41,6 +43,9 @@ export function PlanOverview({ open, onClose, configuration, quote, revision, on
           <h3 id="overview-roof-heading">Eindeckung und Material</h3>
           <dl className="overview-list">
             <SummaryRow label="Dachmaterial" value={roofMaterials[configuration.roofMaterialId].nameDe} />
+            <SummaryRow label="Dachfarbe" value={roofSummary.finish} />
+            <SummaryRow label="Markise" value={roofSummary.awning} />
+            <SummaryRow label="LED" value={roofSummary.led} />
             <SummaryRow label="Farbe" value={de.frameColors[configuration.frameColor]} />
             <SummaryRow label="Max. Plattenbreite" value={formatLength(roofMaterials[configuration.roofMaterialId].maxPanelWidthMm)} />
             <SummaryRow label="Preiswährung" value={ready ? quote.currency : 'Noch nicht verfügbar'} />

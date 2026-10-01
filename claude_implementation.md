@@ -199,6 +199,21 @@ Doğrulama: `npm run check`, 95 test, `npm run build`; Playwright: menüde üç 
 - Diğer ürün artık ilk model hazır olur olmaz arka planda ısıtılıyor (1,5 s gecikme kaldırıldı). Ürün seçimi değişmez (AGENTS kuralı).
 - Doğrulama: Playwright gözlemi — Prime → Premium → genişlik +1 → Prime geçişlerinde durum notu hiç "wird geladen" göstermedi; `npm run check`, 95 test, derleme.
 
+## 11. İş — Dach bölümü: altı çatı rengi, bölme başına renk, Markise kuralları, LED (1 Ekim)
+
+Kullanıcının 1 Ekim 2026 cevaplarına göre (`URUN_VE_OLCU_KURALLARI.md` §9):
+
+- **Katalog:** `roofFinishes` — VSG 8 mm Klar / Opal (Milchglas) / Getönt, Polycarbonat 16 mm Klar / Opal / Bronze (Anthrazit); her biri aile + ton, ekran rengi/opaklığı referans fotoğraflardan. `MAX_EXTRA_ROOF_BAYS = 2`, `awningRules` (600×400 maks., 100×100 min., kenar alanı ≤ 86 cm), `LED_PER_METRE_MAX`.
+- **Konfigürasyon şeması:** `roofFinish` (tüm çatı, ailesi `roofMaterialId` ile aynı olmalı), `roofFieldFinishes` (bölme bazlı ton, aynı aile içinde), `awning` ({type aufglas|unterglas, count 1|2, widthsMm, depthMm} | null), `ledPerRafter`. Eski kayıtlar varsayılanlarla açılır.
+- **Çatı geometrisi:** `RoofBayGeometry.capWidthsMm` (eşit olmayan bölmeler), `calculateAwningSideFieldGeometry`: tek markise ve genişlik > 600 cm'de orta 600 cm normal kuralla bölünür, iki uçta (W−600)/2 kenar alanı eklenir (taşıyıcı +2). Bu modda +2 bölme hakkı yok; iki markisede var. Kenar alanlar varsayılan Opal/Milchglas (`resolveRoofFieldFinishes`).
+- **Markise kuralları (`domain/awning.ts`):** yalnız cam çatı; tek markise ≤ 600 cm genişlik tam örter; 600 < W ≤ 772 cm kenar alanlı tek markise; W > 772 cm iki markise zorunlu. İki markisede genişlikler girilebilir (varsayılan eşit, her biri 100–600, toplam W). Ausfall 100 cm … min(400, Tiefe). Ölçü/malzeme değişince `reconcileAwning` kaydı uyumlar veya düşürür. **Uygulama varsayımı:** kenar alanı en az 15 cm (`sideFieldMinMm`), aksi hâlde iki markise.
+- **LED (`domain/led.ts`):** taşıyıcı başına en fazla `floor(Tiefe/1000 + 0,5)` (349 → 3, 350 → 4); köşe taşıyıcılar hariç; toplam = adet × (taşıyıcı − 2). Modelde gösterilmiyor (karar: taşıyıcı altında).
+- **3D:** Panel başına ton malzemesi (`createRoofFinishMaterial`), Dachfeld tıklanınca seçilir (mavi kenar + ton), hover vurgusu; seçim Dach bölümünü açar. Markise için geçici gövde (kumaş plaka + duvar kaseti; Aufglas camın üstünde, Unterglas taşıyıcı altında) — model gelince değişecek.
+- **UI (Dach kartı):** altı yuvarlak renk örneği (Glas / Polycarbonat grupları), bölme sayısı (min…min+2), bahçeden numaralı Dachfeld listesi (seçilince aile içi ton örnekleri), Markise (Keine/Aufglas/Unterglas, 1/2 adet, iki genişlik alanı, Ausfall), LED je Träger +/- ve toplam. Übersicht ve PDF'de Dachfarbe/Markise/LED satırları (`roofSummaryDe`).
+- Doğrulama: `npm run check`, 103 test (yeni `awning.test.ts`: kenar alanı 700 cm → 44,5 cm cap, 800 cm → iki markise, LED yuvarlama, aile eşlemesi, +2 sınırı), derleme; Playwright: Dachfeld 1 Getönt modelde koyu + mavi kenar, modelde tıklama listede seçiyor, 700 cm Aufglas → 9 bölme (2 Opal kenar), 2 Markisen 350+350, LED 2×7 = 14, Übersicht satırları.
+
+Fiyat: cam/polikarbonat m² birim fiyatları, markise ve LED adet fiyatları kullanıcıdan gelecek; şimdilik fiyata işlenmiyor.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

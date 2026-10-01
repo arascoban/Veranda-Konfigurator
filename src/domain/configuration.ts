@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { attachmentReferences } from '../catalog/attachmentReference';
-import { CATALOG_VERSION, DEFAULT_SLOPE_DEGREES, products, roofMaterials } from '../catalog/catalog';
+import { CATALOG_VERSION, DEFAULT_SLOPE_DEGREES, products, roofFinishes, roofMaterials } from '../catalog/catalog';
+
+const roofFinishIds = Object.keys(roofFinishes) as [keyof typeof roofFinishes, ...(keyof typeof roofFinishes)[]];
 import { createMinimumPostLayout } from './geometry/posts';
 import { rearHeightForSlope } from './geometry/slope';
 
@@ -32,6 +34,19 @@ export const configurationV1Schema = z.object({
   drainSide: z.enum(['left', 'right']).default('left'),
   /** Aluminium colour of the whole frame; seals and glazing are unaffected. */
   frameColor: z.enum(['ral7016', 'ral9001']).default('ral7016'),
+  /** Tone for the whole roof (its family must equal roofMaterialId); fields may override within the family. */
+  roofFinish: z.enum(roofFinishIds).default('vsg_klar'),
+  /** Per roof field (inside-left index) tone override; null or missing entries use roofFinish. */
+  roofFieldFinishes: z.array(z.enum(roofFinishIds).nullable()).default([]),
+  /** Aufglas/Unterglas awning (glass roofs only); widths only for two awnings, depth along the rafters. */
+  awning: z.object({
+    type: z.enum(['aufglas', 'unterglas']),
+    count: z.union([z.literal(1), z.literal(2)]),
+    widthsMm: z.tuple([z.number().int().safe(), z.number().int().safe()]).nullable(),
+    depthMm: z.number().int().safe(),
+  }).strict().nullable().default(null),
+  /** LED strips per rafter (corner rafters excluded); 0 = none. */
+  ledPerRafter: z.number().int().min(0).safe().default(0),
 }).strict();
 
 export type ConfigurationV1 = z.infer<typeof configurationV1Schema>;
@@ -76,6 +91,10 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     postCapStyle: 'gerade',
     drainSide: 'left',
     frameColor: 'ral7016',
+    roofFinish: 'vsg_klar',
+    roofFieldFinishes: [],
+    awning: null,
+    ledPerRafter: 0,
   };
 }
 

@@ -1,10 +1,10 @@
 import {
-  CylinderGeometry, DoubleSide, EdgesGeometry, Group, LineBasicMaterial, LineSegments, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, ShadowMaterial, Vector3, type Material,
+  BoxGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Group, LineBasicMaterial, LineSegments, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, ShadowMaterial, Vector3, type Material,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { frameColors, type FrameColorId, type RoofMaterialId } from '../../catalog/catalog';
+import { frameColors, roofFinishes, type FrameColorId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
 import { millimetresToMetres } from '../../domain/units';
-import { basisDeterminant, type AssemblyLayout, type PartPlacement } from './placements';
+import { basisDeterminant, type AssemblyLayout, type AwningSlab, type PartPlacement } from './placements';
 import { assemblySpecs, type PartRole } from './spec';
 import { createSelectionMarker } from './annotations';
 
@@ -86,7 +86,20 @@ export function createFinishMaterials(roofMaterialId: RoofMaterialId, frameColor
     roof: roofMaterialId === 'glass'
       ? new MeshPhysicalMaterial({ color: 0xa9c4d3, transparent: true, opacity: 0.35, roughness: 0.05, metalness: 0, side: DoubleSide, depthWrite: false })
       : new MeshPhysicalMaterial({ color: 0xe6ebee, transparent: true, opacity: 0.8, roughness: 0.6, metalness: 0, side: DoubleSide, depthWrite: false }),
+    // Awning placeholder (simple slab + cassette) until the real models arrive.
+    awningFabric: new MeshStandardMaterial({ color: 0x8d9296, metalness: 0, roughness: 0.85, side: DoubleSide }),
+    awningCassette: new MeshStandardMaterial({ color: 0x383e42, metalness: 0.4, roughness: 0.5 }),
   };
+}
+
+/** One material per roof tone (screen approximation of the reference photos); cached per group. */
+export function createRoofFinishMaterial(finish: RoofFinishId): MeshPhysicalMaterial {
+  const tone = roofFinishes[finish];
+  const opaque = tone.opacity >= 0.9;
+  return new MeshPhysicalMaterial({
+    color: tone.hex, transparent: true, opacity: tone.opacity, side: DoubleSide, depthWrite: opaque,
+    roughness: tone.family === 'glass' ? (opaque ? 0.35 : 0.05) : 0.55, metalness: 0,
+  });
 }
 
 function finishFor(role: PartRole, sourceName: string, finishes: ReturnType<typeof createFinishMaterials>): Material {
@@ -153,6 +166,12 @@ export function createAssemblyGroup(
   group.name = `Produktmodell ${layout.productId} — Montagebezüge vorläufig`;
   group.userData.productModel = true;
   const finishes = createFinishMaterials(layout.roofMaterialId, layout.frameColor);
+  const roofTones = new Map<RoofFinishId, MeshPhysicalMaterial>();
+  const roofToneMaterial = (finish: RoofFinishId) => {
+    let material = roofTones.get(finish);
+    if (!material) { material = createRoofFinishMaterial(finish); roofTones.set(finish, material); }
+    return material;
+  };
   const spec = assemblySpecs[layout.productId];
   const widthM = millimetresToMetres(layout.widthMm);
   const depthM = millimetresToMetres(layout.depthMm);
@@ -168,6 +187,21 @@ export function createAssemblyGroup(
       if (!(object instanceof Mesh)) return;
       const sourceName = Array.isArray(object.material) ? object.material.map((m) => m.name).join(' ') : object.material.name;
       object.material = finishFor(placement.role, sourceName, finishes);
+      if (placement.role === 'panel' && placement.bayIndex !== undefined) {
+        // Each roof field carries its own tone and can be selected in the model (Dach section).
+        object.material = roofToneMaterial(layout.roofFinishes[placement.bayIndex] ?? layout.roofFinishes[0]);
+        object.userData.roofFieldIndex = placement.bayIndex;
+        object.userData.roofFieldVisual = true;
+        const outline = new LineSegments(new EdgesGeometry(object.geometry, 20),
+          new LineBasicMaterial({ color: SELECTION_BLUE, depthTest: false, transparent: true, opacity: 0.95 }));
+        outline.renderOrder = 10;
+        outline.visible = false;
+        outline.userData.roofFieldHalo = true;
+        outline.userData.roofFieldIndex = placement.bayIndex;
+        outline.userData.exportable = false;
+        outline.raycast = () => undefined;
+        object.add(outline);
+      }
       // Shadows only appear when the renderer's shadow map is on (high quality).
       object.castShadow = true;
       object.receiveShadow = placement.role !== 'panel';
@@ -222,8 +256,39 @@ export function createAssemblyGroup(
       group.add(field);
     }
   }
+  for (const slab of layout.awnings) group.add(createAwningPlaceholder(layout, slab, finishes));
   if (options.includeGroundGuide) {
     group.add(createGround(widthM, depthM));
   }
   return group;
+}
+
+/**
+ * Placeholder awning: a thin fabric slab lying on the roof plane from the wall downwards plus a cassette at
+ * the wall. Aufglas sits above the glazing, Unterglas below the rafters. Replaced once the models arrive.
+ */
+function createAwningPlaceholder(layout: AssemblyLayout, slab: AwningSlab, finishes: ReturnType<typeof createFinishMaterials>): Group {
+  const { rearMm, d, nrm, rafterHeightMm } = layout.roofPlane;
+  const holder = new Group();
+  holder.userData.awning = true;
+  holder.userData.exportable = false;
+  const liftMm = slab.type === 'aufglas' ? rafterHeightMm + 70 : -110;
+  const basis = new Matrix4().makeBasis(new Vector3(1, 0, 0), new Vector3(...nrm), new Vector3(...d));
+  const place = (mesh: Mesh, alongMm: number, acrossMm: number, upMm: number) => {
+    const origin = new Vector3(slab.xMm + acrossMm, rearMm[1], rearMm[2])
+      .add(new Vector3(...d).multiplyScalar(alongMm))
+      .add(new Vector3(...nrm).multiplyScalar(upMm));
+    mesh.position.copy(origin.multiplyScalar(0.001));
+    mesh.quaternion.setFromRotationMatrix(basis);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    holder.add(mesh);
+  };
+  // 2 cm shorter than the span so two neighbouring awnings read as two bodies.
+  const widthM = (slab.widthMm - 20) / 1000;
+  const fabric = new Mesh(new BoxGeometry(widthM, 0.03, slab.depthMm / 1000), finishes.awningFabric);
+  place(fabric, -slab.depthMm / 2, slab.widthMm / 2, liftMm);
+  const cassette = new Mesh(new BoxGeometry(widthM, 0.15, 0.17), finishes.awningCassette);
+  place(cassette, 40, slab.widthMm / 2, liftMm + (slab.type === 'aufglas' ? 60 : -40));
+  return holder;
 }

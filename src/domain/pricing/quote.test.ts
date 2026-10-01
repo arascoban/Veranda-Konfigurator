@@ -49,7 +49,7 @@ describe('controlled quote arithmetic without a production tariff', () => {
     expect(buildQuoteFromApprovedPrices(premium, sheet, lines, new Date('2029-01-01'))).toMatchObject({
       status: 'invalid_price_data', reason: 'wrong_product_material_or_catalog',
     });
-    expect(buildQuoteFromApprovedPrices({ ...configuration, roofMaterialId: 'polycarbonate' }, sheet, lines, new Date('2029-01-01'))).toMatchObject({
+    expect(buildQuoteFromApprovedPrices({ ...configuration, roofMaterialId: 'polycarbonate', roofFinish: 'pc_klar' }, sheet, lines, new Date('2029-01-01'))).toMatchObject({
       status: 'invalid_price_data', reason: 'wrong_product_material_or_catalog',
     });
     expect(buildQuoteFromApprovedPrices(configuration, sheet, lines, new Date('2030-01-01'))).toEqual({

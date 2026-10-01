@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AmbientLight, Box3, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshStandardMaterial,
+  AmbientLight, Box3, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
   PCFShadowMap, PerspectiveCamera, Plane, Raycaster, Scene, Sprite, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -53,7 +53,7 @@ const highQualityAvailable = () => typeof window !== 'undefined'
 
 export type ProductModelStatus = 'loading' | 'ready' | 'missing' | 'error';
 
-export function PreviewViewer({ configuration, resetViewToken = 0, showDimensions = false, selectedPostId = null, onSelectPost, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
+export function PreviewViewer({ configuration, resetViewToken = 0, showDimensions = false, selectedPostId = null, onSelectPost, selectedRoofField = null, onSelectRoofField, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
   configuration: ConfigurationV1;
   resetViewToken?: number;
   /** Bemaßungen layer: main measurements plus the clear width of every field. */
@@ -61,6 +61,9 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
   /** Selection is shared with the settings panel; posts are edited directly in the model. */
   selectedPostId?: string | null;
   onSelectPost?: (postId: string | null) => void;
+  /** Roof field (inside-left index) selected in the model; its tone is edited in the Dach section. */
+  selectedRoofField?: number | null;
+  onSelectRoofField?: (index: number | null) => void;
   onPostCentersChange?: (posts: PostCenter[]) => void;
   onSceneStatusChange?: (status: 'loading' | 'ready' | 'missing' | 'error') => void;
   /** Real product parts: missing while the schematic stands in, ready once the GLB assembly is shown. */
@@ -73,6 +76,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
   const setSelectedPostId = (postId: string | null) => onSelectPost?.(postId);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [hoveredOpening, setHoveredOpening] = useState(-1);
+  const [hoveredRoofField, setHoveredRoofField] = useState(-1);
   const [fps, setFps] = useState<number | null>(null);
   const [quality, setQualityState] = useState<RenderQuality>('low');
   const [autoLowered, setAutoLowered] = useState(false);
@@ -300,6 +304,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         runtime.gtao?.setSceneClipBox(runtime.aoBox);
         markSelectedPost(group, selectedIndexRef.current, -1);
         markSelectedOpening(group, selectedOpeningIndexRef.current, -1, openingSpans.length);
+        markSelectedRoofField(group, selectedRoofFieldRef.current, -1);
       }
       runtime.render();
     };
@@ -345,13 +350,16 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
 
   const selectedIndexRef = useRef(-1);
   const selectedOpeningIndexRef = useRef<number | null>(null);
+  const selectedRoofFieldRef = useRef<number | null>(null);
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
     selectedOpeningIndexRef.current = activeOpening?.index ?? null;
+    selectedRoofFieldRef.current = selectedRoofField;
     const runtime = runtimeRef.current;
     if (!runtime?.group) return;
     markSelectedPost(runtime.group, selectedIndex, hoveredIndex);
     markSelectedOpening(runtime.group, activeOpening?.index ?? null, hoveredOpening, openingSpans.length);
+    markSelectedRoofField(runtime.group, selectedRoofField, hoveredRoofField);
     // Remaining travel in each direction, written on the arrows of the selected post.
     if (selectedIndex >= 0 && selectedRange && posts && dimensions) {
       const section = postSections[configuration.productId];
@@ -363,7 +371,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       });
     }
     runtime.render();
-  }, [activeOpening?.index, dimensions, selectedIndex, hoveredIndex, hoveredOpening, modelStatus, openingSpans.length, selectedRange, posts, configuration.productId]);
+  }, [activeOpening?.index, dimensions, selectedIndex, hoveredIndex, hoveredOpening, selectedRoofField, hoveredRoofField, modelStatus, openingSpans.length, selectedRange, posts, configuration.productId]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -406,23 +414,35 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       setRay(event);
       press = { x: event.clientX, y: event.clientY };
       const hits = raycaster.intersectObjects(runtime.group.children, true);
-      const hit = hits.find((entry) => Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows);
-      if (!hit) {
-        const openingHit = hits.find((entry) => Number.isInteger(entry.object.userData.openingIndex));
-        if (!openingHit) return;
-        const opening = openingSpans.find((span) => span.index === openingHit.object.userData.openingIndex);
+      // Nearest selectable thing wins: a post, a roof field (Dach section) or a field between posts.
+      const nearest = hits.find((entry) => (Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows)
+        || Number.isInteger(entry.object.userData.roofFieldIndex) || Number.isInteger(entry.object.userData.openingIndex));
+      if (!nearest) return;
+      if (Number.isInteger(nearest.object.userData.roofFieldIndex)) {
+        setSelectedPostId(null);
+        setSelectedOpening(null);
+        onSelectRoofField?.(nearest.object.userData.roofFieldIndex as number);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (Number.isInteger(nearest.object.userData.openingIndex)) {
+        const opening = openingSpans.find((span) => span.index === nearest.object.userData.openingIndex);
         if (!opening) return;
         setSelectedPostId(null);
+        onSelectRoofField?.(null);
         setSelectedOpening(opening);
         event.preventDefault();
         event.stopPropagation();
         return;
       }
+      const hit = nearest;
       const index = hit.object.userData.postIndex as number;
       const post = posts[index];
       if (!post) return;
       setSelectedPostId(post.id);
       setSelectedOpening(null);
+      onSelectRoofField?.(null);
       markSelectedPost(runtime.group, index, -1);
       runtime.render();
       drag = { pointerId: event.pointerId, index, initialMm: post.xMm, currentMm: post.xMm, started: false, startX: event.clientX };
@@ -437,12 +457,16 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         // Hover feedback: a post or a field under the pointer is highlighted.
         setRay(event);
         const hits = raycaster.intersectObjects(runtime.group.children, true);
-        const hover = hits.find((entry) => Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows);
-        const index = hover ? (hover.object.userData.postIndex as number) : -1;
-        const openingHit = index < 0 ? hits.find((entry) => Number.isInteger(entry.object.userData.openingIndex)) : undefined;
-        canvas.style.cursor = index >= 0 ? 'ew-resize' : openingHit ? 'pointer' : '';
+        const nearest = hits.find((entry) => (Number.isInteger(entry.object.userData.postIndex) && !entry.object.userData.moveArrows)
+          || Number.isInteger(entry.object.userData.roofFieldIndex) || Number.isInteger(entry.object.userData.openingIndex));
+        const data = nearest?.object.userData ?? {};
+        const index = Number.isInteger(data.postIndex) ? (data.postIndex as number) : -1;
+        const roofField = Number.isInteger(data.roofFieldIndex) ? (data.roofFieldIndex as number) : -1;
+        const opening = index < 0 && roofField < 0 && Number.isInteger(data.openingIndex) ? (data.openingIndex as number) : -1;
+        canvas.style.cursor = index >= 0 ? 'ew-resize' : roofField >= 0 || opening >= 0 ? 'pointer' : '';
         setHoveredIndex(index);
-        setHoveredOpening(openingHit ? (openingHit.object.userData.openingIndex as number) : -1);
+        setHoveredRoofField(roofField);
+        setHoveredOpening(opening);
         return;
       }
       if (event.pointerId !== drag.pointerId) return;
@@ -477,8 +501,9 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
         if (!cancelled && press && Math.hypot(event.clientX - press.x, event.clientY - press.y) < 4 && runtime.group) {
           setRay(event);
           const anyHit = raycaster.intersectObjects(runtime.group.children, true)
-            .some((entry) => Number.isInteger(entry.object.userData.postIndex) || Number.isInteger(entry.object.userData.openingIndex));
-          if (!anyHit) { setSelectedPostId(null); setSelectedOpening(null); }
+            .some((entry) => Number.isInteger(entry.object.userData.postIndex) || Number.isInteger(entry.object.userData.openingIndex)
+              || Number.isInteger(entry.object.userData.roofFieldIndex));
+          if (!anyHit) { setSelectedPostId(null); setSelectedOpening(null); onSelectRoofField?.(null); }
         }
         press = null;
         return;
@@ -522,7 +547,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       if (drag) restorePost(drag.index, drag.initialMm);
       runtime.controls.enabled = true;
     };
-  }, [configuration, dimensions, onPostCentersChange, onSelectPost, openingSpans, posts, widthMm, showDimensions]);
+  }, [configuration, dimensions, onPostCentersChange, onSelectPost, onSelectRoofField, openingSpans, posts, widthMm, showDimensions]);
 
   const measurements = dimensions
     ? `${millimetresToCentimetres(configuration.dimensionsMm.width!)} × ${millimetresToCentimetres(configuration.dimensionsMm.depth!)} cm`
@@ -590,6 +615,21 @@ function markSelectedPost(group: Group, selectedIndex: number, hoveredIndex: num
       }
       if (object.userData.ownMaterial) object.material.emissive.setHex(isSelected ? 0x0a2a4e : selected ? 0x1f2a33 : 0x000000);
     }
+  });
+}
+
+/** Blue outline on the selected roof field, soft tint while hovering; panel materials are per tone, so tinted ones are cloned. */
+function markSelectedRoofField(group: Group, selectedIndex: number | null, hoveredIndex: number): void {
+  group.traverse((object) => {
+    if (object.userData.roofFieldHalo) object.visible = object.userData.roofFieldIndex === selectedIndex;
+    if (!object.userData.roofFieldVisual || !(object instanceof Mesh) || !(object.material instanceof MeshPhysicalMaterial)) return;
+    const index = object.userData.roofFieldIndex as number;
+    const active = index === selectedIndex || index === hoveredIndex;
+    if (active && !object.userData.ownMaterial) {
+      object.material = object.material.clone();
+      object.userData.ownMaterial = true;
+    }
+    if (object.userData.ownMaterial) object.material.emissive.setHex(index === selectedIndex ? 0x0f4f94 : active ? 0x27343c : 0x000000);
   });
 }
 

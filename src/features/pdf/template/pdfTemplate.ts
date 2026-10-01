@@ -1,5 +1,6 @@
 import { de, issueTextDe } from '../../../content/de';
 import { evaluateConfiguration } from '../../../domain/evaluateConfiguration';
+import { roofSummaryDe } from '../../../domain/roofSummary';
 import { ROOF_SUPPORT_WIDTH_MM, postSections, postWidthMm } from '../../../catalog/catalog';
 import type { PdfDocumentSnapshot } from '../service/documentSnapshot';
 
@@ -67,6 +68,7 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
   const evaluation = evaluateConfiguration(configuration);
   const roof = evaluation.roof;
   if (!roof?.valid) throw new Error('PDF template requires a valid roof layout');
+  const roofSummary = roofSummaryDe(configuration);
 
   const panelWidthMm = roof.finalPanelWidthMm.numerator / roof.finalPanelWidthMm.denominator;
   const posts = configuration.postCenters.map((post) => post.xMm);
@@ -112,10 +114,11 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
       {
         heading: 'Dach',
         rows: [
-          { label: 'Eindeckung', value: snapshot.roofMaterialNameDe },
+          { label: 'Eindeckung', value: roofSummary.finish },
+          { label: 'Markise', value: roofSummary.awning },
+          { label: 'LED', value: roofSummary.led },
           { label: 'Farbe', value: de.frameColors[configuration.frameColor] },
-          { label: 'Dachfelder', value: `${roof.bayCount}${configuration.roofBayCount === null ? ' (automatisch)' : ' (gewählt)'}` },
-          { label: 'Dachträger', value: String(roof.supportCount) },
+          { label: 'Dachfelder', value: `${roof.bayCount}${configuration.roofBayCount === null ? ' (automatisch)' : ' (gewählt)'} · ${roof.supportCount} Träger` },
           { label: 'Plattenbreite', value: `ca. ${formatCentimetres(Math.round(panelWidthMm))}` },
         ],
       },

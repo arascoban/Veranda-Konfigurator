@@ -33,7 +33,7 @@ describe('assembly placements (provisional reference offsets)', () => {
       bayCount: 6, postCentersMm: [55, 2650, 5245],
     });
     expect(layout.bayCount).toBe(6);
-    expect(layout.capWidthMm).toBeCloseTo((5300 - 55 * 7) / 6, 6);
+    expect(layout.capWidthsMm[0]).toBeCloseTo((5300 - 55 * 7) / 6, 6);
     // rise 277 mm over 3112 mm run → 5.09°
     expect(layout.slopeDegrees).toBeCloseTo(Math.atan2(277, 3112) * 180 / Math.PI, 6);
     for (const placement of layout.placements) expect(basisDeterminant(placement.basis)).toBeCloseTo(1, 9);
@@ -77,13 +77,13 @@ describe('assembly placements (provisional reference offsets)', () => {
     const rafters = byRole('rafter').map(bounds);
     expect(rafters[0].min[0]).toBeCloseTo(2, 6); // side rafters stay inside the gutter caps
     expect(rafters[6].max[0]).toBeCloseTo(5298, 6);
-    expect(rafters[3].min[0]).toBeCloseTo(3 * (layout.capWidthMm + 55), 6);
+    expect(rafters[3].min[0]).toBeCloseTo(3 * (layout.capWidthsMm[0] + 55), 6);
     expect(rafters[3].min[2]).toBeCloseTo(-3200 + 53 - 98 * Math.sin(layout.slopeDegrees * Math.PI / 180), 0);
     expect(rafters[3].max[2]).toBeCloseTo(-35, 0);
     expect(rafters[3].min[1]).toBeCloseTo(2431, 0);
 
     const panel = bounds(byRole('panel')[0]);
-    expect(panel.max[0] - panel.min[0]).toBeCloseTo(layout.capWidthMm + 32, 6);
+    expect(panel.max[0] - panel.min[0]).toBeCloseTo(layout.capWidthsMm[0] + 32, 6);
     expect(panel.min[0]).toBeCloseTo(55 - 16, 6);
   });
 
@@ -136,7 +136,7 @@ describe('assembly placements (provisional reference offsets)', () => {
     expect(overhangs[0].min[2]).toBeLessThan(bodies[0].min[2]);
     expect(overhangs[0].max[2] - overhangs[0].min[2]).toBeLessThan(120);
     const panel = bounds(byRole('panel')[0]);
-    expect(panel.max[0] - panel.min[0]).toBeCloseTo(layout.capWidthMm + 35, 6);
+    expect(panel.max[0] - panel.min[0]).toBeCloseTo(layout.capWidthsMm[0] + 35, 6);
     // Panel spans the rafter cover incl. overhangs (5 cm at the gutter, 2 cm at the wall).
     const cover = layout.placements.filter((placement) => placement.partId.startsWith('rafterMiddleTop')).map(bounds);
     expect(panel.min[2]).toBeCloseTo(Math.min(...cover.map((b) => b.min[2])), -1);

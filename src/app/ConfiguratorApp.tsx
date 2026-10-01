@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import type { ConfigurationV1 } from '../domain/configuration';
 import { MAX_WIDTH_MM } from '../catalog/catalog';
+import { reconcileAwning } from '../domain/awning';
 import { evaluateConfiguration } from '../domain/evaluateConfiguration';
 import { ConfiguratorShell, type ConfiguratorActionStatus } from '../features/configurator';
 import { createPdfDraft, downloadPdf } from '../features/pdf/service/pdfExport';
@@ -18,6 +19,7 @@ export function ConfiguratorApp() {
   const history = useRef(createConfigurationHistory());
   const [, refreshHistory] = useState(0);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedRoofField, setSelectedRoofField] = useState<number | null>(null);
   const [showDimensions, setShowDimensions] = useState(false);
   const [resetViewToken, setResetViewToken] = useState(0);
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
@@ -29,7 +31,8 @@ export function ConfiguratorApp() {
 
   const applyConfiguration = (candidate: ConfigurationV1, preserveAuto = true) => {
     const current = useConfiguratorStore.getState().configuration;
-    const next = preserveAuto ? preserveAutomaticPostLayout(current, candidate) : candidate;
+    const reconciled = { ...candidate, awning: reconcileAwning(candidate) };
+    const next = preserveAuto ? preserveAutomaticPostLayout(current, reconciled) : reconciled;
     if (JSON.stringify(current) === JSON.stringify(next)) return;
     if (!useConfiguratorStore.getState().replaceConfiguration(next)) return;
     history.current.record(current);
@@ -97,6 +100,7 @@ export function ConfiguratorApp() {
   return <ConfiguratorShell configuration={configuration} revision={revision} quote={quote}
     scene={<Suspense fallback={<p role="status">3D-Vorschau wird geladen …</p>}><PreviewViewer
       configuration={configuration} resetViewToken={resetViewToken} showDimensions={showDimensions} selectedPostId={selectedPostId} onSelectPost={setSelectedPostId}
+      selectedRoofField={selectedRoofField} onSelectRoofField={setSelectedRoofField}
       onSceneStatusChange={setSceneStatus} onProductModelStatusChange={setProductModelStatus}
       onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
     </Suspense>}
@@ -104,7 +108,7 @@ export function ConfiguratorApp() {
     pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable" profileArStatus="unavailable"
     saveStatus={saveStatus} openStatus={openStatus}
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}
-    selectedPostId={selectedPostId} onSelectPost={setSelectedPostId} onUndo={history.current.canUndo() ? undo : undefined}
+    selectedPostId={selectedPostId} onSelectPost={setSelectedPostId} selectedRoofField={selectedRoofField} onSelectRoofField={setSelectedRoofField} onUndo={history.current.canUndo() ? undo : undefined}
     onRedo={history.current.canRedo() ? redo : undefined}
     onResetView={() => setResetViewToken((value) => value + 1)}
     showDimensions={showDimensions} onToggleDimensions={() => setShowDimensions((value) => !value)} />;

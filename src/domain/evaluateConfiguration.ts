@@ -1,7 +1,9 @@
 import { attachmentReferences } from '../catalog/attachmentReference';
-import { MAX_FRONT_HEIGHT_MM, MAX_WIDTH_MM, MIN_DEPTH_MM, MIN_FRONT_HEIGHT_MM, MIN_WIDTH_MM, roofMaterials } from '../catalog/catalog';
+import { MAX_EXTRA_ROOF_BAYS, MAX_FRONT_HEIGHT_MM, MAX_WIDTH_MM, MIN_DEPTH_MM, MIN_FRONT_HEIGHT_MM, MIN_WIDTH_MM, roofFinishes, roofMaterials } from '../catalog/catalog';
+import { awningAvailability, validateAwning } from './awning';
+import { maxLedPerRafter } from './led';
 import type { ConfigurationV1 } from './configuration';
-import { calculateRoofBayGeometry, minimumRoofBayCount, type RoofBayGeometry } from './geometry/roof';
+import { calculateAwningSideFieldGeometry, calculateRoofBayGeometry, minimumRoofBayCount, type RoofBayGeometry } from './geometry/roof';
 import { validatePostCenters } from './geometry/posts';
 import { calculateRoofSlope, type RoofAttachmentOffsetsMm, type SlopeResult } from './geometry/slope';
 
@@ -47,15 +49,31 @@ export function evaluateConfiguration(
     issues.push({ kind: 'invalid', field: 'dimensionsMm.depth', code: 'depth_below_100_cm' });
   }
 
+  if (roofFinishes[configuration.roofFinish].family !== configuration.roofMaterialId) {
+    issues.push({ kind: 'invalid', field: 'roofFinish', code: 'roof_finish_family_mismatch' });
+  }
+  for (const code of validateAwning(configuration)) issues.push({ kind: 'invalid', field: 'awning', code });
+  if (configuration.ledPerRafter > maxLedPerRafter(depth)) {
+    issues.push({ kind: 'invalid', field: 'ledPerRafter', code: 'led_per_rafter_above_limit' });
+  }
+
   let roof: RoofBayGeometry | null = null;
   if (width !== null && Number.isSafeInteger(width) && width > 0 && width <= MAX_WIDTH_MM) {
-    const requestedBays = configuration.roofBayCount ?? minimumRoofBayCount(width, configuration.roofMaterialId);
-    if (requestedBays === null) {
+    // One awning on a roof wider than 600 cm fixes the field layout (600 cm centre + two side fields).
+    const sideFields = configuration.awning?.count === 1 && awningAvailability(configuration).singleMode === 'side_fields';
+    const minimumBays = minimumRoofBayCount(width, configuration.roofMaterialId);
+    const requestedBays = sideFields ? minimumBays : configuration.roofBayCount ?? minimumBays;
+    if (requestedBays === null || minimumBays === null) {
       issues.push({ kind: 'invalid', field: 'dimensionsMm.width', code: 'roof_bays_not_possible' });
     } else {
-      roof = calculateRoofBayGeometry(width, configuration.roofMaterialId, requestedBays);
+      roof = sideFields
+        ? calculateAwningSideFieldGeometry(width, configuration.roofMaterialId)
+        : calculateRoofBayGeometry(width, configuration.roofMaterialId, requestedBays);
       for (const reason of roof?.reasons ?? []) {
         issues.push({ kind: 'invalid', field: 'roofBayCount', code: reason });
+      }
+      if (!sideFields && requestedBays > minimumBays + MAX_EXTRA_ROOF_BAYS) {
+        issues.push({ kind: 'invalid', field: 'roofBayCount', code: 'roof_bays_above_limit' });
       }
       if (roof?.valid) {
         issues.push({ kind: 'unverified', field: 'roofBayCount', code: 'minimum_cut_width_not_supplied' });

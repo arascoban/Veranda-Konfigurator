@@ -1,4 +1,6 @@
-import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type FrameColorId, type ProductId, type RoofMaterialId } from '../../catalog/catalog';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type FrameColorId, type ProductId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
+import { awningSpans, type AwningType } from '../../domain/awning';
+import { resolveRoofFieldFinishes } from '../../domain/roofFinish';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { evaluateConfiguration } from '../../domain/evaluateConfiguration';
 import { assemblySpecs, type MeasuredPart, type PartRole, type ProductAssemblySpec } from './spec';
@@ -32,9 +34,19 @@ export type AssemblyLayout = {
   slopeDegrees: number;
   rafterLengthMm: number;
   bayCount: number;
-  capWidthMm: number;
+  /** Cap (clear) width of every bay, left to right. */
+  capWidthsMm: number[];
+  /** Tone of every bay, left to right. */
+  roofFinishes: RoofFinishId[];
+  /** Placeholder awning slabs until the real awning models arrive (1 Oct 2026). */
+  awnings: AwningSlab[];
+  /** Rafter underside line at the wall end plus the roof directions, for things laid onto the roof plane. */
+  roofPlane: { rearMm: Vec3; d: Vec3; nrm: Vec3; lengthMm: number; rafterHeightMm: number };
   placements: PartPlacement[];
 };
+
+/** A simple box standing in for an awning: `xMm` from the inside-left end, running `depthMm` down the roof from the wall. */
+export type AwningSlab = { type: AwningType; xMm: number; widthMm: number; depthMm: number };
 
 const X: Vec3 = [1, 0, 0];
 const Y: Vec3 = [0, 1, 0];
@@ -89,6 +101,10 @@ export type AssemblyInput = {
   rearHeightMm: number;
   frontHeightMm: number;
   bayCount: number;
+  /** Optional unequal bays (awning side fields); defaults to `bayCount` equal bays. */
+  capWidthsMm?: readonly number[];
+  roofFinishes?: readonly RoofFinishId[];
+  awnings?: readonly AwningSlab[];
   postCentersMm: readonly number[];
 };
 
@@ -97,10 +113,14 @@ export function buildAssemblyLayout(input: AssemblyInput): AssemblyLayout {
   const spec = assemblySpecs[input.productId];
   const { widthMm: W, depthMm: D, rearHeightMm: Hr, frontHeightMm: Hf, bayCount: n } = input;
   const t = n + 1;
-  const c = (W - spec.supportWidthMm * t) / n;
+  const caps = input.capWidthsMm && input.capWidthsMm.length === n
+    ? [...input.capWidthsMm]
+    : Array.from({ length: n }, () => (W - spec.supportWidthMm * t) / n);
   const allowance = roofMaterials[input.roofMaterialId].panelAllowanceMm;
-  const bayLeft = (i: number) => i * (c + spec.supportWidthMm) + spec.supportWidthMm;
-  const supportLeft = (i: number) => i * (c + spec.supportWidthMm);
+  // Left edge of support i / bay i: prefix sums over the (possibly unequal) bays.
+  const supportLeft = (i: number) => caps.slice(0, i).reduce((sum, cap) => sum + cap + spec.supportWidthMm, 0);
+  const bayLeft = (i: number) => supportLeft(i) + spec.supportWidthMm;
+  const c = (i: number) => caps[i];
 
   // Rafter underside line from the garden end to the wall end.
   const front = { z: -D + spec.rafterFront.zFromPostFaceMm, y: Hf + spec.attachmentOffsets.frontConnectionAboveGutterUndersideMm };
@@ -118,12 +138,16 @@ export function buildAssemblyLayout(input: AssemblyInput): AssemblyLayout {
 
   return {
     productId: input.productId, roofMaterialId: input.roofMaterialId, frameColor: input.frameColor ?? 'ral7016', widthMm: W, depthMm: D,
-    rearHeightMm: Hr, frontHeightMm: Hf, slopeDegrees, rafterLengthMm: length, bayCount: n, capWidthMm: c, placements,
+    rearHeightMm: Hr, frontHeightMm: Hf, slopeDegrees, rafterLengthMm: length, bayCount: n, capWidthsMm: caps,
+    roofFinishes: input.roofFinishes && input.roofFinishes.length === n ? [...input.roofFinishes] : Array.from({ length: n }, () => 'vsg_klar' as RoofFinishId),
+    awnings: [...(input.awnings ?? [])],
+    roofPlane: { rearMm: [0, rear.y, rear.z], d, nrm, lengthMm: length, rafterHeightMm: spec.rafterHeightMm },
+    placements,
   };
 }
 
 type Derived = {
-  c: number; n: number; bayLeft: (i: number) => number; supportLeft: (i: number) => number;
+  c: (i: number) => number; n: number; bayLeft: (i: number) => number; supportLeft: (i: number) => number;
   front: { z: number; y: number }; rear: { z: number; y: number }; length: number; d: Vec3; nrm: Vec3; allowance: number;
 };
 
@@ -186,12 +210,13 @@ function primePlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: Der
 
   for (let i = 0; i < n; i += 1) {
     const xL = bayLeft(i);
-    out.push(placeAt('cover', 'cover', alongX, [1, 1, c / 1000], [0, 0, 0],
+    const cw = c(i);
+    out.push(placeAt('cover', 'cover', alongX, [1, 1, cw / 1000], [0, 0, 0],
       [xL, Hf + spec.coverAtGutter.aboveGutterUndersideMm, -D + spec.coverAtGutter.zFromPostFaceMm], { bayIndex: i }));
-    out.push(placeAt('cover', 'cover', alongXBack, [1, 1, c / 1000], [0, 0, 0],
-      [xL + c, Hr + spec.coverAtWall.aboveWallUndersideMm, -spec.coverAtWall.zFromWallFaceMm], { bayIndex: i }));
+    out.push(placeAt('cover', 'cover', alongXBack, [1, 1, cw / 1000], [0, 0, 0],
+      [xL + cw, Hr + spec.coverAtWall.aboveWallUndersideMm, -spec.coverAtWall.zFromWallFaceMm], { bayIndex: i }));
     const lift = spec.rafterHeightMm - spec.panelBelowRafterTopMm;
-    out.push(placeAt('panel', 'panel', { x: X, y: nrm, z: d }, [(c + allowance) / 1000, 1, length / 1000], [0, 0, 0],
+    out.push(placeAt('panel', 'panel', { x: X, y: nrm, z: d }, [(cw + allowance) / 1000, 1, length / 1000], [0, 0, 0],
       [xL - allowance / 2, rear.y + nrm[1] * lift, rear.z + nrm[2] * lift], { bayIndex: i }));
   }
   return out;
@@ -267,16 +292,17 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
 
   for (let i = 0; i < n; i += 1) {
     const xL = bayLeft(i);
-    out.push(placeAt('cover', 'cover', identity, [c / 1000, 1, 1], [cover.min[0], cover.min[1], cover.min[2]],
+    const cw = c(i);
+    out.push(placeAt('cover', 'cover', identity, [cw / 1000, 1, 1], [cover.min[0], cover.min[1], cover.min[2]],
       [xL, Hf + spec.coverAtGutter.aboveGutterUndersideMm, -D + spec.coverAtGutter.zFromPostFaceMm], { bayIndex: i }));
-    out.push(placeAt('cover', 'cover', turned, [c / 1000, 1, 1], [cover.min[0], cover.min[1], cover.min[2]],
-      [xL + c, Hr + spec.coverAtWall.aboveWallUndersideMm, -spec.coverAtWall.zFromWallFaceMm], { bayIndex: i }));
+    out.push(placeAt('cover', 'cover', turned, [cw / 1000, 1, 1], [cover.min[0], cover.min[1], cover.min[2]],
+      [xL + cw, Hr + spec.coverAtWall.aboveWallUndersideMm, -spec.coverAtWall.zFromWallFaceMm], { bayIndex: i }));
     // The roof panel is always as long as the rafter cover: 5 cm beyond the body at the gutter, 2 cm at the wall.
     const lift = spec.rafterHeightMm - spec.panelBelowRafterTopMm;
     const overFront = rafterBody.min[0] - mmBounds(spec.parts.rafterMiddleTopFront).min[0];
     const overRear = mmBounds(spec.parts.rafterMiddleTopRear).max[0] - rafterBody.max[0];
     const rearEnd: Vec3 = [xL - allowance / 2, rear.y + nrm[1] * lift + d[1] * overRear, rear.z + nrm[2] * lift + d[2] * overRear];
-    out.push(placeAt('panel', 'panel', { x: X, y: nrm, z: d }, [(c + allowance) / 1000, 1, (length + overFront + overRear) / 1000], [0, 0, 0],
+    out.push(placeAt('panel', 'panel', { x: X, y: nrm, z: d }, [(cw + allowance) / 1000, 1, (length + overFront + overRear) / 1000], [0, 0, 0],
       rearEnd, { bayIndex: i }));
   }
   return out;
@@ -294,6 +320,9 @@ export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1):
     productId: configuration.productId, roofMaterialId: configuration.roofMaterialId,
     postCapStyle: configuration.postCapStyle, drainSide: configuration.drainSide, frameColor: configuration.frameColor,
     widthMm: width, depthMm: depth, rearHeightMm: rearHeight, frontHeightMm: frontHeight,
-    bayCount: evaluation.roof.bayCount, postCentersMm: configuration.postCenters.map((post) => post.xMm),
+    bayCount: evaluation.roof.bayCount, capWidthsMm: evaluation.roof.capWidthsMm,
+    roofFinishes: resolveRoofFieldFinishes(configuration, evaluation.roof),
+    awnings: awningSpans(configuration),
+    postCentersMm: configuration.postCenters.map((post) => post.xMm),
   });
 }

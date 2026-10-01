@@ -185,3 +185,12 @@ Kullanıcı fiyat listesini daha sonra sağlayacak. Fiyat genel olarak genişlik
 Uygulama: `src/domain/pricing/basePriceGrid.ts`. `selectPriceBasis` fiyat basamaklarını hesaplar; `lookupBasePrice` güvenilir kaynaktan sağlanan tablodaki tam hücreyi seçer. `base_price_available` yalnız temel fiyat içindir, genel teklif onayı değildir.
 
 Teklif bağlantısı: `buildGridQuote` ve `respondToGridQuoteRequest` bu temel hücreyi sürümlü teklife aktarır. Fazladan çatı bölmesi seçilmişse ve bedeli henüz yoksa temel fiyat ayrı korunur, toplam `missing_data` olur. Gerçek bir sunucu fiyat kaynağı henüz kurulmadı; kontrollü sayılar yalnız test dosyalarında bulunur.
+
+## 9. Dach: çatı renkleri, bölme sayısı, Markise, LED (1 Ekim 2026, kullanıcı kararı)
+
+- **Renkler:** VSG 8 mm Klar, VSG 8 mm Opal (Milchglas), VSG 8 mm Getönt; 16 mm Polycarbonat Klar, Opal, Bronze (Anthrazit). Her renk her ürüne (Prime/Premium) seçilebilir. Opal/Milchglas neredeyse ışık geçirmez, Getönt/Bronze az geçirir, Klar tam geçirir (referans fotoğraflar 1 Ekim).
+- **Bölme başına renk:** Terasın ana malzemesi (cam ya da polikarbonat) ortak; her Dachfeld için yalnız o ailenin tonları seçilebilir. Dachfeld'ler bahçeden bakışla soldan numaralanır; modelde tıklanarak seçilir.
+- **Bölme sayısı:** Mevcut minimum kuralı geçerli; müşteri en fazla **+2** bölme ekleyebilir.
+- **Tiefe > 400 cm:** cam mümkün değil, polikarbonat zorunlu (katalogda cam maks. 400, polikarbonat maks. 500 cm). Polikarbonat çatıda Markise seçeneği sunulmaz.
+- **Markise (Aufglas / Unterglas, yalnız biri):** en fazla 600 × 400 cm, en az 100 × 100 cm. Genişlik > 600 cm: tek markise 600 cm ortada, iki kenar bölmesi (W − 600)/2 Milchglas (varsayılan), taşıyıcı +2; bu modda +2 bölme hakkı yok. Kenar bölmesi 86 cm'i geçince (W > 772 cm) iki markise zorunlu; iki markisede genişlikler girilebilir (varsayılan eşit) ve +2 bölme hakkı vardır. Birim fiyat kullanıcıdan gelecek. *Uygulama varsayımı:* kenar bölmesi 15 cm'den dar olamaz.
+- **LED:** taşıyıcı başına 0…(metre başına 1; 350 cm ve üzeri yukarı yuvarlanır: 349 → 3, 350 → 4). Tüm taşıyıcılara aynı sayı; köşe taşıyıcılarda LED yok. Modelde gösterilmez. Adet fiyatı kullanıcıdan gelecek.

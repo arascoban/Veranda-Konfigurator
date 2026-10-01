@@ -317,3 +317,21 @@ body, .configurator-app { font-size: 14px; }
 .product-switch__option { border-radius: 9px; }
 .section-card { border-radius: 10px; }
 .color-swatch { border-radius: 10px; }
+
+/* Dach section: roof tones as round swatches (translucent ones show a checker behind), per-field rows. */
+.roof-finish-group { margin-bottom: 8px; }
+.roof-finish-group .option-row__label { display: block; margin: 6px 0 2px; }
+.color-swatches--roof { gap: 10px; flex-wrap: wrap; }
+.color-swatches--roof .color-swatch__disc { width: 46px; height: 46px; background:
+  radial-gradient(circle at 32% 28%, rgb(255 255 255 / 40%), transparent 42%),
+  linear-gradient(160deg, color-mix(in srgb, var(--swatch) calc(var(--swatch-alpha) * 100%), #cfd8dc) 0%, color-mix(in srgb, var(--swatch) calc(var(--swatch-alpha) * 100%), #9fb3bb) 100%); }
+.roof-field-list { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.roof-field { border: 1px solid #e0e5e6; border-radius: 10px; background: rgb(255 255 255 / 72%); }
+.roof-field--selected { border-color: #2f9dff; box-shadow: 0 0 0 2px rgb(47 157 255 / 20%); }
+.roof-field__row { display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; align-items: center; width: 100%; padding: 8px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.roof-field__disc { grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, var(--swatch) calc(var(--swatch-alpha) * 100%), #b9c6cc); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%); }
+.roof-field__name { font-size: 13px; font-weight: 700; }
+.roof-field__tone { font-size: 12px; color: var(--color-muted); }
+.roof-field .color-swatches--roof { padding: 4px 10px 10px 42px; }
+.product-switch--three .product-switch__option { min-width: 0; flex: 1 1 0; }
+.number-stepper__value { text-align: center; font-size: 14px; font-weight: 600; }

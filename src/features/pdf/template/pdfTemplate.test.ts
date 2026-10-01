@@ -26,7 +26,7 @@ describe('PDF template', () => {
   it('uses the roof layout of the snapshot and places supports across the full width', () => {
     const template = buildPdfTemplate(exampleSnapshot());
     // 530 cm glass: ceil((5300 − 55) / 883) = 6 bays, 7 supports.
-    expect(template.sections[1].rows.find((row) => row.label === 'Dachfelder')?.value).toBe('6 (automatisch)');
+    expect(template.sections[1].rows.find((row) => row.label === 'Dachfelder')?.value).toBe('6 (automatisch) · 7 Träger');
     expect(template.plan.roofSupportCentersMm).toHaveLength(7);
     expect(template.plan.roofSupportCentersMm[0]).toBe(27.5);
     expect(template.plan.roofSupportCentersMm[6]).toBeCloseTo(5300 - 27.5);

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode, useEffect } from 'react';
 import { de } from '../../content/de';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { withProduct } from '../../domain/adjustDimensions';
@@ -42,6 +42,9 @@ export type ConfiguratorShellProps = {
   onShowProfileAr?: () => void;
   selectedPostId?: string | null;
   onSelectPost?: (postId: string | null) => void;
+  /** Roof field selected in the model or in the Dach section (inside-left index). */
+  selectedRoofField?: number | null;
+  onSelectRoofField?: (index: number | null) => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onResetView?: () => void;
@@ -53,9 +56,11 @@ export function ConfiguratorShell({
   configuration, revision, quote, scene, sceneStatus = 'missing', productModelStatus = 'missing', profileModel,
   pdfStatus = 'unavailable', arStatus = 'unavailable', profileArStatus = 'unavailable', saveStatus = { state: 'idle' }, openStatus = { state: 'idle' },
   pdfFeedback = { state: 'idle' },
-  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, selectedPostId = null, onSelectPost, onUndo, onRedo, onResetView, showDimensions = false, onToggleDimensions,
+  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, onShowProfileAr, selectedPostId = null, onSelectPost, selectedRoofField = null, onSelectRoofField, onUndo, onRedo, onResetView, showDimensions = false, onToggleDimensions,
 }: ConfiguratorShellProps) {
   const [section, setSection] = useState<ConfiguratorSection>('construction');
+  // A roof field tapped in the model opens the Dach section where its tone is chosen.
+  useEffect(() => { if (selectedRoofField !== null) setSection('roof'); }, [selectedRoofField]);
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [opaque, setOpaque] = useState(false);
   const [sceneExpanded, setSceneExpanded] = useState(false);
@@ -98,7 +103,8 @@ export function ConfiguratorShell({
                   arReady={profileArStatus === 'ready'} onShowAr={onShowProfileAr} />
               </div>
             </>}
-            {section === 'roof' && <RoofSettings configuration={configuration} evaluation={evaluation} onChange={update} />}
+            {section === 'roof' && <RoofSettings configuration={configuration} evaluation={evaluation} onChange={update}
+              selectedRoofField={selectedRoofField} onSelectRoofField={onSelectRoofField} />}
             {section === 'equipment' && <ComingSoon title="Ausstattung folgt" message="Seitenwände, Schiebeelemente, Festglas und Markisen werden je Feld ergänzt, sobald die jeweilige Konfiguration freigegeben ist. Ein Feld im Modell antippen zeigt seinen Namen." />}
           </div>
           <footer className="configurator-panel__footer">
