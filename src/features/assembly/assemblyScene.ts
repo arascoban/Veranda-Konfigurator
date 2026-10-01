@@ -14,6 +14,8 @@ export const SELECTION_BLUE = 0x2f9dff;
 /** Loads each GLB once; clones share geometry, so clones are flagged `sharedAsset` and never dispose it. */
 export class PartLibrary {
   private readonly cache = new Map<string, Promise<Group>>();
+  /** Parts that have finished loading, for synchronous reuse without a schematic flash. */
+  private readonly ready = new Map<string, Group>();
   private readonly loader = new GLTFLoader();
 
   constructor(private readonly baseUrl: string) {}
@@ -29,6 +31,7 @@ export class PartLibrary {
           // Split rafter pieces come without normals; lit materials need them.
           if (!object.geometry.attributes.normal) object.geometry.computeVertexNormals();
         });
+        this.ready.set(url, gltf.scene);
         return gltf.scene;
       });
       pending.catch(() => this.cache.delete(url));
@@ -36,6 +39,23 @@ export class PartLibrary {
     }
     return pending;
   }
+
+  /** The loaded part, or null while it is still loading or was never requested. */
+  peek(glbPath: string): Group | null {
+    return this.ready.get(this.baseUrl + glbPath) ?? null;
+  }
+}
+
+/** Every part of the layout, synchronously, when all of them are already loaded; otherwise null. */
+export function peekLayoutParts(layout: AssemblyLayout, library: PartLibrary): Map<string, Group> | null {
+  const spec = assemblySpecs[layout.productId];
+  const parts = new Map<string, Group>();
+  for (const id of new Set(layout.placements.map((placement) => placement.partId))) {
+    const group = library.peek(spec.parts[id].glb);
+    if (!group) return null;
+    parts.set(id, group);
+  }
+  return parts;
 }
 
 /** Warms the cache for a product the customer has not chosen yet; failures are ignored and change nothing. */

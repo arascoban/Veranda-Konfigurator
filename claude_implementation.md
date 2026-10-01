@@ -192,6 +192,13 @@ Doğrulama: `npm run check`, 95 test, `npm run build`; Playwright ekran görünt
 
 Doğrulama: `npm run check`, 95 test, `npm run build`; Playwright: menüde üç kalite, rozet "Mittel"; arka yükseklik yazıları ayrı; sürüklemede siyah sayılar; seçili ayak mavi kenarlı (yüksek kalitede gölgeyle birlikte); Premium boru ağzı gri.
 
+## 10. İş — Premium arka plan ön yükleme, şematik geçişsiz model değişimi (1 Ekim)
+
+- `PartLibrary` yüklenmiş parçaları ayrıca eşzamanlı okunabilir tutuyor (`peek`); `peekLayoutParts` bir yerleşimin tüm parçaları bellekteyse hepsini hemen verir.
+- `PreviewViewer`: parçalar bellekteyse ürün modeli doğrudan kurulur, şematik hiç gösterilmez (aynı üründe ölçü/ayak değişikliği ve ön yüklenmiş diğer ürüne geçiş). Yalnız ilk indirmede şematik köprü olarak kalır.
+- Diğer ürün artık ilk model hazır olur olmaz arka planda ısıtılıyor (1,5 s gecikme kaldırıldı). Ürün seçimi değişmez (AGENTS kuralı).
+- Doğrulama: Playwright gözlemi — Prime → Premium → genişlik +1 → Prime geçişlerinde durum notu hiç "wird geladen" göstermedi; `npm run check`, 95 test, derleme.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

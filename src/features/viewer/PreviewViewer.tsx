@@ -9,7 +9,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
-import { createAssemblyGroup, loadLayoutParts, PartLibrary, preloadProductParts } from '../assembly/assemblyScene';
+import { createAssemblyGroup, loadLayoutParts, PartLibrary, peekLayoutParts, preloadProductParts } from '../assembly/assemblyScene';
 import { createDimensionGroup, createTextSprite, disposeAnnotations, setMarkerLimits } from '../assembly/annotations';
 import { postSections } from '../../catalog/catalog';
 import { buildDimensionLines, fieldName } from '../assembly/dimensions';
@@ -309,8 +309,12 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       setModelStatus('missing');
       return;
     }
-    // The schematic is shown at once; the product parts replace it as soon as they are loaded.
-    swapGroup(createSchematicGroup(dimensions, configuration.roofMaterialId, { includeGroundGuide: true, includePostControls: true }));
+    const options = { includeGroundGuide: true, includePostControls: true };
+    // Parts already in memory (same product edited again, or the other product preloaded in the background)
+    // are assembled at once, so the schematic never flashes. Otherwise the schematic bridges the download.
+    const cachedParts = layout ? peekLayoutParts(layout, runtime.library) : null;
+    if (layout && cachedParts) swapGroup(createAssemblyGroup(layout, cachedParts, options));
+    else swapGroup(createSchematicGroup(dimensions, configuration.roofMaterialId, options));
     const fitKey = [dimensions.widthM, dimensions.depthM, dimensions.rearHeightM, dimensions.frontHeightM].join(':');
     if (lastFitKeyRef.current !== fitKey) {
       fitCamera(runtime, dimensions, runtime.camera.aspect);
@@ -320,14 +324,18 @@ export function PreviewViewer({ configuration, resetViewToken = 0, showDimension
       setModelStatus('missing');
       return;
     }
+    if (cachedParts) {
+      setModelStatus('ready');
+      return;
+    }
     let cancelled = false;
     setModelStatus('loading');
     loadLayoutParts(layout, runtime.library).then((parts) => {
       if (cancelled) return;
-      swapGroup(createAssemblyGroup(layout, parts, { includeGroundGuide: true, includePostControls: true }));
+      swapGroup(createAssemblyGroup(layout, parts, options));
       setModelStatus('ready');
-      // Warm the other product in the background; this never changes the selected product.
-      window.setTimeout(() => preloadProductParts(layout.productId === 'prime' ? 'premium' : 'prime', runtime.library), 1500);
+      // Warm the other product right away in the background; this never changes the selected product.
+      preloadProductParts(layout.productId === 'prime' ? 'premium' : 'prime', runtime.library);
     }).catch(() => {
       // The schematic stays in place; the product model is reported as unavailable, never as ready.
       if (!cancelled) setModelStatus('error');
