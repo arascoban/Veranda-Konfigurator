@@ -44,10 +44,10 @@ export const issueTextDe: Record<string, string> = {
   measurement_required: 'Bitte geben Sie dieses Maß ein.',
   roof_bays_above_limit: 'Es dürfen höchstens zwei Dachfelder mehr als die Mindestaufteilung gewählt werden.',
   roof_finish_family_mismatch: 'Die gewählte Dachfarbe passt nicht zur Dacheindeckung.',
-  awning_side_field_out_of_range: 'Die Seitenfelder neben einer Markise müssen zwischen 15 cm und 86 cm breit sein; wählen Sie zwei Markisen.',
+  awning_side_field_out_of_range: 'Die Seitenfelder neben einer Markise dürfen höchstens 86 cm breit sein; wählen Sie zwei Markisen.',
   awning_requires_glass: 'Markisen sind nur mit Glasdach möglich.',
   awning_single_not_possible: 'Bei dieser Breite sind zwei Markisen erforderlich.',
   awning_width_out_of_range: 'Jede Markise muss zwischen 100 cm und 600 cm breit sein; beide zusammen ergeben die Dachbreite.',
-  awning_depth_out_of_range: 'Der Ausfall der Markise muss zwischen 100 cm und 400 cm liegen und darf die Dachtiefe nicht überschreiten.',
+  awning_depth_out_of_range: 'Für eine Markise muss der Abstand von der Pfostenrückseite bis zur Wand mindestens 100 cm betragen.',
   led_per_rafter_above_limit: 'Je Träger ist höchstens eine LED je Meter Tiefe möglich.',
 };

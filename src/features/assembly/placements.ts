@@ -45,8 +45,8 @@ export type AssemblyLayout = {
   placements: PartPlacement[];
 };
 
-/** A simple box standing in for an awning: `xMm` from the inside-left end, running `depthMm` down the roof from the wall. */
-export type AwningSlab = { type: AwningType; xMm: number; widthMm: number; depthMm: number };
+/** A simple box standing in for an awning: `xMm` from the inside-left end, running `depthMm` down the roof from the wall (null = rafter cover length). */
+export type AwningSlab = { type: AwningType; xMm: number; widthMm: number; depthMm: number | null };
 
 const X: Vec3 = [1, 0, 0];
 const Y: Vec3 = [0, 1, 0];

@@ -1,4 +1,4 @@
-import { roofFinishes } from '../catalog/catalog';
+import { awningFabrics, roofFinishes } from '../catalog/catalog';
 import { awningSpans } from './awning';
 import type { ConfigurationV1 } from './configuration';
 import { evaluateConfiguration } from './evaluateConfiguration';
@@ -21,12 +21,13 @@ export function roofSummaryDe(configuration: ConfigurationV1): { finish: string;
     finish = others.length ? `${label(main)}; ${others.join(', ')}` : label(main);
   }
   const spans = awningSpans(configuration);
+  const fabric = awningFabrics.find((entry) => entry.id === configuration.awning?.fabricId)?.nameDe ?? configuration.awning?.fabricId ?? '';
   const awningText = configuration.awning
-    ? `${configuration.awning.type === 'aufglas' ? 'Aufglas-Markise' : 'Unterglas-Markise'}, ${spans.length === 2 ? '2 Stück' : '1 Stück'}: ${spans.map((span) => `${format(span.widthMm)} × ${format(span.depthMm)} cm`).join(' und ')}`
+    ? `${configuration.awning.type === 'aufglas' ? 'Aufglas-Markise' : 'Unterglas-Markise'}, ${spans.length === 2 ? '2 Stück' : '1 Stück'}: ${spans.map((span) => span.depthMm === null ? `${format(span.widthMm)} cm (Trägerlänge)` : `${format(span.widthMm)} × ${format(span.depthMm)} cm`).join(' und ')}; Motor ${configuration.awning.motorSide === 'left' ? 'links' : 'rechts'}; ${fabric}`
     : 'Keine';
   const rafters = roof ? ledRafterCount(roof.supportCount) : 0;
   const led = configuration.ledPerRafter > 0 && roof
-    ? `${configuration.ledPerRafter} je Träger auf ${rafters} Trägern = ${configuration.ledPerRafter * rafters} LED`
+    ? `${configuration.ledPerRafter} je Träger auf ${rafters} Trägern = ${configuration.ledPerRafter * rafters} LED, ${configuration.ledControl === 'dimmbar' ? 'dimmbar' : 'schaltbar'}`
     : 'Keine';
   return { finish, awning: awningText, led };
 }

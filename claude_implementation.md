@@ -214,6 +214,16 @@ Kullanıcının 1 Ekim 2026 cevaplarına göre (`URUN_VE_OLCU_KURALLARI.md` §9)
 
 Fiyat: cam/polikarbonat m² birim fiyatları, markise ve LED adet fiyatları kullanıcıdan gelecek; şimdilik fiyata işlenmiyor.
 
+## 12. İş — Dach düzeltmeleri: kenar alanı kuralı, markise derinliği, kart tasarımı, "i" ipuçları, bildirim kutusu, "+" panelleri (1 Ekim, ikinci tur)
+
+- **Kenar alanı:** 600 cm üzerindeki her genişlikte (601 dahil) iki kenar alanı en az 15 cm Milchglas; markise kalan genişliği alır (`awningSideFieldMm = max(150, (W−6000)/2)`). Üst sınır 86 cm değişmedi.
+- **Markise derinliği girilmez:** Unterglas = ayak arkasından duvara (Tiefe − ayak derinliği), Aufglas = taşıyıcı kapağı boyu (yerleşimde `roofPlane.lengthMm`). Şemadan `depthMm` kaldırıldı; `motorSide` (bahçeden bakışla) ve `fabricId` (placeholder kumaşlar `awningFabrics`) eklendi. LED için `ledControl` schaltbar/dimmbar.
+- **Dacheindeckung kartları:** referans düzen (kare kart, düşük köşe yarıçapı, sol üstte "8 mm / 16 mm" rozeti), ortada bizim yuvarlak renk örneği, eşit boyutlu 3 sütun. 10 mm cam yok. PBR malzemeler ilerde kullanıcıdan gelecek (alüminyum, cam, polikarbonat).
+- **Açıklamalar:** tüm yardım paragrafları `InfoTip` ("i", üstüne gelince açıklama) oldu; Konstruktion'da Pfosten/Farbe/Wasserablauf/Pfostendeckel, Dach'ta tüm bölümler.
+- **Bildirim kutusu:** `noticeStore` + `NoticeStack` (3D görünümün sol altında, antrasit kart, altın ilerleme çubuğu, 6 s sonra veya ✕ ile kapanır). Tetikleyiciler: markise seçince kenar alanları Milchglas oldu / iki markise zorunlu / ölçü-malzeme değişince markise uyumlandı veya kaldırıldı (`awningChangeNotice`, uygulama katmanında `reconcileAwning` sonrası). İleride kural çakışmaları da buradan gösterilecek.
+- **"+" panelleri:** `SectionHead` (resim placeholder'ı + başlık + rozet + "i") ve `AddOnToggle` ("+" → yeşil ✓, başlık yeşil). Markise: + ile Unterglas varsayılan eklenir; Art, Anzahl, genişlikler, Ausfall (salt okunur), Antriebsseite Links/Rechts, Stoff (9 placeholder), Entfernen. Beleuchtung: + ile taşıyıcı başına min(2, maks) LED; +/-; Steuerung Schaltbar/Dimmbar; Entfernen.
+- Doğrulama: `npm run check`, 104 test, derleme; Playwright: 650 cm → "+" Markise → bildirim kutusu metni, 9 bölme (kenarlar 19,5 cm cap = 25 cm pitch), 6,5 s sonra kutu kapandı; Beleuchtung paneli 8 Träger × 2 = 16; bahçeden bakışta Unterglas plakası taşıyıcı altında.
+
 ## Gözlemler (henüz kayıt açılmadı)
 
 - 1440×900 masaüstünde 3D tuval sahne alanının tamamını değil, fiyat kartının solunda kalan dikdörtgeni kaplıyor. Tasarım planındaki “kartın kapatmadığı alana ortalama” kararının sonucu olabilir; D04 son görsel kabulünde değerlendirilecek.

@@ -56,15 +56,15 @@ export function calculateRoofBayGeometry(
  * 1 Oct 2026). Returns null when the width needs no side fields.
  */
 export function calculateAwningSideFieldGeometry(widthMm: number, materialId: RoofMaterialId): RoofBayGeometry | null {
-  const centreWidth = awningRules.maxWidthMm;
-  if (!Number.isSafeInteger(widthMm) || widthMm <= centreWidth) return null;
+  const sidePitch = awningSideFieldMm(widthMm);
+  if (!Number.isSafeInteger(widthMm) || sidePitch === 0) return null;
+  const centreWidth = widthMm - 2 * sidePitch;
   const centreBays = minimumRoofBayCount(centreWidth, materialId);
   const centre = centreBays === null ? null : calculateRoofBayGeometry(centreWidth, materialId, centreBays);
   if (!centre) return null;
-  const sidePitch = (widthMm - centreWidth) / 2;
   const sideCap = sidePitch - ROOF_SUPPORT_WIDTH_MM;
   const reasons: RoofBayGeometry['reasons'] = [...centre.reasons];
-  if (sidePitch < awningRules.sideFieldMinMm || sidePitch > awningRules.sideFieldMaxMm) reasons.push('awning_side_field_out_of_range');
+  if (sidePitch > awningRules.sideFieldMaxMm) reasons.push('awning_side_field_out_of_range');
   return {
     bayCount: centre.bayCount + 2,
     supportCount: centre.supportCount + 2,
@@ -78,7 +78,11 @@ export function calculateAwningSideFieldGeometry(widthMm: number, materialId: Ro
   };
 }
 
-/** Width of a side field (support plus cap) for a single awning on this roof, or 0 when none is needed. */
+/**
+ * Width of one side field (support plus cap) for a single awning: roofs up to 600 cm need none; wider roofs
+ * get at least 15 cm on each side (even at 601 cm), the awning takes what remains (user decision 1 Oct 2026).
+ */
 export function awningSideFieldMm(widthMm: number): number {
-  return widthMm > awningRules.maxWidthMm ? (widthMm - awningRules.maxWidthMm) / 2 : 0;
+  if (widthMm <= awningRules.maxWidthMm) return 0;
+  return Math.max(awningRules.sideFieldMinMm, (widthMm - awningRules.maxWidthMm) / 2);
 }

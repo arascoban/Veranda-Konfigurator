@@ -18,15 +18,25 @@ describe('awning rules (confirmed 1 Oct 2026)', () => {
     const configuration = withRoofFinish(withWidth(5000), 'pc_klar');
     expect(awningAvailability(configuration).reason).toBe('polycarbonate');
     expect(createAwning(configuration, 'aufglas')).toBeNull();
-    expect(validateAwning({ ...configuration, awning: { type: 'aufglas', count: 1, widthsMm: null, depthMm: 3000 } })).toEqual(['awning_requires_glass']);
+    expect(validateAwning({ ...configuration, awning: { type: 'aufglas', count: 1, widthsMm: null, motorSide: 'left', fabricId: 'stoff-1' } })).toEqual(['awning_requires_glass']);
   });
 
-  it('covers the full width up to 600 cm with one awning, limited to 400 cm depth', () => {
-    const configuration = withWidth(5000, 4500);
-    expect(awningAvailability(configuration)).toMatchObject({ available: true, singleMode: 'full', sideFieldMm: 0, depthMaxMm: 4000 });
-    const awning = createAwning(configuration, 'unterglas');
-    expect(awning).toEqual({ type: 'unterglas', count: 1, widthsMm: null, depthMm: 4000 });
-    expect(awningSpans({ ...configuration, awning })).toEqual([{ xMm: 0, widthMm: 5000, depthMm: 4000, type: 'unterglas' }]);
+  it('covers the full width up to 600 cm with one awning; Unterglas runs from the post back to the wall', () => {
+    const configuration = withWidth(5000, 3000);
+    expect(awningAvailability(configuration)).toMatchObject({ available: true, singleMode: 'full', sideFieldMm: 0 });
+    const awning = createAwning(configuration);
+    expect(awning).toEqual({ type: 'unterglas', count: 1, widthsMm: null, motorSide: 'left', fabricId: 'stoff-1' });
+    expect(awningSpans({ ...configuration, awning })).toEqual([{ xMm: 0, widthMm: 5000, depthMm: 3000 - 135, type: 'unterglas' }]);
+    expect(awningSpans({ ...configuration, awning: { ...awning!, type: 'aufglas' } })[0].depthMm).toBeNull();
+  });
+
+  it('adds 15 cm Milchglas side fields from 601 cm on; the awning takes the rest', () => {
+    const configuration = withWidth(6010);
+    expect(awningAvailability(configuration)).toMatchObject({ singleMode: 'side_fields', sideFieldMm: 150 });
+    const evaluation = evaluateConfiguration({ ...configuration, awning: createAwning(configuration) });
+    expect(evaluation.roof?.awningSideFields).toBe(true);
+    expect(evaluation.roof?.capWidthsMm[0]).toBe(95);
+    expect(awningSpans({ ...configuration, awning: createAwning(configuration) })[0]).toMatchObject({ xMm: 150, widthMm: 5710 });
   });
 
   it('adds two Milchglas side fields of 50 cm on a 700 cm roof and fixes the field layout', () => {
@@ -51,11 +61,10 @@ describe('awning rules (confirmed 1 Oct 2026)', () => {
     const configuration = withWidth(8000);
     expect(awningAvailability(configuration).singleMode).toBe('unavailable');
     const awning = createAwning(configuration, 'aufglas');
-    expect(awning).toEqual({ type: 'aufglas', count: 2, widthsMm: [4000, 4000], depthMm: 3000 });
+    expect(awning).toEqual({ type: 'aufglas', count: 2, widthsMm: [4000, 4000], motorSide: 'left', fabricId: 'stoff-1' });
     expect(validateAwning({ ...configuration, awning: { ...awning!, count: 1 } })).toEqual(['awning_single_not_possible']);
     expect(validateAwning({ ...configuration, awning: { ...awning!, widthsMm: [7000, 1000] } })).toEqual(['awning_width_out_of_range']);
     expect(validateAwning({ ...configuration, awning: { ...awning!, widthsMm: [3000, 5000] } })).toEqual([]);
-    expect(validateAwning({ ...configuration, awning: { ...awning!, depthMm: 900 } })).toEqual(['awning_depth_out_of_range']);
   });
 
   it('reconciles a stored awning after the width or material changes', () => {
@@ -76,6 +85,7 @@ describe('LED rule', () => {
     expect(ledRafterCount(7)).toBe(5);
     expect(ledRafterCount(2)).toBe(0);
     const configuration = { ...withWidth(5000, 3000), ledPerRafter: 4 };
+    expect(validateAwning({ ...withWidth(5000, 1100), awning: createAwning(withWidth(5000, 3000)) })).toEqual(['awning_depth_out_of_range']);
     expect(evaluateConfiguration(configuration).issues.some((issue) => issue.code === 'led_per_rafter_above_limit')).toBe(true);
   });
 });

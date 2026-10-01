@@ -7,6 +7,8 @@ import { addPost, createMinimumPostLayout, distributePostsEvenly, movePostFromCe
 import { de, issueTextDe } from '../../../content/de';
 import { Button } from '../../../ui/Button';
 import { StatusMessage } from '../../../ui/StatusMessage';
+import { InfoTip } from '../../../ui/InfoTip';
+import { SectionHead } from '../../../ui/SectionHead';
 import { DimensionField } from './DimensionField';
 
 
@@ -67,7 +69,7 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
             : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`} />
       </div>
 
-      <h3 className="section-subheading">Farbe</h3>
+      <SectionHead title="Farbe" picture="colour" info="Farbe aller Aluminiumprofile. Dichtungen, Glas und Ablaufrohr bleiben unverändert." />
       <div className="color-swatches" role="radiogroup" aria-label="Farbe der Aluminiumprofile">
         {(Object.keys(frameColors) as FrameColorId[]).map((id) => (
           <button key={id} type="button" role="radio" className="color-swatch" aria-checked={configuration.frameColor === id}
@@ -78,7 +80,7 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
         ))}
       </div>
 
-      <h3 className="section-subheading">Pfosten</h3>
+      <SectionHead title="Pfosten" picture="posts" info="Pfosten im Modell antippen und entlang der Rinne ziehen oder hier die Position eingeben (Achsmaß ab dem linken Rinnenende, vom Garten aus gesehen). Pfosten 1 steht vom Garten aus links." />
       {posts.length ? (
         <div className="post-list">
           {gardenOrder.map(({ post, index }, number) => (
@@ -121,7 +123,7 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
       </div>
 
       {configuration.productId === 'prime' && <div className="option-row">
-        <span className="option-row__label">Pfostendeckel</span>
+        <span className="option-row__label">Pfostendeckel<InfoTip text="Gerader oder halber Deckel am Prime-Pfosten." /></span>
         <div className="product-switch" role="group" aria-label="Pfostendeckel">
           {(['gerade', 'halb'] as const).map((style) => (
             <button key={style} type="button" className="product-switch__option" aria-pressed={configuration.postCapStyle === style}
@@ -130,16 +132,16 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
         </div>
       </div>}
       <div className="option-row">
-        <span className="option-row__label">Wasserablauf</span>
+        <span className="option-row__label">Wasserablauf<InfoTip text={drainBoth
+          ? 'Ab 800 cm Breite erhält jeder äußere Pfosten einen Ablauf.'
+          : 'Am äußeren Pfosten, vom Garten aus gesehen. Der Ablauf zeigt zum Garten.'} /></span>
         <div className="product-switch" role="group" aria-label="Seite des Wasserablaufs">
           {(['left', 'right'] as const).map((side) => (
             <button key={side} type="button" className="product-switch__option" aria-pressed={configuration.drainSide === side} disabled={drainBoth}
               onClick={() => onChange({ ...configuration, drainSide: side })}>{side === 'left' ? 'Links' : 'Rechts'}</button>
           ))}
         </div>
-        <span className="field-hint">{drainBoth
-          ? 'Ab 800 cm Breite erhält jeder äußere Pfosten einen Ablauf.'
-          : 'Am äußeren Pfosten, vom Garten aus gesehen. Der Ablauf zeigt zum Garten.'}</span>
+
       </div>
       {firstInvalid && <p className="sr-only">{issueTextDe[firstInvalid.code] ?? 'Die Konfiguration enthält ungültige Angaben.'}</p>}
     </section>

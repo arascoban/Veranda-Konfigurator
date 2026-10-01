@@ -268,7 +268,9 @@ export function createAssemblyGroup(
  * the wall. Aufglas sits above the glazing, Unterglas below the rafters. Replaced once the models arrive.
  */
 function createAwningPlaceholder(layout: AssemblyLayout, slab: AwningSlab, finishes: ReturnType<typeof createFinishMaterials>): Group {
-  const { rearMm, d, nrm, rafterHeightMm } = layout.roofPlane;
+  const { rearMm, d, nrm, rafterHeightMm, lengthMm } = layout.roofPlane;
+  // Aufglas: as long as the rafter cover; Unterglas: from the post back to the wall, measured along the roof.
+  const depthMm = slab.depthMm === null ? lengthMm : slab.depthMm * (lengthMm / Math.max(1, layout.depthMm));
   const holder = new Group();
   holder.userData.awning = true;
   holder.userData.exportable = false;
@@ -286,8 +288,8 @@ function createAwningPlaceholder(layout: AssemblyLayout, slab: AwningSlab, finis
   };
   // 2 cm shorter than the span so two neighbouring awnings read as two bodies.
   const widthM = (slab.widthMm - 20) / 1000;
-  const fabric = new Mesh(new BoxGeometry(widthM, 0.03, slab.depthMm / 1000), finishes.awningFabric);
-  place(fabric, -slab.depthMm / 2, slab.widthMm / 2, liftMm);
+  const fabric = new Mesh(new BoxGeometry(widthM, 0.03, depthMm / 1000), finishes.awningFabric);
+  place(fabric, -depthMm / 2, slab.widthMm / 2, liftMm);
   const cassette = new Mesh(new BoxGeometry(widthM, 0.15, 0.17), finishes.awningCassette);
   place(cassette, 40, slab.widthMm / 2, liftMm + (slab.type === 'aufglas' ? 60 : -40));
   return holder;

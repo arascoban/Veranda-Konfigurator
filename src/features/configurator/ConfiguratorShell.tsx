@@ -13,6 +13,7 @@ import { ConfiguratorHeader } from './components/ConfiguratorHeader';
 import { ProfileInspector, type ProductModelStatus } from './components/ProfileInspector';
 import { PlanOverview } from './components/PlanOverview';
 import { QuoteSummary } from './components/QuoteSummary';
+import { NoticeStack } from '../../ui/NoticeStack';
 import { RoofSettings } from './components/RoofSettings';
 import { ScenePlaceholder } from './components/ScenePlaceholder';
 import { SectionPicker, type ConfiguratorSection } from './components/SectionPicker';
@@ -131,6 +132,7 @@ export function ConfiguratorShell({
           <div className="scene-column__viewport">
             {scene ? <div className="scene-slot">{scene}</div> : <ScenePlaceholder status={sceneStatus} />}
           </div>
+          <NoticeStack />
           <div className="quote-float">
             <QuoteSummary quote={quote} revision={revision} productName={productName} materialName={materialName}
               measurements={measurementSummary} onOverview={() => setOverviewOpen(true)} onPdf={onCreatePdf} onAr={onShowAr}

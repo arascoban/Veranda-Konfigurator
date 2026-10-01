@@ -1,4 +1,4 @@
-import { awningRules } from '../catalog/catalog';
+import { awningRules, postSections } from '../catalog/catalog';
 import type { ConfigurationV1 } from './configuration';
 import { awningSideFieldMm } from './geometry/roof';
 
@@ -10,32 +10,40 @@ export type AwningAvailability = {
   /** False on polycarbonate roofs and while the measurements are incomplete or too small. */
   available: boolean;
   reason: 'polycarbonate' | 'measurements' | 'depth_too_small' | null;
-  /** One awning: covers the whole width, or a 600 cm centre with Milchglas side fields, or impossible. */
+  /** One awning: covers the whole width, or a centre with Milchglas side fields, or impossible. */
   singleMode: 'full' | 'side_fields' | 'unavailable';
   sideFieldMm: number;
-  depthMaxMm: number;
 };
+
+/**
+ * The awning depth is never entered: an Unterglas awning runs from the back of the posts to the wall, an
+ * Aufglas awning is as long as the rafter cover (user decision 1 Oct 2026). Aufglas is resolved by the
+ * assembly layout, which knows the rafter length; here it is reported as null.
+ */
+export function awningDepthMm(configuration: ConfigurationV1, type: AwningType): number | null {
+  const depth = configuration.dimensionsMm.depth;
+  if (depth === null) return null;
+  return type === 'unterglas' ? depth - postSections[configuration.productId].towardsGardenMm : null;
+}
 
 export function awningAvailability(configuration: ConfigurationV1): AwningAvailability {
   const { width, depth } = configuration.dimensionsMm;
-  const none: AwningAvailability = { available: false, reason: null, singleMode: 'unavailable', sideFieldMm: 0, depthMaxMm: 0 };
+  const none: AwningAvailability = { available: false, reason: null, singleMode: 'unavailable', sideFieldMm: 0 };
   if (configuration.roofMaterialId !== 'glass') return { ...none, reason: 'polycarbonate' };
   if (width === null || depth === null) return { ...none, reason: 'measurements' };
-  const depthMaxMm = Math.min(depth, awningRules.maxDepthMm);
-  if (depthMaxMm < awningRules.minDepthMm) return { ...none, reason: 'depth_too_small', depthMaxMm };
+  if (depth - postSections[configuration.productId].towardsGardenMm < awningRules.minDepthMm) return { ...none, reason: 'depth_too_small' };
   const sideFieldMm = awningSideFieldMm(width);
-  const singleMode = sideFieldMm === 0 ? 'full'
-    : sideFieldMm >= awningRules.sideFieldMinMm && sideFieldMm <= awningRules.sideFieldMaxMm ? 'side_fields' : 'unavailable';
-  return { available: true, reason: null, singleMode, sideFieldMm, depthMaxMm };
+  const singleMode = sideFieldMm === 0 ? 'full' : sideFieldMm <= awningRules.sideFieldMaxMm ? 'side_fields' : 'unavailable';
+  return { available: true, reason: null, singleMode, sideFieldMm };
 }
 
-/** Default setting when the customer switches an awning type on. */
-export function createAwning(configuration: ConfigurationV1, type: AwningType): AwningSetting | null {
+/** Default setting when the customer switches the awning on (Unterglas by default). */
+export function createAwning(configuration: ConfigurationV1, type: AwningType = 'unterglas'): AwningSetting | null {
   const availability = awningAvailability(configuration);
   const width = configuration.dimensionsMm.width;
   if (!availability.available || width === null) return null;
   const count = availability.singleMode === 'unavailable' ? 2 : 1;
-  return { type, count, widthsMm: count === 2 ? defaultTwoWidths(width) : null, depthMm: availability.depthMaxMm };
+  return { type, count, widthsMm: count === 2 ? defaultTwoWidths(width) : null, motorSide: 'left', fabricId: 'stoff-1' };
 }
 
 export function defaultTwoWidths(widthMm: number): [number, number] {
@@ -43,17 +51,18 @@ export function defaultTwoWidths(widthMm: number): [number, number] {
   return [left, widthMm - left];
 }
 
-/** Resolved awning spans along the width axis (scene x from the inside-left end). */
-export function awningSpans(configuration: ConfigurationV1): Array<{ xMm: number; widthMm: number; depthMm: number; type: AwningType }> {
+/** Resolved awning spans along the width axis (scene x from the inside-left end); depth null = rafter cover length. */
+export function awningSpans(configuration: ConfigurationV1): Array<{ xMm: number; widthMm: number; depthMm: number | null; type: AwningType }> {
   const awning = configuration.awning;
   const width = configuration.dimensionsMm.width;
   if (!awning || width === null) return [];
+  const depthMm = awningDepthMm(configuration, awning.type);
   if (awning.count === 2) {
     const [a, b] = awning.widthsMm ?? defaultTwoWidths(width);
-    return [{ xMm: 0, widthMm: a, depthMm: awning.depthMm, type: awning.type }, { xMm: a, widthMm: b, depthMm: awning.depthMm, type: awning.type }];
+    return [{ xMm: 0, widthMm: a, depthMm, type: awning.type }, { xMm: a, widthMm: b, depthMm, type: awning.type }];
   }
   const side = awningSideFieldMm(width);
-  return [{ xMm: side, widthMm: width - 2 * side, depthMm: awning.depthMm, type: awning.type }];
+  return [{ xMm: side, widthMm: width - 2 * side, depthMm, type: awning.type }];
 }
 
 export type AwningIssueCode = 'awning_requires_glass' | 'awning_single_not_possible' | 'awning_width_out_of_range' | 'awning_depth_out_of_range';
@@ -72,7 +81,6 @@ export function validateAwning(configuration: ConfigurationV1): AwningIssueCode[
     const inRange = (value: number) => value >= awningRules.minWidthMm && value <= awningRules.maxWidthMm;
     if (!inRange(a) || !inRange(b) || a + b !== width) issues.push('awning_width_out_of_range');
   }
-  if (awning.depthMm < awningRules.minDepthMm || awning.depthMm > availability.depthMaxMm) issues.push('awning_depth_out_of_range');
   return issues;
 }
 
@@ -87,5 +95,20 @@ export function reconcileAwning(configuration: ConfigurationV1): ConfigurationV1
   const widths = count === 2
     ? (awning.widthsMm && awning.widthsMm[0] + awning.widthsMm[1] === width ? awning.widthsMm : defaultTwoWidths(width))
     : null;
-  return { ...awning, count, widthsMm: widths, depthMm: Math.min(Math.max(awning.depthMm, awningRules.minDepthMm), availability.depthMaxMm) };
+  return { ...awning, count, widthsMm: widths };
+}
+
+/** German notice when a choice had to be adjusted automatically; null when nothing changed for the customer. */
+export function awningChangeNotice(before: ConfigurationV1['awning'], after: ConfigurationV1['awning'], configuration: ConfigurationV1): { title: string; message: string } | null {
+  if (!after) return before ? { title: 'Markise entfernt', message: 'Mit dieser Dacheindeckung oder Tiefe ist keine Markise möglich; die Markise wurde entfernt.' } : null;
+  const availability = awningAvailability(configuration);
+  const typeName = after.type === 'aufglas' ? 'Aufglas-Markise' : 'Unterglas-Markise';
+  if (after.count === 2 && (!before || before.count === 1)) {
+    return { title: `Gekoppelte ${typeName}`, message: 'Aufgrund der Breite werden zwei gekoppelte Markisen eingesetzt.' };
+  }
+  if (after.count === 1 && availability.singleMode === 'side_fields' && (!before || before.type !== after.type || before.count !== 1)) {
+    const cm = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(availability.sideFieldMm / 10);
+    return { title: typeName, message: `Die Breite liegt über 600 cm: die beiden äußeren Dachfelder (je ${cm} cm) werden in Milchglas ausgeführt, die Markise deckt die Mitte.` };
+  }
+  return null;
 }

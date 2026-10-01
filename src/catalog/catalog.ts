@@ -51,9 +51,23 @@ export const MAX_EXTRA_ROOF_BAYS = 2;
  */
 export const awningRules = {
   maxWidthMm: 6000, maxDepthMm: 4000, minWidthMm: 1000, minDepthMm: 1000, sideFieldMaxMm: 860,
-  /** Implementation assumption (not a product rule): a side field needs at least this pitch to hold a support. */
+  /** Roofs wider than 600 cm get Milchglas side fields of at least 15 cm; the awning takes the rest (1 Oct 2026). */
   sideFieldMinMm: 150,
 } as const;
+
+/** Placeholder fabrics until the real swatches arrive (user, 1 Oct 2026). Ids are stable; names/colours will change. */
+export const awningFabrics = [
+  { id: 'stoff-1', nameDe: 'Stoff 1', hex: '#b9b5ad' },
+  { id: 'stoff-2', nameDe: 'Stoff 2', hex: '#8c8676' },
+  { id: 'stoff-3', nameDe: 'Stoff 3', hex: '#4a4a40' },
+  { id: 'stoff-4', nameDe: 'Stoff 4', hex: '#a9c3b6' },
+  { id: 'stoff-5', nameDe: 'Stoff 5', hex: '#5f8d8c' },
+  { id: 'stoff-6', nameDe: 'Stoff 6', hex: '#d8d9d6' },
+  { id: 'stoff-7', nameDe: 'Stoff 7', hex: '#b3312a' },
+  { id: 'stoff-8', nameDe: 'Stoff 8', hex: '#3c3a33' },
+  { id: 'stoff-9', nameDe: 'Stoff 9', hex: '#8f7d64' },
+] as const;
+export type AwningFabricId = typeof awningFabrics[number]['id'];
 
 /** LED strips sit under the rafters: at most one per started metre of depth, rounded at 50 cm (confirmed 1 Oct 2026). */
 export const LED_PER_METRE_MAX = 1;

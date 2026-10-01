@@ -43,10 +43,15 @@ export const configurationV1Schema = z.object({
     type: z.enum(['aufglas', 'unterglas']),
     count: z.union([z.literal(1), z.literal(2)]),
     widthsMm: z.tuple([z.number().int().safe(), z.number().int().safe()]).nullable(),
-    depthMm: z.number().int().safe(),
+    /** Motor side as seen from the garden. */
+    motorSide: z.enum(['left', 'right']).default('left'),
+    /** Fabric id from the catalogue (placeholders until the real swatches arrive). */
+    fabricId: z.string().min(1).default('stoff-1'),
   }).strict().nullable().default(null),
   /** LED strips per rafter (corner rafters excluded); 0 = none. */
   ledPerRafter: z.number().int().min(0).safe().default(0),
+  /** Switchable or dimmable LED control (different prices). */
+  ledControl: z.enum(['schaltbar', 'dimmbar']).default('schaltbar'),
 }).strict();
 
 export type ConfigurationV1 = z.infer<typeof configurationV1Schema>;
@@ -95,6 +100,7 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     roofFieldFinishes: [],
     awning: null,
     ledPerRafter: 0,
+    ledControl: 'schaltbar',
   };
 }
 

@@ -1,7 +1,8 @@
 import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import type { ConfigurationV1 } from '../domain/configuration';
 import { MAX_WIDTH_MM } from '../catalog/catalog';
-import { reconcileAwning } from '../domain/awning';
+import { awningChangeNotice, reconcileAwning } from '../domain/awning';
+import { useNoticeStore } from '../state/noticeStore';
 import { evaluateConfiguration } from '../domain/evaluateConfiguration';
 import { ConfiguratorShell, type ConfiguratorActionStatus } from '../features/configurator';
 import { createPdfDraft, downloadPdf } from '../features/pdf/service/pdfExport';
@@ -32,6 +33,10 @@ export function ConfiguratorApp() {
   const applyConfiguration = (candidate: ConfigurationV1, preserveAuto = true) => {
     const current = useConfiguratorStore.getState().configuration;
     const reconciled = { ...candidate, awning: reconcileAwning(candidate) };
+    if (JSON.stringify(reconciled.awning) !== JSON.stringify(candidate.awning)) {
+      const notice = awningChangeNotice(candidate.awning, reconciled.awning, reconciled);
+      if (notice) useNoticeStore.getState().push(notice);
+    }
     const next = preserveAuto ? preserveAutomaticPostLayout(current, reconciled) : reconciled;
     if (JSON.stringify(current) === JSON.stringify(next)) return;
     if (!useConfiguratorStore.getState().replaceConfiguration(next)) return;
