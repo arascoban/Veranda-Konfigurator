@@ -195,3 +195,11 @@ Teklif bağlantısı: `buildGridQuote` ve `respondToGridQuoteRequest` bu temel h
 - **Markise (Aufglas / Unterglas, yalnız biri):** en fazla 600 × 400 cm, en az 100 × 100 cm. Genişlik > 600 cm (601 dahil): iki kenar bölmesi max(15 cm, (W − 600)/2) Milchglas (varsayılan), markise kalan genişliği alır, taşıyıcı +2; bu modda +2 bölme hakkı yok. Kenar bölmesi 86 cm'i geçince (W > 772 cm) iki markise zorunlu; iki markisede genişlikler girilebilir (varsayılan eşit) ve +2 bölme hakkı vardır. **Derinlik girilmez:** Unterglas ayak arkasından duvara, Aufglas taşıyıcı kapağı boyunca (ayaklar geri alınınca yalnız Unterglas kısalır). Motor tarafı bahçeden bakışla seçilir; kumaşlar sonra gelecek (şimdilik placeholder). Birim fiyat kullanıcıdan gelecek.
 - **LED:** taşıyıcı başına 0…(metre başına 1; 350 cm ve üzeri yukarı yuvarlanır: 349 → 3, 350 → 4). Tüm taşıyıcılara aynı sayı; köşe taşıyıcılarda LED yok. Eklenince varsayılan taşıyıcı başına 2 (sığmıyorsa 1). Steuerung Schaltbar / Dimmbar (fiyatları farklı). Modelde gösterilmez. Adet fiyatı kullanıcıdan gelecek.
 - **Görsel/UI kararları (1 Ekim):** Dacheindeckung kare kartlarda yuvarlak renk örneğiyle, sol üstte kalınlık rozeti; 10 mm cam yok. Tüm açıklamalar "i" ipucunda. Otomatik ayarlamalar 3D görünüm üstünde 6 s'lik bildirim kutusuyla açıklanır. PBR malzemeler (alüminyum, cam, polikarbonat) ilerde kullanıcıdan gelecek.
+
+## 10. Ausstattung je Feld (2 Ekim 2026, kullanıcı kararı)
+
+- **Feld'ler:** önde iki pfosten arasındaki her açıklık, yanlarda duvar ile uç pfosten arası (sol/sağ bahçeden bakışla). Dachfeld'ler bu menüde yok (Dach bölümünde).
+- **Elemanlar:** Glasschiebewand, Aluminiumwand, Seitenwand lichtdurchlässig, Senkrechtmarkise. Feld başına en fazla **2 eleman** üst üste; ikisinde alt parçanın yüksekliği girilir (ör. alt 100 cm Aluminiumwand, üstü lichtdurchlässig).
+- **Giebeldreieck:** yalnız yan Feld'lerde; **2 eleman sınırına sayılmaz** — yanlarda Giebeldreieck + 2 eleman birlikte seçilebilir (kullanıcı onayı 2 Ekim 2026).
+- **Glasschiebewand:** Glasflügel sayısı Feld genişliğinden otomatik (ray/genişlik tablosu 3/4/5/6 bekleniyor); Glaston Klar/Getönt/Satiniert; Öffnungsrichtung Links/Rechts/Mittig; profil rengi çerçeve rengiyle aynı.
+- **Henüz yok (kullanıcıdan):** ray/genişlik tablosu, bölme sınırları (geçici: her parça ≥ 10 cm), eleman ölçüleri/modelleri/fiyatları.

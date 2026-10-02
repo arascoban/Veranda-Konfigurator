@@ -78,8 +78,11 @@ const highQualityAvailable = () => typeof window !== 'undefined'
 export type ProductModelStatus = 'loading' | 'ready' | 'missing' | 'error';
 
 export function PreviewViewer({ configuration, resetViewToken = 0, view = { preset: '3d', token: 0 }, backdrop = 'studio', showDimensions = false, selectedPostId = null, onSelectPost, selectedRoofField = null, onSelectRoofField,
-  selectedFieldId = null, onSelectField, highlightFieldIds = [], onFieldPick, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange }: {
+  selectedFieldId = null, onSelectField, highlightFieldIds = [], onFieldPick, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange,
+  interactive = true }: {
   configuration: ConfigurationV1;
+  /** false: look only (AR page) — no post dragging, field menu or quality menu. */
+  interactive?: boolean;
   resetViewToken?: number;
   /** Camera preset; a new token re-applies it even when the preset is unchanged. */
   view?: { preset: ViewPreset; token: number };
@@ -524,7 +527,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
 
   useEffect(() => {
     const runtime = runtimeRef.current;
-    if (!runtime || !dimensions || !posts || widthMm === null) return;
+    if (!runtime || !dimensions || !posts || widthMm === null || !interactive) return;
     const canvas = runtime.renderer.domElement;
     const raycaster = new Raycaster();
     const pointer = new Vector2();
@@ -693,7 +696,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
       if (drag) restorePost(drag.index, drag.initialMm);
       runtime.controls.enabled = true;
     };
-  }, [configuration, dimensions, openingSpans, posts, widthMm, showDimensions]);
+  }, [configuration, dimensions, openingSpans, posts, widthMm, showDimensions, interactive]);
 
   const measurements = dimensions
     ? `${millimetresToCentimetres(configuration.dimensionsMm.width!)} × ${millimetresToCentimetres(configuration.dimensionsMm.depth!)} cm`
@@ -749,7 +752,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
           x={clampToHost(radial.x, 380 * radialScale, hostSize.width, insetLeft)} y={clampToHost(radial.y, 380 * radialScale + 60, hostSize.height)}
           onPick={pickRadial} onClose={() => setRadial(null)} />
       </>}
-      {sceneStatus !== 'error' && <div className="fps-badge">
+      {sceneStatus !== 'error' && interactive && <div className="fps-badge">
         <span className="fps-badge__fps" aria-label="Bildrate">{fps ?? '–'} FPS</span>
         <button type="button" className="fps-badge__button" aria-haspopup="menu" aria-expanded={qualityMenuOpen}
           onClick={() => setQualityMenuOpen((open) => !open)}>

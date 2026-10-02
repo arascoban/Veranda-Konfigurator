@@ -916,3 +916,22 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/viewer/PreviewViewer.tsx`.
 - Tek çözüm denemesi: Bemaßungen açıkken görünüm, ölçü çizgilerinin uzandığı alan kadar (genişlik +1,8 m, derinlik +0,8 m, hedef bahçe soluna 0,7 m) büyütülmüş kutuya oturuyor. Açma/kapama yalnız kamera elle değiştirilmemişse yeniden oturtur.
 - Doğrulama: Playwright — 1440×900'de tüm etiketler panelin sağında; açma/kapamada zoom %100, elle %125 yapıldıktan sonra açınca %125 korunuyor; sayfa hatası yok.
+
+## CLAUDE-SW07-001 — @google/model-viewer projenin three.js sürümüyle uyumsuz
+
+- Durum: Çözüldü (başka yolla)
+- Tarih: 2 Ekim 2026. Görev/model: SW-07 gerçek montaj AR'si, Claude.
+- Ortam: npm 11.12.1, three 0.186.1.
+- Beklenen: AR için model-viewer eklemek (eski plan belgeleri öneriyordu).
+- Gerçek: `npm view @google/model-viewer@4.3.1 peerDependencies` → `three: ^0.183.0`; 0.x semver'de bu yalnız 0.183.* demek, proje 0.186.1. Kurulum peer çakışması verir; `--legacy-peer-deps` ile zorlamak model-viewer'ı test edilmemiş three sürümüyle çalıştırırdı.
+- Tek çözüm denemesi: model-viewer kullanılmadı; three'nin kendi `GLTFExporter`/`USDZExporter`'ı ve WebXR ile AR kuruldu (`src/features/ar/`). Yeni bağımlılık yalnız `qrcode-generator@2.0.4` (bağımlılıksız).
+- Doğrulama: tip kontrolü, 122 test, derleme; tarayıcıda GLB ve USDZ üretimi. Gerçek cihaz kabulü HTTPS yayından sonra.
+
+## CLAUDE-SW07-002 — AR dışa aktarım testi Node'da `self is not defined` verdi
+
+- Durum: Çözüldü
+- Tarih: 2 Ekim 2026. Görev/model: SW-07 testleri, Claude.
+- Gerçek: Gerçek web modellerini diskten okuyan testte `GLTFLoader` tarayıcıya özgü `self` küresel değişkenini arıyor.
+- Etkilenen dosya: `src/features/ar/exportAssemblyModel.test.ts` (yalnız test).
+- Tek çözüm denemesi: Testte `self` → `globalThis` geçici olarak tanımlandı (mevcut `FileReader` taklidi gibi); uygulama kodu değişmedi.
+- Doğrulama: 2 test geçti.

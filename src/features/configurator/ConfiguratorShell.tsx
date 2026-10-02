@@ -44,7 +44,6 @@ export type ConfiguratorShellProps = {
   onOpenDraft?: () => void;
   onSaveDraft?: () => void;
   onCreatePdf?: () => void;
-  onShowAr?: () => void;
   selectedPostId?: string | null;
   onSelectPost?: (postId: string | null) => void;
   /** Roof field selected in the model or in the Dach section (inside-left index). */
@@ -82,7 +81,7 @@ const viewLabels: Record<ViewPreset, string> = { '3d': '3D', front: 'Vorne', sid
 export function ConfiguratorShell({
   configuration, revision, quote, scene, sceneStatus = 'missing', renderProfile, profileStatus = 'missing',
   pdfStatus = 'unavailable', arStatus = 'unavailable', pdfFeedback = { state: 'idle' }, saveBusy = false, openBusy = false,
-  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, onShowAr, selectedPostId = null, onSelectPost,
+  onConfigurationChange, onOpenDraft, onSaveDraft, onCreatePdf, selectedPostId = null, onSelectPost,
   selectedRoofField = null, onSelectRoofField, selectedFieldId = null, fieldFocus = 0, onSelectField, onHighlightFields,
   onUndo, onRedo, view, onViewChange, onResetView, backdrop, onBackdropChange, showDimensions = false, onToggleDimensions,
 }: ConfiguratorShellProps) {
@@ -182,8 +181,8 @@ export function ConfiguratorShell({
             </div>
           </div>
         </div>
-        <ArMenu productId={configuration.productId} profileStatus={profileStatus} renderProfile={renderProfile}
-          arReady={arStatus === 'ready'} onShowAr={onShowAr} />
+        <ArMenu configuration={configuration} productId={configuration.productId} profileStatus={profileStatus} renderProfile={renderProfile}
+          arReady={arStatus === 'ready'} />
         <NoticeStack />
         <div className="v2-quote-slot">
           <QuoteSummary quote={quote} revision={revision} productName={productName} materialName={materialName}

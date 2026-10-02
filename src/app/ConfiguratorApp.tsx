@@ -155,7 +155,7 @@ export function ConfiguratorApp() {
     renderProfile={(productId) => <Suspense fallback={<p role="status">Profil wird geladen …</p>}>
       <ProfileViewer key={productId} productId={productId} frameColor={configuration.frameColor} onStatusChange={setProfileStatus} /></Suspense>}
     pdfStatus={!pdfPossible ? 'unavailable' : pdfStatus.state === 'pending' ? 'working' : 'ready'}
-    pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable"
+    pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus={pdfPossible ? 'ready' : 'unavailable'}
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}
     selectedPostId={selectedPostId} onSelectPost={setSelectedPostId} selectedRoofField={selectedRoofField} onSelectRoofField={setSelectedRoofField}
     selectedFieldId={selectedFieldId} fieldFocus={fieldFocus} onSelectField={selectField} onHighlightFields={setHighlightFieldIds}

@@ -7,7 +7,8 @@ import { validatePostCenters } from './geometry/posts';
  * Ausstattung per Feld (V2 design, user decisions 2 Oct 2026). A front field lies between two posts, a side
  * field at the left or right end (garden view). Each field takes up to two elements stacked on top of each
  * other; with two elements the lower part gets its own height. The Giebeldreieck fills the triangle above a
- * side field and does not count towards the two elements. No product limits, models or prices exist yet:
+ * side field and is not one of the two elements (confirmed by the owner 2 Oct 2026: Giebeldreieck + 2 more).
+ * No product limits, models or prices exist yet:
  * every rule here that is not in URUN_VE_OLCU_KURALLARI.md is marked provisional.
  */
 export const fieldElementTypes = ['glasschiebewand', 'aluminiumwand', 'seitenwand_licht', 'senkrechtmarkise'] as const;

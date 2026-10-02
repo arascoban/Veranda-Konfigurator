@@ -2,7 +2,7 @@
 
 Last updated: 2 October 2026. State at commit `6128ffb` on `main` (and on the work branch `claude/beautiful-gates-t1e5it`).
 
-**V2 redesign (2 Oct 2026):** branch `Veranda-KonfiguratorV2` holds the new layout (left glass column, viewer controls, Feld/Ausstattung with radial menu). See `claude_implementation.md` §14; not merged into `main` yet.
+**V2 redesign (2 Oct 2026):** branch `Veranda-KonfiguratorV2` holds the new layout (left glass column, viewer controls, Feld/Ausstattung with radial menu), `vercel.json` and AR from the real assembly (QR on desktop → AR page on the phone; iOS Quick Look, Android WebXR). See `claude_implementation.md` §14–§15; not merged into `main` yet. Real-device AR acceptance needs the HTTPS deployment.
 
 Read this file first, then `AGENTS.md`. Everything below is a summary; the detailed records live in the files listed under "Where to read more".
 
@@ -89,9 +89,7 @@ Waiting on the owner:
 
 Can be done without the owner:
 
-- Vercel preparation (`vercel.json`, SPA rewrite, `VITE_PDF_TEST_DOWNLOAD` setting).
-- AR from the real assembly (replace `src/features/ar/exportDemoGlb.ts`, which still exports the schematic) with an HTTPS entry page and QR (Schweng plan SW-07). Real phone test needs the deployment.
-- Opening data model for front/left/right fields with stable IDs (Schweng plan SW-01/02) as groundwork for Ausstattung.
+- ~~Vercel preparation~~, ~~AR from the real assembly + QR + entry page~~, ~~opening data model~~: done on `Veranda-KonfiguratorV2` (§14–§15). Left: connect the Vercel project/domain, then test AR on Android and iPhone.
 - Mobile/tablet layout and touch check (SW-10).
 
 Gaps compared with Schweng, from `schweng.md`: side openings and side posts, Freistehend, Unterzugträger, moving posts inwards up to 1 m (needs a support profile model), drain outlet direction/height, awning animation, save by e-mail and open by ID, live price and enquiry form, manual/dynamic quality mode.

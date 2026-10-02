@@ -1,27 +1,35 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { postSections, type ProductId } from '../../../catalog/catalog';
 import { de } from '../../../content/de';
+import type { ConfigurationV1 } from '../../../domain/configuration';
 import { Modal } from '../../../ui/Modal';
 import { StatusMessage } from '../../../ui/StatusMessage';
 
 export type ProfileModelStatus = 'loading' | 'ready' | 'missing' | 'error';
 
 const numberDe = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
+// AR code (exporters, QR) loads only when the AR dialog opens.
+const ArDialogContent = lazy(() => import('../../ar/ArExperience').then((module) => ({
+  default: ({ configuration }: { configuration: ConfigurationV1 }) => module.prefersDeviceAr()
+    ? <module.ArLaunchPanel configuration={configuration} /> : <module.ArQrPanel configuration={configuration} />,
+})));
 
 /**
  * "AR" over the bottom-left of the 3D view (V2, owner decision 2 Oct 2026): opens two choices — inspect and
- * compare the profiles, or see the configured terrace in AR. AR needs the HTTPS deployment (SOL-P08-002) and
- * stays disabled until then. Replaces the former "Profil im Detail ansehen" button in Konstruktion.
+ * compare the profiles, or see the configured terrace in AR (SW-07: real assembly; QR on the desktop, AR on
+ * phones). Replaces the former "Profil im Detail ansehen" button in Konstruktion.
  */
-export function ArMenu({ productId, profileStatus = 'missing', renderProfile, arReady = false, onShowAr }: {
+export function ArMenu({ configuration, productId, profileStatus = 'missing', renderProfile, arReady = false }: {
+  configuration: ConfigurationV1;
   productId: ProductId;
   profileStatus?: ProfileModelStatus;
   /** Isolated profile viewer of one product; mounted only while the dialog is open. */
   renderProfile: (productId: ProductId) => ReactNode;
+  /** The planning is complete and valid (same condition as the PDF). */
   arReady?: boolean;
-  onShowAr?: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [arOpen, setArOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -39,15 +47,19 @@ export function ArMenu({ productId, profileStatus = 'missing', renderProfile, ar
           <ProfileGlyph />
           <span className="v2-row-text"><strong>Profile im Detail ansehen</strong><small>Prime und Premium vergleichen</small></span>
         </button>
-        <button type="button" role="menuitem" className="v2-ar__option" disabled={!arReady || !onShowAr} onClick={() => { setMenuOpen(false); onShowAr?.(); }}>
+        <button type="button" role="menuitem" className="v2-ar__option" disabled={!arReady} onClick={() => { setMenuOpen(false); setArOpen(true); }}>
           <ArGlyph />
           <span className="v2-row-text"><strong>Ihre Terrasse in AR ansehen</strong>
-            <small>{arReady ? 'Mit dem Smartphone im Garten platzieren' : 'Noch nicht verfügbar'}</small></span>
+            <small>{arReady ? 'In Originalgröße im Garten platzieren' : 'Verfügbar, sobald alle Maße und Pfosten gültig sind'}</small></span>
         </button>
       </div>}
       <button type="button" className="v2-ar__button" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
         <ArGlyph />AR
       </button>
+      <Modal open={arOpen} title="Ihre Terrasse in AR" onClose={() => setArOpen(false)}
+        description="Planungsvorschau aus Ihren Bauteilen und Ihrer Ausstattung. Montagebezüge vorläufig, keine Fertigungsdarstellung.">
+        {arOpen && <Suspense fallback={<p role="status">AR wird geladen …</p>}><ArDialogContent configuration={configuration} /></Suspense>}
+      </Modal>
       <ProfileCompareDialog open={compareOpen} onClose={() => setCompareOpen(false)} initialProduct={productId}
         status={profileStatus} renderProfile={renderProfile} />
     </div>

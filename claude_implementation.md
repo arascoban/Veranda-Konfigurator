@@ -264,7 +264,7 @@ Dal: `Veranda-KonfiguratorV2` (kullanıcı kararı: main ile ileride birleştiri
 
 ### Yapılanlar
 
-- **Veri modeli** (`src/domain/fieldEquipment.ts`, 9 yeni test): şemaya `fieldEquipment` eklendi (eski kayıtlar `[]` ile açılır; `openingOptions` değişmedi). Kayıt: `fieldId` (`front:<solPostId>:<sağPostId>` iç sıra, `side:left|right` bahçeden), `elements` (alttan üste en fazla 2: Glasschiebewand, Aluminiumwand, Seitenwand lichtdurchlässig, Senkrechtmarkise), `lowerHeightMm` (iki elemanda alt parça), `gable` (Giebeldreieck; yalnız yanlar, 2 eleman sınırına sayılmaz — **varsayım**, onay bekliyor). Glasschiebewand seçenekleri: Glaston Klar/Getönt/Satiniert, Öffnungsrichtung Links/Rechts/Mittig (varsayılan Klar + Mittig), profil rengi çerçeveyi izler. Kurallar: aynı eleman bir Feld'de iki kez olmaz; Feld adları bahçeden ("Vorne · Feld 1" bahçe solu, "Seite links" iç x = W). `evaluateConfiguration` yeni `field_equipment_*` hata kodlarını verir.
+- **Veri modeli** (`src/domain/fieldEquipment.ts`, 9 yeni test): şemaya `fieldEquipment` eklendi (eski kayıtlar `[]` ile açılır; `openingOptions` değişmedi). Kayıt: `fieldId` (`front:<solPostId>:<sağPostId>` iç sıra, `side:left|right` bahçeden), `elements` (alttan üste en fazla 2: Glasschiebewand, Aluminiumwand, Seitenwand lichtdurchlässig, Senkrechtmarkise), `lowerHeightMm` (iki elemanda alt parça), `gable` (Giebeldreieck; yalnız yanlar, 2 eleman sınırına sayılmaz — 2 Ekim'de kullanıcı onayladı: yanlarda Giebeldreieck + 2 eleman). Glasschiebewand seçenekleri: Glaston Klar/Getönt/Satiniert, Öffnungsrichtung Links/Rechts/Mittig (varsayılan Klar + Mittig), profil rengi çerçeveyi izler. Kurallar: aynı eleman bir Feld'de iki kez olmaz; Feld adları bahçeden ("Vorne · Feld 1" bahçe solu, "Seite links" iç x = W). `evaluateConfiguration` yeni `field_equipment_*` hata kodlarını verir.
 - **Uyum**: Pfosten eklenip silinince kaybolan Feld'lerin ausstattung'u düşer, yükseklik değişince bölme sıkıştırılır; ikisi de bildirimle (`reconcileFieldEquipment`, `ConfiguratorApp.applyConfiguration`).
 - **Sol sütun** (`ConfiguratorShell.tsx`, `v2.css`): logo + Öffnen/Speichern; Konstruktion (4 model kartı, Prime-R Plus/Diamond Line "In Vorbereitung" pasif; Maße 2×2; Neigung ve Gesamthöhe salt okunur; Farbe der Profile; Pfosten), Dach (mevcut içerik), Ausstattung (5 eleman kartı → Felder kontrol listesi → "Auf n Felder anwenden", modelde mavi vurgu, sığmayan alan gerekçesiyle pasif), Feld (liste + ayrıntı: elemanlar, ikinci eleman, Giebeldreieck, Glasschiebewand ayarları, bölme çizimi sürükleme/klavye/sayı girişi, "Oben/Unten tauschen"). Tek bölüm açık, diğerleri özet satırı. Übersicht sol panelden çıktı, "Ihre Planung" kartında. Kaydet/aç/PDF sonuçları artık 3D üzerindeki bildirimlerde (sayfa kayması gözlemi kapandı).
 - **3D görünüm** (`PreviewViewer.tsx`): tuval tam ekran, sol sütunun altında; kamera `setViewOffset` ile modeli sütunun sağına ortalar (`--viewer-inset-left`). Sol üst geri al/yinele/sıfırla; ortada 3D/Vorne/Seite/Oben + Bemaßungen + Studio/Garten; sağ üst FPS + "Qualität: Auto/Niedrig/Mittel/Hoch"; alt orta zoom (−/%/+); sol alt AR; sağ alt Ihre Planung. Garten: gökyüzü gradyanı + çim rengi zemin (fotoğraf yok).
@@ -295,4 +295,31 @@ Doğrulama: `npm run check`, 116 test, `npm run build`; Playwright regresyonu (r
 
 ### Açık / sonraki
 
-- Kullanıcıdan: radyal menü ve kart ikonları, model kartı görselleri (Prime, Premium, Prime-R Plus, Diamond Line), Glasschiebewand ray/genişlik tablosu, bölme sınırları, Ausstattung elemanlarının ölçü/model/fiyatları, Giebeldreieck varsayımının onayı, Garten için gerçek bahçe fotoğrafı (isteğe bağlı).
+- Kullanıcıdan: radyal menü ve kart ikonları, model kartı görselleri (Prime, Premium, Prime-R Plus, Diamond Line), Glasschiebewand ray/genişlik tablosu, bölme sınırları, Ausstattung elemanlarının ölçü/model/fiyatları, Garten için gerçek bahçe fotoğrafı (isteğe bağlı).
+
+## 15. İş — Vercel hazırlığı ve gerçek montajdan AR (SW-07) (2 Ekim)
+
+Kullanıcı isteği: HANDOFF listesindeki işlerle devam. Dal: `Veranda-KonfiguratorV2`. Ayrıca kullanıcı onayı: yanlarda Giebeldreieck 2 eleman sınırına sayılmaz (Giebeldreieck + 2 eleman) — zaten böyle uygulanmıştı; kural `URUN_VE_OLCU_KURALLARI.md` §10'a yazıldı, test eklendi.
+
+### Vercel
+
+- `vercel.json`: Vite çerçevesi, kurulum `npx npm@11.12.1 ci` (CLAUDE-P07-001: npm 10 kilidi değiştiriyor), derleme `npm run build`, çıktı `dist`; tek sayfa için `index.html`'e yönlendirme (`assets/`, `models/`, `images/` hariç); `assets/` bir yıl immutable önbellek, `models/*.glb` doğru `Content-Type` + 1 gün önbellek; güvenlik başlıkları (`nosniff`, `Referrer-Policy`, `Permissions-Policy` kamerayı ve `xr-spatial-tracking`'i yalnız aynı kökene izin verir).
+- `.env.example`: `VITE_PDF_TEST_DOWNLOAD` belgelendi (müşteri sitesinde boş).
+- Hesap, alan adı ve proje bağlantısı kullanıcıda; dağıtım yapılmadı.
+
+### AR (SW-07)
+
+- **Model** (`src/features/ar/exportAssemblyModel.ts`): ekrandaki ve PDF'teki montaj oluşturucusuyla gerçek parçalar + şematik Ausstattung; zemin, seçim düzlemleri, halo/ok yok. Metre, Y yukarı, taban y = 0, ayak izi merkezde, bahçe yüzü izleyiciye dönük. GLB (Android) ve USDZ (iOS Quick Look, `quickLookCompatible`). Revizyon değişirse sonuç `stale`; geçersiz planlama `invalid_configuration`. Tarayıcıda varsayılan planlama: GLB 530 KB, USDZ 1,6 MB, < 100 ms (parçalar önbellekteyken).
+- **Sunucusuz QR bağlantısı** (`arLink.ts`): planlama JSON'u deflate-raw + base64url ile `?ar=1.<veri>` parametresine yazılır (varsayılan planlama ≈ 540 karakterlik adres). Telefon veriyi normal şemayla doğrular; boyut sınırları (6000 karakter / 64 KB) ve sürüm öneki var. Depo, veritabanı ve kişisel veri yok. Bağlantı bir anlık görüntüdür; masaüstünde değişiklik yeni QR üretir.
+- **Cihazda AR** (`arLaunch.ts`): iPhone/iPad → USDZ blob + `<a rel="ar">` (Quick Look); Android → WebXR `immersive-ar` + hit-test: mavi halka zemini gösterir, dokunma modeli bahçe yüzü kameraya dönük yerleştirir, yeniden dokunma taşır; DOM overlay'de ipucu ve "AR beenden". Desteklemeyen cihaz: açıklama + normal 3D görünüm. `@google/model-viewer` kullanılmadı: 4.3.1 sürümü three ^0.183 istiyor, proje 0.186 (CLAUDE-SW07-001).
+- **Arayüz:** "AR" menüsündeki "Ihre Terrasse in AR ansehen" planlama geçerliyse (PDF ile aynı koşul) etkin. Masaüstünde QR + "Link kopieren" (yerel adreste telefonun açamayacağı uyarısı); dokunmatik cihazda doğrudan "In AR ansehen". QR'den açılan sayfa (`ArEntryPage`): logo, salt bakış 3D (`PreviewViewer interactive={false}`), model/ölçü/dach/Ausstattung özeti, AR düğmesi, "Im Konfigurator öffnen" (planlamayı çalışma taslağı yapar, adresten `ar` parametresini siler).
+- Eski `exportDemoGlb` / `publishArAsset` sözleşmesi dokunulmadan kaldı (sunucu yayını gerekirse); müşteri akışı artık onları kullanmıyor.
+
+### Doğrulama
+
+`npm run check`, 122 test (yeni: `arLink.test.ts` gidiş-dönüş/uzunluk/bozuk-yabancı-büyük veri; `exportAssemblyModel.test.ts` gerçek GLB parçalarıyla taban/ölçek/merkez/yön, Ausstattung var, yardımcı nesne yok, GLB yeniden okunuyor, geçersiz/eski reddi; Giebeldreieck + 2 eleman), `npm run build`. Playwright: masaüstünde Feld 1'e Glasschiebewand → AR → QR; kopyalanan bağlantı telefon görünümünde AR sayfasını açtı (özet Ausstattung'u içeriyor; SwiftShader'da AR desteklenmiyor mesajı doğru); "Im Konfigurator öffnen" adresi temizledi ve planlamayı yükledi; tarayıcıda GLB/USDZ üretimi. Sayfa hatası yok.
+
+### Açık
+
+- **Gerçek cihaz kabulü (SW-07 kabul ölçütü):** HTTPS yayından sonra Android (Chrome/ARCore) ve iPhone'da yerleştirme, metre ölçeği, yön, cam görünümü ve ölçüler kontrol edilmeli. Bu ortamda AR cihazı yok.
+- Vercel hesabı/alan adı (kullanıcı). Montaj payları hâlâ vorläufig (SOL-K01-001).

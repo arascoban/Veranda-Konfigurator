@@ -110,3 +110,14 @@ describe('field equipment with an invalid post layout', () => {
     expect(evaluateConfiguration(result.configuration).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
   });
 });
+
+describe('Giebeldreieck rule (confirmed 2 Oct 2026)', () => {
+  it('lets a side field combine the Giebeldreieck with two further elements', () => {
+    let configuration = addToField(base(), 'side:left', 'giebeldreieck')!;
+    configuration = addToField(configuration, 'side:left', 'aluminiumwand')!;
+    configuration = addToField(configuration, 'side:left', 'seitenwand_licht')!;
+    expect(configuration.fieldEquipment[0]).toMatchObject({ gable: true, elements: [{ type: 'aluminiumwand' }, { type: 'seitenwand_licht' }] });
+    expect(addToField(configuration, 'side:left', 'senkrechtmarkise')).toBeNull();
+    expect(evaluateConfiguration(configuration).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
+  });
+});
