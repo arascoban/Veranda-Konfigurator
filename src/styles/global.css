@@ -9,9 +9,8 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--color-ink);
-  background:
-    radial-gradient(ellipse at 78% 14%, rgb(255 255 255 / 56%), transparent 36rem),
-    linear-gradient(145deg, #edf2f3, var(--color-page-deep));
+  /* Warm stone (V2). */
+  background: linear-gradient(170deg, var(--color-page) 0%, var(--color-page-deep) 100%);
   font-size: 16px;
   line-height: 1.5;
 }

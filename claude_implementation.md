@@ -278,8 +278,20 @@ Dal: `Veranda-KonfiguratorV2` (kullanıcı kararı: main ile ileride birleştiri
 
 `npm run check`, 115 test (23 dosya), `npm run build`. Playwright (Chromium/SwiftShader, `?d03loop=0`): 1440×900'de Konstruktion, Feld hover "+", radyal menü, Glasschiebewand Getönt, ikinci eleman + bölme, Ausstattung kontrol listesi (2 Feld vurgulu, dolu Feld pasif), Garten, Vorne/Seite/Oben, AR menüsü, Prime/Premium profil, Bemaßungen + Dach, Übersicht; 390×844 telefon alt sayfa + Feld ayrıntısı; geri al/yinele (Giebeldreieck); Test-PDF indirildi (4 sayfa, "Ausstattung (vorläufig) · Seite links: Aluminiumwand (ganze Höhe); Giebeldreieck"). Sayfa hatası yok. Kayıtlar: `CLAUDE-V2-001`, `CLAUDE-V2-002` (Çözüldü).
 
+### Kontrol turu (2 Ekim, ikinci tur)
+
+Kullanıcı isteğiyle değişikliklerin genel kontrolü; bulunan hatalar düzeltildi (`CLAUDE-V2-003`…`005`):
+- Ausstattung'da eleman değiştirilince işaretli Felder sıfırlanmıyordu (iki elemanın listesi aynıysa, ör. ikisi de boş).
+- Feld ayrıntısında başka bir Feld'e geçince "ikinci eleman" seçici ve açık ayar kutusu taşınıyordu (bileşen Feld kimliğiyle yeniden kuruluyor).
+- Geçersiz pfosten düzeninde (ör. özel pfostenlerden sonra genişlik küçültülünce) ön Feld'lerin ausstattung'u sessizce siliniyordu; artık pfostenler yeniden geçerli olana kadar korunuyor ve ayrıca hata sayılmıyor. Test eklendi (116 test).
+- Radyal menü açılınca ilk dilim odak yüzünden mavi görünüyordu (seçili gibi); mavi artık yalnız fare üstünde veya klavye odağında (`:focus-visible`).
+- Fare her hareket ettiğinde viewer yeniden çiziliyordu ("+" konumu her seferinde yeni nesne); konum değişmedikçe durum korunuyor.
+- `body` arka planı hâlâ eski soğuk griydi (telefonda ui.css de ezerdi); taş tonuna alındı.
+- Kullanılmayan eski stiller temizlendi (`ui.css` 381 → 247 satır, `styles.css` 41 → 12): eski başlık, bölüm kartları, sahne araç çubuğu, fiyat kartı, opak mod vb.
+
+Doğrulama: `npm run check`, 116 test, `npm run build`; Playwright regresyonu (radyal menü, Feld geçişi, Ausstattung sıfırlama, Dach + Bemaßungen, Übersicht, telefon) sayfa hatası olmadan.
+
 ### Açık / sonraki
 
 - Kullanıcıdan: radyal menü ve kart ikonları, model kartı görselleri (Prime, Premium, Prime-R Plus, Diamond Line), Glasschiebewand ray/genişlik tablosu, bölme sınırları, Ausstattung elemanlarının ölçü/model/fiyatları, Giebeldreieck varsayımının onayı, Garten için gerçek bahçe fotoğrafı (isteğe bağlı).
 - Gözlem: sol sütun tuvalin üzerinde olduğu için modelin solunda kalan Bemaßungen etiketleri (ör. "Gesamthöhe (C)") kısmen panelin altında kalabiliyor; yakınlaştırma/döndürmeyle görünür. Görsel kabulde değerlendirilecek.
-- `ui.css` içindeki eski başlık/bölüm kartı stilleri artık kullanılmıyor; main ile birleştirmeden önce temizlenebilir.

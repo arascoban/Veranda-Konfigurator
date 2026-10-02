@@ -23,7 +23,7 @@ export function FieldSettings({ configuration, onChange, selectedFieldId, onSele
 }) {
   const fields = listFields(configuration);
   const selected = fields.find((field) => field.id === selectedFieldId);
-  if (selected) return <FieldDetail configuration={configuration} field={selected} onChange={onChange} onBack={() => onSelectField(null)} />;
+  if (selected) return <FieldDetail key={selected.id} configuration={configuration} field={selected} onChange={onChange} onBack={() => onSelectField(null)} />;
   if (!fields.length) return <p className="v2-hint">Bitte zuerst gültige Maße festlegen.</p>;
   const groups = [
     { title: 'Vorne', rows: fields.filter((field) => field.kind === 'front') },

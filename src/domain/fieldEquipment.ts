@@ -219,13 +219,16 @@ export type FieldEquipmentIssue = 'field_equipment_unknown_field' | 'field_equip
 
 export function validateFieldEquipment(configuration: ConfigurationV1): FieldEquipmentIssue[] {
   const issues = new Set<FieldEquipmentIssue>();
-  const fields = new Map(listFields(configuration).map((field) => [field.id, field]));
+  const listed = listFields(configuration);
+  const fields = new Map(listed.map((field) => [field.id, field]));
+  // While the post layout is invalid no front field can be listed; the post issue is reported on its own.
+  const frontListable = listed.some((field) => field.kind === 'front');
   const seen = new Set<string>();
   for (const entry of configuration.fieldEquipment) {
     if (seen.has(entry.fieldId)) issues.add('field_equipment_duplicate');
     seen.add(entry.fieldId);
     const field = fields.get(entry.fieldId);
-    if (!field) { issues.add('field_equipment_unknown_field'); continue; }
+    if (!field) { if (frontListable || !entry.fieldId.startsWith('front:')) issues.add('field_equipment_unknown_field'); continue; }
     if (entry.gable && field.kind !== 'side') issues.add('field_equipment_gable_on_front');
     if (new Set(entry.elements.map((element) => element.type)).size !== entry.elements.length) issues.add('field_equipment_duplicate_element');
     if (entry.elements.length === 2) {
@@ -246,16 +249,24 @@ export function validateFieldEquipment(configuration: ConfigurationV1): FieldEqu
 export function reconcileFieldEquipment(previous: ConfigurationV1, candidate: ConfigurationV1):
   { configuration: ConfigurationV1; dropped: string[]; clamped: boolean } {
   if (!candidate.fieldEquipment.length) return { configuration: candidate, dropped: [], clamped: false };
-  const fields = new Map(listFields(candidate).map((field) => [field.id, field]));
+  const listed = listFields(candidate);
+  const fields = new Map(listed.map((field) => [field.id, field]));
   // With incomplete measurements nothing can be checked; keep the data until the draft is complete again.
   if (!fields.size) return { configuration: candidate, dropped: [], clamped: false };
+  // An invalid post layout (e.g. custom posts after a width change) lists no front fields: keep their
+  // equipment until the posts are valid again instead of dropping it.
+  const frontListable = listed.some((field) => field.kind === 'front');
   const oldLabels = new Map(listFields(previous).map((field) => [field.id, field.label]));
   const dropped: string[] = [];
   let clamped = false;
   const kept: FieldEquipment[] = [];
   for (const entry of candidate.fieldEquipment) {
     const field = fields.get(entry.fieldId);
-    if (!field) { dropped.push(oldLabels.get(entry.fieldId) ?? entry.fieldId); continue; }
+    if (!field) {
+      if (!frontListable && entry.fieldId.startsWith('front:')) { kept.push(entry); continue; }
+      dropped.push(oldLabels.get(entry.fieldId) ?? entry.fieldId);
+      continue;
+    }
     let next = entry;
     if (entry.elements.length === 2) {
       const range = splitRange(field);

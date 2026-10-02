@@ -57,7 +57,7 @@ type ViewerRuntime = {
 export type ViewPreset = '3d' | 'front' | 'side' | 'top';
 /** Studio: plain warm background; Garten: sky and lawn (no photo yet). */
 export type Backdrop = 'studio' | 'garden';
-/** Quality chosen in the menu; "auto" starts at medium where available and steps down below 60 fps. */
+/** Quality chosen in the menu; "auto" starts low, steps up while the frame rate holds and steps down (then stays) below 60 fps. */
 export type QualityMode = 'auto' | RenderQuality;
 
 /** low: plain; medium: ambient occlusion; high: ambient occlusion + shadows from the fixed sun. */
@@ -580,7 +580,10 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
         setHoveredRoofField(roofField);
         setHoveredField(fieldId);
         // "+" over the hovered field (black on white, field tinted blue); none while a mouse button is down.
-        setPlusAnchor(fieldId && nearest && event.buttons === 0 ? { fieldId, ...projectObjectCentre(nearest.object, runtime.camera, canvas) } : null);
+        const anchor = fieldId && nearest && event.buttons === 0 ? { fieldId, ...projectObjectCentre(nearest.object, runtime.camera, canvas) } : null;
+        // Same field at (almost) the same spot: keep the state object, so a mouse move does not re-render the viewer.
+        setPlusAnchor((previous) => previous && anchor && previous.fieldId === anchor.fieldId
+          && Math.abs(previous.x - anchor.x) < 1 && Math.abs(previous.y - anchor.y) < 1 ? previous : anchor);
         return;
       }
       if (event.pointerId !== drag.pointerId) return;

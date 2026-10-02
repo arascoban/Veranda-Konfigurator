@@ -79,7 +79,8 @@ describe('field equipment', () => {
     const fieldId = listFields(base())[0].id;
     const previous = addToField(base(), fieldId, 'aluminiumwand')!;
     const posts = previous.postCenters!;
-    const candidate = { ...previous, postCenters: [posts[0], posts[2]] };
+    // A new post between the garden-left pair splits that field into two new ones.
+    const candidate = { ...previous, postCenters: [posts[0], posts[1], { id: 'post-4', xMm: 3720 }, posts[2]] };
     const result = reconcileFieldEquipment(previous, candidate);
     expect(result.dropped).toEqual(['Vorne · Feld 1']);
     expect(result.configuration.fieldEquipment).toEqual([]);
@@ -94,5 +95,18 @@ describe('field equipment', () => {
     const { fieldEquipment: _, ...old } = base();
     const parsed = parseConfiguration(old);
     expect(parsed.ok && parsed.configuration.fieldEquipment).toEqual([]);
+  });
+});
+
+describe('field equipment with an invalid post layout', () => {
+  it('keeps front equipment while no front field can be listed', () => {
+    const fieldId = listFields(base())[0].id;
+    const previous = addToField(base(), fieldId, 'aluminiumwand')!;
+    // Custom posts that no longer fit after a width change: the layout is invalid, front fields cannot be listed.
+    const candidate = { ...previous, dimensionsMm: { ...previous.dimensionsMm, width: 4000 } };
+    const result = reconcileFieldEquipment(previous, candidate);
+    expect(result.dropped).toEqual([]);
+    expect(result.configuration.fieldEquipment).toHaveLength(1);
+    expect(evaluateConfiguration(result.configuration).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
   });
 });

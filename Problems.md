@@ -877,3 +877,32 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/configurator/v2.css`.
 - Tek çözüm denemesi: Logo kartında `backdrop-filter` kapatıldı, arka plan %96 opak taş rengi.
 - Doğrulama: Playwright ekran görüntüsünde beyaz kutu yok.
+
+## CLAUDE-V2-003 — Ausstattung kontrol listesi eleman değişince sıfırlanmıyordu
+
+- Durum: Çözüldü
+- Tarih: 2 Ekim 2026. Görev/model: V2 kontrol turu, Claude.
+- Beklenen: Başka bir eleman seçilince liste o elemanın mevcut Felder'ini gösterir.
+- Gerçek: Etki yalnız mevcut Feld listesinin metnine bağlıydı; iki elemanın listesi aynıysa (ör. ikisi de boş) önceki işaretler kalıyor ve yanlış elemana uygulanabiliyordu.
+- Etkilenen dosya: `src/features/configurator/components/EquipmentSettings.tsx`.
+- Tek çözüm denemesi: Sıfırlama etkisi eleman türüne de bağlandı.
+- Doğrulama: Playwright — Glasschiebewand ile "Seite links" işaretlenip Senkrechtmarkise seçilince işaretli satır sayısı 0.
+
+## CLAUDE-V2-004 — Feld ayrıntısında yerel durum başka Feld'e taşınıyordu
+
+- Durum: Çözüldü
+- Tarih: 2 Ekim 2026. Görev/model: V2 kontrol turu, Claude.
+- Gerçek: "Zweites Element hinzufügen" seçicisi ve açık ayar kutusu, Feld değiştirildiğinde yeni Feld'de açık kalıyordu (aynı bileşen örneği).
+- Etkilenen dosya: `src/features/configurator/components/FieldSettings.tsx`.
+- Tek çözüm denemesi: Ayrıntı bileşeni `key={Feld kimliği}` ile her Feld için yeniden kuruluyor.
+- Doğrulama: Playwright — Feld 1'de seçici açıkken Feld 2'ye geçişte yalnız boş Feld'in varsayılan seçicisi görünüyor; sayfa hatası yok.
+
+## CLAUDE-V2-005 — Geçersiz pfosten düzeninde ön Feld ausstattung'u siliniyordu
+
+- Durum: Çözüldü
+- Tarih: 2 Ekim 2026. Görev/model: V2 kontrol turu, Claude.
+- Beklenen: Pfostenler geçici olarak geçersizken (ör. özel pfostenlerden sonra genişlik küçültme) seçilen ausstattung kaybolmaz.
+- Gerçek: Geçersiz düzende ön Feld listelenemediği için `reconcileFieldEquipment` ön kayıtları "kaybolan Feld" sayıp siliyor, `validateFieldEquipment` de ek hata veriyordu.
+- Etkilenen dosyalar: `src/domain/fieldEquipment.ts`, `src/domain/fieldEquipment.test.ts`.
+- Tek çözüm denemesi: Ön Feld listelenemiyorsa ön kayıtlar korunuyor ve ayrıca hata sayılmıyor (pfosten hatası kendi kaydıyla görünür). Silme yalnız geçerli düzende kimliği kaybolan Feld'lerde.
+- Doğrulama: Yeni test (genişlik 400 cm → kayıt korunur, ek hata yok); mevcut "yeni pfosten Feld'i böler" testi geçerli bir düzenle güncellendi; 116 test.

@@ -62,7 +62,6 @@ export function RadialMenu({ title, options, x, y, scale = 1, onPick, onClose }:
               aria-disabled={option.state === 'disabled'} aria-label={`${option.label}${option.note ? ` (${option.note})` : ''}`}
               className={`radial-menu__slice radial-menu__slice--${option.state} ${active ? 'radial-menu__slice--active' : ''}`}
               onPointerEnter={() => setHovered(option.kind)} onPointerLeave={() => setHovered(null)}
-              onFocus={() => setHovered(option.kind)} onBlur={() => setHovered(null)}
               onClick={() => { if (option.state !== 'disabled') onPick(option.kind); }}
               onKeyDown={(event) => { if ((event.key === 'Enter' || event.key === ' ') && option.state !== 'disabled') { event.preventDefault(); onPick(option.kind); } }}>
               <path d={slicePath(start, start + step)} />

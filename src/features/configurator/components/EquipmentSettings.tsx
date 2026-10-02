@@ -27,7 +27,8 @@ export function EquipmentSettings({ configuration, onChange, onHighlightFields }
   const current = useMemo(() => kind ? fields.filter((field) => hasKind(configuration, field.id, kind)).map((field) => field.id) : [],
     [configuration, fields, kind]);
   const [checked, setChecked] = useState<string[]>([]);
-  useEffect(() => { setChecked(current); }, [current.join(',')]);
+  // Reset when the element changes too: two kinds with the same (e.g. empty) field list must not share ticks.
+  useEffect(() => { setChecked(current); }, [kind, current.join(',')]);
   useEffect(() => { onHighlightFields(kind ? checked : []); }, [kind, checked.join(',')]);
   useEffect(() => () => onHighlightFields([]), []);
   const pushNotice = useNoticeStore((state) => state.push);

@@ -222,6 +222,7 @@ body { background: linear-gradient(170deg, #eeeae4 0%, #ded7cc 100%); font-size:
 .radial-menu__slice--disabled path { fill: rgb(34 39 42 / 38%); cursor: not-allowed; }
 .radial-menu__slice--active path { fill: var(--color-field-blue); }
 .radial-menu__slice:focus { outline: none; }
+.radial-menu__slice:not(.radial-menu__slice--disabled):focus-visible path { fill: var(--color-field-blue); }
 .radial-menu__slice:focus-visible path { stroke: #fff; stroke-width: 2; }
 .radial-menu__close circle { fill: rgb(34 39 42 / 84%); cursor: pointer; }
 .radial-menu__close path { stroke: #fff; stroke-width: 3.2; stroke-linecap: round; pointer-events: none; }
