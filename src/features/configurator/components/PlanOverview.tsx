@@ -1,5 +1,6 @@
 import { roofMaterials } from '../../../catalog/catalog';
 import { roofSummaryDe } from '../../../domain/roofSummary';
+import { fieldEquipmentSummaryDe } from '../../../domain/fieldEquipment';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import type { QuoteState } from '../../../state/configuratorStore';
 import { de } from '../../../content/de';
@@ -14,6 +15,7 @@ export function PlanOverview({ open, onClose, configuration, quote, revision, on
   pdfFeedback?: { state: 'idle' | 'pending' | 'success' | 'error'; message?: string };
 }) {
   const roofSummary = roofSummaryDe(configuration);
+  const equipment = fieldEquipmentSummaryDe(configuration);
   const quoteCurrent = 'revision' in quote && quote.revision === revision;
   const ready = quoteCurrent && quote.status === 'ready';
   const priceStatus = !quoteCurrent || quote.status === 'missing_data'
@@ -51,6 +53,10 @@ export function PlanOverview({ open, onClose, configuration, quote, revision, on
             <SummaryRow label="Preiswährung" value={ready ? quote.currency : 'Noch nicht verfügbar'} />
           </dl>
         </section>
+        {equipment.length > 0 && <section className="overview-card overview-price" aria-labelledby="overview-equipment-heading">
+          <h3 id="overview-equipment-heading">Ausstattung (vorläufig, schematisch)</h3>
+          <dl className="overview-list">{equipment.map((row) => <SummaryRow key={row.label} label={row.label} value={row.value} />)}</dl>
+        </section>}
         <section className="overview-card overview-price" aria-label="Preisstatus">
           <StatusMessage tone={priceStatus.tone} title={priceStatus.title}>{priceStatus.message}</StatusMessage>
           <p className="overview-disclaimer">Diese Übersicht ist kein Angebot und keine Bestellbestätigung. Technische Freigabe kann erforderlich sein.</p>

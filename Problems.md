@@ -856,3 +856,24 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosyalar: `PreviewViewer.tsx`, `schematicGeometry.ts`, `annotations.ts`, `ProfileViewer.tsx` (yeni), `ProfileInspector.tsx`, `ConfiguratorShell.tsx`, `ConfiguratorApp.tsx`, `pdfTemplate.ts` (+test), `renderPdf.ts` (+test), `documentSnapshot.ts`, `pdfExport.ts`, `captureViews.ts` (yeni).
 - **GP-10/11 (e-posta ile PDF) Bilgi bekliyor:** e-posta sağlayıcısı ve gönderen adres/alan adı, kullanım koşulları metni ve sürümü, idempotency/hız sınırı için kalıcı depo (ör. Vercel KV) kullanıcı kararı. Sunucu anahtarı olmadan uçtan uca doğrulanamaz; form müşteriye "gönderildi" diyemeyeceği için şimdilik eklenmedi.
 
+
+## CLAUDE-V2-001 — "Qualität: Auto" orta kaliteden başlayınca yazılımsal GL'de FPS hiç ölçülemedi
+
+- Durum: Çözüldü
+- Tarih: 2 Ekim 2026. Görev/model: V2 viewer kontrolleri, Claude.
+- Ortam: three.js 0.186, Chromium/SwiftShader (Playwright), Vite 7 dev, sürekli render döngüsü.
+- Beklenen: Auto, cihazın kaldırabildiği kaliteye kendiliğinden gelir; FPS rozeti değer gösterir.
+- Gerçek: İlk sürüm Auto'yu GTAO'lu orta kaliteden başlatıyordu; 1440×900'de 9 s sonra rozet hâlâ "– FPS" (10 kare ölçülemedi), düşürme kuralı hiç devreye giremedi. GPU'suz cihazda açılış donmuş görünür.
+- Etkilenen dosya: `src/features/viewer/PreviewViewer.tsx`.
+- Tek çözüm denemesi: Auto düşük kaliteden başlar; 3 s kararlı ≥58 FPS'de bir kademe yükselir, altına düşünce bir kademe iner ve kilitlenir (salınım yok); Auto menüden yeniden seçilince kilit sıfırlanır. Elle seçim sabit.
+- Doğrulama: Aynı ortamda 12 s sonra rozet "4 FPS · Qualität: Auto", kalite düşük kaldı, sayfa hatası yok; `npm run check`, 115 test.
+
+## CLAUDE-V2-002 — Logo beyaz kutu içinde görünüyordu
+
+- Durum: Çözüldü
+- Tarih: 2 Ekim 2026. Görev/model: V2 sol sütun, Claude.
+- Beklenen: Tasarımdaki gibi logo `mix-blend-mode: multiply` ile kartın taş rengine karışır.
+- Gerçek: Logo (AVIF, saydamlık yok) kartta beyaz dikdörtgen olarak görünüyordu. Neden: kartın `backdrop-filter`'ı karıştırma grubunu yalıttığı için çarpma kart rengini görmüyordu.
+- Etkilenen dosya: `src/features/configurator/v2.css`.
+- Tek çözüm denemesi: Logo kartında `backdrop-filter` kapatıldı, arka plan %96 opak taş rengi.
+- Doğrulama: Playwright ekran görüntüsünde beyaz kutu yok.

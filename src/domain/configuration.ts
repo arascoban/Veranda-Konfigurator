@@ -4,6 +4,7 @@ import { CATALOG_VERSION, DEFAULT_SLOPE_DEGREES, products, roofFinishes, roofMat
 
 const roofFinishIds = Object.keys(roofFinishes) as [keyof typeof roofFinishes, ...(keyof typeof roofFinishes)[]];
 import { createMinimumPostLayout } from './geometry/posts';
+import { fieldEquipmentSchema } from './fieldEquipment';
 import { rearHeightForSlope } from './geometry/slope';
 
 const nullableMillimetres = z.number().int().safe().nullable();
@@ -52,6 +53,8 @@ export const configurationV1Schema = z.object({
   ledPerRafter: z.number().int().min(0).safe().default(0),
   /** Switchable or dimmable LED control (different prices). */
   ledControl: z.enum(['schaltbar', 'dimmbar']).default('schaltbar'),
+  /** Ausstattung per front/side field (V2, 2 Oct 2026); older drafts open without equipment. */
+  fieldEquipment: z.array(fieldEquipmentSchema).default([]),
 }).strict();
 
 export type ConfigurationV1 = z.infer<typeof configurationV1Schema>;
@@ -101,6 +104,7 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     awning: null,
     ledPerRafter: 0,
     ledControl: 'schaltbar',
+    fieldEquipment: [],
   };
 }
 

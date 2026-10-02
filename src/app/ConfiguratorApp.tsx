@@ -1,9 +1,11 @@
-import { lazy, Suspense, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { ConfigurationV1 } from '../domain/configuration';
 import { MAX_WIDTH_MM } from '../catalog/catalog';
 import { awningChangeNotice, reconcileAwning } from '../domain/awning';
 import { useNoticeStore } from '../state/noticeStore';
 import { evaluateConfiguration } from '../domain/evaluateConfiguration';
+import { addToField, hasKind, reconcileFieldEquipment, type EquipmentKind } from '../domain/fieldEquipment';
+import type { Backdrop, ViewPreset } from '../features/viewer/PreviewViewer';
 import { ConfiguratorShell, type ConfiguratorActionStatus } from '../features/configurator';
 import { createPdfDraft, downloadPdf } from '../features/pdf/service/pdfExport';
 import { createMinimumPostLayout } from '../features/viewer/postEditing';
@@ -23,14 +25,23 @@ export function ConfiguratorApp() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedRoofField, setSelectedRoofField] = useState<number | null>(null);
   const [showDimensions, setShowDimensions] = useState(false);
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [fieldFocus, setFieldFocus] = useState(0);
+  const [highlightFieldIds, setHighlightFieldIds] = useState<string[]>([]);
+  const [view, setView] = useState<{ preset: ViewPreset; token: number }>({ preset: '3d', token: 0 });
+  const [backdrop, setBackdrop] = useState<Backdrop>('studio');
   const [resetViewToken, setResetViewToken] = useState(0);
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
-  const [productModelStatus, setProductModelStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('missing');
   // The profile dialog has its own viewer and its own loading state (ASTRA-GP-03).
   const [profileStatus, setProfileStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('missing');
-  const [saveStatus, setSaveStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
-  const [openStatus, setOpenStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
+  // Save/open results appear as notices over the 3D view (V2), so the layout never shifts.
+  const report = (title: string, status: ConfiguratorActionStatus) => {
+    if (status.message) useNoticeStore.getState().push({ title, message: status.message });
+  };
+  const setSaveStatus = (status: ConfiguratorActionStatus) => report('Entwurf speichern', status);
+  const setOpenStatus = (status: ConfiguratorActionStatus) => report('Entwurf öffnen', status);
   const [pdfStatus, setPdfStatus] = useState<ConfiguratorActionStatus>({ state: 'idle' });
+  useEffect(() => { if (pdfStatus.state === 'success' || pdfStatus.state === 'error') report('PDF-Entwurf', pdfStatus); }, [pdfStatus]);
   const pdfPossible = useMemo(() => evaluateConfiguration(configuration).status === 'requires_engineering_review', [configuration]);
 
   const applyConfiguration = (candidate: ConfigurationV1, preserveAuto = true) => {
@@ -40,7 +51,15 @@ export function ConfiguratorApp() {
       const notice = awningChangeNotice(candidate.awning, reconciled.awning, reconciled);
       if (notice) useNoticeStore.getState().push(notice);
     }
-    const next = preserveAuto ? preserveAutomaticPostLayout(current, reconciled) : reconciled;
+    const laidOut = preserveAuto ? preserveAutomaticPostLayout(current, reconciled) : reconciled;
+    // Equipment on fields that vanished with a post change is dropped; the customer is told which fields.
+    const equipment = reconcileFieldEquipment(current, laidOut);
+    if (equipment.dropped.length) {
+      useNoticeStore.getState().push({ title: 'Ausstattung entfernt', message: `Die Felder haben sich geändert; die Ausstattung von ${equipment.dropped.join(', ')} wurde entfernt.` });
+    } else if (equipment.clamped) {
+      useNoticeStore.getState().push({ title: 'Aufteilung angepasst', message: 'Die Feldhöhe hat sich geändert; die Aufteilung der Elemente wurde angepasst.' });
+    }
+    const next = equipment.configuration;
     if (JSON.stringify(current) === JSON.stringify(next)) return;
     if (!useConfiguratorStore.getState().replaceConfiguration(next)) return;
     history.current.record(current);
@@ -108,22 +127,42 @@ export function ConfiguratorApp() {
     }
   };
 
+  const selectField = (fieldId: string | null) => {
+    setSelectedFieldId(fieldId);
+    setFieldFocus((value) => value + 1);
+    if (fieldId) { setSelectedPostId(null); setSelectedRoofField(null); }
+  };
+  // Radial menu: a new kind is added to the field; an existing one just opens the field in the Feld section.
+  const pickForField = (fieldId: string, kind: EquipmentKind) => {
+    const current = useConfiguratorStore.getState().configuration;
+    if (!hasKind(current, fieldId, kind)) {
+      const next = addToField(current, fieldId, kind);
+      if (next) applyConfiguration(next);
+    }
+    selectField(fieldId);
+  };
+
   return <ConfiguratorShell configuration={configuration} revision={revision} quote={quote}
     scene={<Suspense fallback={<p role="status">3D-Vorschau wird geladen …</p>}><PreviewViewer
-      configuration={configuration} resetViewToken={resetViewToken} showDimensions={showDimensions} selectedPostId={selectedPostId} onSelectPost={setSelectedPostId}
+      configuration={configuration} resetViewToken={resetViewToken} view={view} backdrop={backdrop} showDimensions={showDimensions}
+      selectedPostId={selectedPostId} onSelectPost={setSelectedPostId}
       selectedRoofField={selectedRoofField} onSelectRoofField={setSelectedRoofField}
-      onSceneStatusChange={setSceneStatus} onProductModelStatusChange={setProductModelStatus}
+      selectedFieldId={selectedFieldId} onSelectField={selectField} highlightFieldIds={highlightFieldIds} onFieldPick={pickForField}
+      onSceneStatusChange={setSceneStatus}
       onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
     </Suspense>}
-    sceneStatus={sceneStatus} productModelStatus={productModelStatus} profileStatus={profileStatus}
-    profileModel={<Suspense fallback={<p role="status">Profil wird geladen …</p>}><ProfileViewer productId={configuration.productId} frameColor={configuration.frameColor} onStatusChange={setProfileStatus} /></Suspense>}
+    sceneStatus={sceneStatus} profileStatus={profileStatus}
+    renderProfile={(productId) => <Suspense fallback={<p role="status">Profil wird geladen …</p>}>
+      <ProfileViewer key={productId} productId={productId} frameColor={configuration.frameColor} onStatusChange={setProfileStatus} /></Suspense>}
     pdfStatus={!pdfPossible ? 'unavailable' : pdfStatus.state === 'pending' ? 'working' : 'ready'}
-    pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable" profileArStatus="unavailable"
-    saveStatus={saveStatus} openStatus={openStatus}
+    pdfFeedback={pdfStatus} onCreatePdf={pdfPossible ? () => void createPdf() : undefined} arStatus="unavailable"
     onConfigurationChange={applyConfiguration} onOpenDraft={openDraft} onSaveDraft={saveDraft}
-    selectedPostId={selectedPostId} onSelectPost={setSelectedPostId} selectedRoofField={selectedRoofField} onSelectRoofField={setSelectedRoofField} onUndo={history.current.canUndo() ? undo : undefined}
-    onRedo={history.current.canRedo() ? redo : undefined}
-    onResetView={() => setResetViewToken((value) => value + 1)}
+    selectedPostId={selectedPostId} onSelectPost={setSelectedPostId} selectedRoofField={selectedRoofField} onSelectRoofField={setSelectedRoofField}
+    selectedFieldId={selectedFieldId} fieldFocus={fieldFocus} onSelectField={selectField} onHighlightFields={setHighlightFieldIds}
+    onUndo={history.current.canUndo() ? undo : undefined} onRedo={history.current.canRedo() ? redo : undefined}
+    view={view.preset} onViewChange={(preset) => setView((current) => ({ preset, token: current.token + 1 }))}
+    onResetView={() => { setView((current) => ({ preset: '3d', token: current.token + 1 })); setResetViewToken((value) => value + 1); }}
+    backdrop={backdrop} onBackdropChange={setBackdrop}
     showDimensions={showDimensions} onToggleDimensions={() => setShowDimensions((value) => !value)} />;
 }
 

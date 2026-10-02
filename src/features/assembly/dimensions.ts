@@ -20,9 +20,9 @@ export type DimensionLine = {
   labelOffsetMm?: Vec3;
 };
 
-/** Field (opening) names as the customer sees them from the garden: "Front 1" is the garden-left field. */
+/** Field (opening) names as the customer sees them from the garden: "Feld 1" is the garden-left field (same numbering as "Vorne · Feld 1" in the Feld section). */
 export function fieldName(index: number, fieldCount: number): string {
-  return `Front ${fieldCount - index}`;
+  return `Feld ${fieldCount - index}`;
 }
 
 const numberDe = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });

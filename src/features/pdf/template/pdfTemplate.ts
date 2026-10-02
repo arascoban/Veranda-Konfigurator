@@ -1,6 +1,7 @@
 import { de, issueTextDe } from '../../../content/de';
 import { evaluateConfiguration } from '../../../domain/evaluateConfiguration';
 import { roofSummaryDe } from '../../../domain/roofSummary';
+import { fieldEquipmentSummaryDe } from '../../../domain/fieldEquipment';
 import { ROOF_SUPPORT_WIDTH_MM, postSections, postWidthMm } from '../../../catalog/catalog';
 import { drainPostIndices } from '../../assembly/placements';
 import type { PdfDocumentSnapshot } from '../service/documentSnapshot';
@@ -75,6 +76,7 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
   const roof = evaluation.roof;
   if (!roof?.valid) throw new Error('PDF template requires a valid roof layout');
   const roofSummary = roofSummaryDe(configuration);
+  const equipmentRows = fieldEquipmentSummaryDe(configuration);
 
   const panelWidthMm = roof.finalPanelWidthMm.numerator / roof.finalPanelWidthMm.denominator;
   const posts = configuration.postCenters.map((post) => post.xMm);
@@ -150,6 +152,8 @@ export function buildPdfTemplate(snapshot: PdfDocumentSnapshot): PdfTemplate {
           ...(configuration.productId === 'prime' ? [{ label: 'Pfostendeckel', value: configuration.postCapStyle === 'halb' ? 'Halb' : 'Gerade' }] : []),
         ],
       },
+      // Ausstattung per field (V2); schematic only, no models or prices yet.
+      ...(equipmentRows.length ? [{ heading: 'Ausstattung (vorläufig)', rows: equipmentRows }] : []),
     ],
     plan: {
       widthMm: width,

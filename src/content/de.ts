@@ -50,4 +50,9 @@ export const issueTextDe: Record<string, string> = {
   awning_width_out_of_range: 'Jede Markise muss zwischen 100 cm und 600 cm breit sein; beide zusammen ergeben die Dachbreite.',
   awning_depth_out_of_range: 'Für eine Markise muss der Abstand von der Pfostenrückseite bis zur Wand mindestens 100 cm betragen.',
   led_per_rafter_above_limit: 'Je Träger ist höchstens eine LED je Meter Tiefe möglich.',
+  field_equipment_unknown_field: 'Eine Ausstattung gehört zu einem Feld, das es nicht mehr gibt.',
+  field_equipment_duplicate: 'Ein Feld ist doppelt mit Ausstattung belegt.',
+  field_equipment_gable_on_front: 'Ein Giebeldreieck ist nur an den Seiten möglich.',
+  field_equipment_split_out_of_range: 'Die Aufteilung eines Feldes liegt außerhalb der zulässigen Höhe.',
+  field_equipment_duplicate_element: 'Ein Element ist in einem Feld doppelt gewählt.',
 };

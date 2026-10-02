@@ -36,7 +36,7 @@ export function ProfileViewer({ productId, frameColor, onStatusChange }: {
     renderer.domElement.style.display = 'block';
     host.appendChild(renderer.domElement);
     const scene = new Scene();
-    scene.background = new Color(0xeef2f3);
+    scene.background = new Color(0xf2eee8);
     scene.add(new AmbientLight(0xffffff, 0.6));
     scene.add(new HemisphereLight(0xffffff, 0xb8c0c6, 0.8));
     const key = new DirectionalLight(0xffffff, 1.4); key.position.set(3, 5, 4); scene.add(key);

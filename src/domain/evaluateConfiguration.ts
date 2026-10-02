@@ -2,6 +2,7 @@ import { attachmentReferences } from '../catalog/attachmentReference';
 import { MAX_EXTRA_ROOF_BAYS, MAX_FRONT_HEIGHT_MM, MAX_WIDTH_MM, MIN_DEPTH_MM, MIN_FRONT_HEIGHT_MM, MIN_WIDTH_MM, roofFinishes, roofMaterials } from '../catalog/catalog';
 import { awningAvailability, validateAwning } from './awning';
 import { maxLedPerRafter } from './led';
+import { validateFieldEquipment } from './fieldEquipment';
 import type { ConfigurationV1 } from './configuration';
 import { calculateAwningSideFieldGeometry, calculateRoofBayGeometry, minimumRoofBayCount, type RoofBayGeometry } from './geometry/roof';
 import { validatePostCenters } from './geometry/posts';
@@ -56,6 +57,8 @@ export function evaluateConfiguration(
   if (configuration.ledPerRafter > maxLedPerRafter(depth)) {
     issues.push({ kind: 'invalid', field: 'ledPerRafter', code: 'led_per_rafter_above_limit' });
   }
+
+  for (const code of validateFieldEquipment(configuration)) issues.push({ kind: 'invalid', field: 'fieldEquipment', code });
 
   let roof: RoofBayGeometry | null = null;
   if (width !== null && Number.isSafeInteger(width) && width > 0 && width <= MAX_WIDTH_MM) {

@@ -1,4 +1,5 @@
-import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, type FrameColorId } from '../../../catalog/catalog';
+import { useState } from 'react';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, type FrameColorId, type ProductId } from '../../../catalog/catalog';
 import { assemblySpecs } from '../../../features/assembly/spec';
 import { dimensionRange, withDimension, type DimensionKey } from '../../../domain/adjustDimensions';
 import type { ConfigurationV1 } from '../../../domain/configuration';
@@ -12,10 +13,19 @@ import { SectionHead } from '../../../ui/SectionHead';
 import { DimensionField } from './DimensionField';
 
 
-export function ConstructionSettings({ configuration, evaluation, onChange, selectedPostId = null, onSelectPost }: {
+/** Four product lines (V2); only Prime and Premium exist in the catalogue so far. */
+const models = [
+  { id: 'prime', name: 'Prime', note: 'Pfosten 11 cm' },
+  { id: 'premium', name: 'Premium', note: 'Pfosten 13 cm' },
+  { id: 'prime-r-plus', name: 'Prime-R Plus', note: 'In Vorbereitung' },
+  { id: 'diamond-line', name: 'Diamond Line', note: 'In Vorbereitung' },
+] as const;
+
+export function ConstructionSettings({ configuration, evaluation, onChange, onProductChange, selectedPostId = null, onSelectPost }: {
   configuration: ConfigurationV1;
   evaluation: ConfigurationEvaluation;
   onChange: (next: ConfigurationV1) => void;
+  onProductChange: (productId: ProductId) => void;
   selectedPostId?: string | null;
   onSelectPost?: (postId: string | null) => void;
 }) {
@@ -37,50 +47,63 @@ export function ConstructionSettings({ configuration, evaluation, onChange, sele
   const commitPosts = (next: ConfigurationV1['postCenters']) => { if (next) onChange({ ...configuration, postCenters: next }); };
   const selectedIndex = posts.findIndex((post) => post.id === selectedPostId);
   const drainBoth = widthMm !== null && widthMm > DRAIN_BOTH_SIDES_ABOVE_MM;
+  const [showFigure, setShowFigure] = useState(false);
 
   return (
-    <section aria-labelledby="construction-heading">
-      <h3 id="construction-heading" className="section-heading">Maße der Überdachung</h3>
-      <div className="form-grid">
-        {(['width', 'depth'] as DimensionKey[]).map((field) => {
+    <section className="v2-construction" aria-label="Konstruktion">
+      <div className="v2-subhead"><h3>Modell</h3><span>4 Modelle</span></div>
+      <div className="v2-model-row" role="radiogroup" aria-label="Modell wählen">
+        {models.map((model) => {
+          const available = model.id === 'prime' || model.id === 'premium';
+          return (
+            <button key={model.id} type="button" role="radio" className="v2-model-card" aria-checked={configuration.productId === model.id}
+              disabled={!available} onClick={() => { if (model.id === 'prime' || model.id === 'premium') onProductChange(model.id); }}>
+              <span className="v2-model-card__picture" aria-hidden="true">{model.name}</span>
+              <span className="v2-row-text"><strong>{model.name}</strong><small>{model.note}</small></span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="v2-subhead"><h3>Maße</h3>
+        <button type="button" className="v2-link-button" aria-expanded={showFigure} onClick={() => setShowFigure((value) => !value)}>
+          {showFigure ? 'Maßskizze ausblenden' : 'Maßskizze zeigen'}</button></div>
+      {showFigure && <figure className="measure-figure">
+        <img src={`${import.meta.env.BASE_URL}images/masse-abcde.jpg`} alt="Maßskizze: A Tiefe, B Breite, C Gesamthöhe, D Höhe hinten, E Höhe vorne" />
+      </figure>}
+      <div className="form-grid form-grid--pairs">
+        {(['width', 'depth', 'frontHeight', 'rearHeight'] as DimensionKey[]).map((field) => {
           const range = dimensionRange(configuration, field);
           return <DimensionField key={field} label={de.dimensions[field].label} valueMm={configuration.dimensionsMm[field]}
-            error={fieldError(field)} minimumMm={range?.minMm} maximumMm={range?.maxMm} wide
+            error={fieldError(field)} minimumMm={range?.minMm} maximumMm={range?.maxMm}
             onValueChange={(value) => setDimension(field, value)} />;
         })}
       </div>
-      <figure className="measure-figure">
-        <img src={`${import.meta.env.BASE_URL}images/masse-abcde.jpg`} alt="Maßskizze: A Tiefe, B Breite, C Gesamthöhe, D Höhe hinten, E Höhe vorne" />
-      </figure>
-      <div className="form-grid form-grid--pairs">
-        <DimensionField label={de.dimensions.frontHeight.label} valueMm={configuration.dimensionsMm.frontHeight}
-          error={fieldError('frontHeight')} minimumMm={dimensionRange(configuration, 'frontHeight')?.minMm}
-          maximumMm={dimensionRange(configuration, 'frontHeight')?.maxMm} onValueChange={(value) => setDimension('frontHeight', value)} />
-        <ReadOnlyValue label="Neigung" limit="5–12°"
-          value={evaluation.slope?.status === 'calculated' ? `${formatNumber(evaluation.slope.degrees)}°` : '–'}
-          tone={evaluation.slope?.status === 'calculated' && !evaluation.slope.withinLimit ? 'error' : undefined}
-          info={'Die Neigung bleibt erhalten, wenn Sie Tiefe oder Höhe vorne ändern. Über die Höhe hinten ändern Sie die Neigung; zulässig sind 5° bis 12°.'
-            + (evaluation.issues.some((issue) => issue.code === 'roof_attachment_offsets_provisional') ? ' Die Montagebezüge sind vorläufig.' : '')} />
-        <DimensionField label={de.dimensions.rearHeight.label} valueMm={configuration.dimensionsMm.rearHeight}
-          error={fieldError('rearHeight')} minimumMm={dimensionRange(configuration, 'rearHeight')?.minMm}
-          maximumMm={dimensionRange(configuration, 'rearHeight')?.maxMm} onValueChange={(value) => setDimension('rearHeight', value)} />
-        <ReadOnlyValue label="Gesamthöhe (C)"
-          value={configuration.dimensionsMm.rearHeight === null ? '–'
-            : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`} />
+      <div className="v2-readonly-row">
+        <span className="v2-row-text"><strong>Neigung<InfoTip text={'Die Neigung bleibt erhalten, wenn Sie Tiefe oder Höhe vorne ändern. Über die Höhe hinten ändern Sie die Neigung; zulässig sind 5° bis 12°.'
+          + (evaluation.issues.some((issue) => issue.code === 'roof_attachment_offsets_provisional') ? ' Die Montagebezüge sind vorläufig.' : '')} /></strong>
+          <small>berechnet, zulässig 5–12°</small></span>
+        <strong className={`v2-readonly-row__value ${evaluation.slope?.status === 'calculated' && !evaluation.slope.withinLimit ? 'v2-error-text' : ''}`}>
+          {evaluation.slope?.status === 'calculated' ? `${formatNumber(evaluation.slope.degrees)}°` : '–'}</strong>
+      </div>
+      <div className="v2-readonly-row">
+        <span className="v2-row-text"><strong>Gesamthöhe (C)</strong><small>bis Oberkante Wandprofil</small></span>
+        <strong className="v2-readonly-row__value">{configuration.dimensionsMm.rearHeight === null ? '–'
+          : `${formatNumber((configuration.dimensionsMm.rearHeight + assemblySpecs[configuration.productId].wallProfileHeightMm) / 10)} cm`}</strong>
       </div>
 
-      <SectionHead title="Farbe" info="Farbe aller Aluminiumprofile. Dichtungen, Glas und Ablaufrohr bleiben unverändert." />
-      <div className="color-swatches" role="radiogroup" aria-label="Farbe der Aluminiumprofile">
+      <div className="v2-subhead"><h3>Farbe der Profile<InfoTip text="Farbe aller Aluminiumprofile. Dichtungen, Glas und Ablaufrohr bleiben unverändert." /></h3></div>
+      <div className="v2-color-grid" role="radiogroup" aria-label="Farbe der Aluminiumprofile">
         {(Object.keys(frameColors) as FrameColorId[]).map((id) => (
-          <button key={id} type="button" role="radio" className="color-swatch" aria-checked={configuration.frameColor === id}
+          <button key={id} type="button" role="radio" className="v2-color-card" aria-checked={configuration.frameColor === id}
             onClick={() => onChange({ ...configuration, frameColor: id })}>
-            <span className="color-swatch__disc" style={{ '--swatch': frameColors[id].hex } as React.CSSProperties} aria-hidden="true" />
-            <span className="color-swatch__name">{frameColors[id].ral}<br />{frameColors[id].nameDe}</span>
+            <span className="v2-swatch-dot v2-swatch-dot--large" style={{ background: frameColors[id].hex }} aria-hidden="true" />
+            <span className="v2-row-text"><strong>{frameColors[id].ral}</strong><small>{frameColors[id].nameDe}</small></span>
           </button>
         ))}
       </div>
 
-      <SectionHead title="Pfosten" info="Pfosten im Modell antippen und entlang der Rinne ziehen oder hier die Position eingeben (Achsmaß ab dem linken Rinnenende, vom Garten aus gesehen). Pfosten 1 steht vom Garten aus links." />
+      <SectionHead title="Pfosten" chip="ab linkem Rinnenende, vom Garten" info="Pfosten im Modell antippen und entlang der Rinne ziehen oder hier die Position eingeben (Achsmaß ab dem linken Rinnenende, vom Garten aus gesehen). Pfosten 1 steht vom Garten aus links." />
       {posts.length ? (
         <div className="post-list">
           {gardenOrder.map(({ post, index }, number) => (

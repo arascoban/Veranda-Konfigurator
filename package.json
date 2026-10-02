@@ -12,6 +12,7 @@
     "models:drawings": "python3 tools/draw_attachment_reference.py"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "5.3.0",
     "pdf-lib": "1.17.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",

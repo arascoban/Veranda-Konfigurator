@@ -2,6 +2,8 @@
 
 Last updated: 2 October 2026. State at commit `6128ffb` on `main` (and on the work branch `claude/beautiful-gates-t1e5it`).
 
+**V2 redesign (2 Oct 2026):** branch `Veranda-KonfiguratorV2` holds the new layout (left glass column, viewer controls, Feld/Ausstattung with radial menu). See `claude_implementation.md` §14; not merged into `main` yet.
+
 Read this file first, then `AGENTS.md`. Everything below is a summary; the detailed records live in the files listed under "Where to read more".
 
 ## 1. What this project is

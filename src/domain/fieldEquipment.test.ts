@@ -1,0 +1,98 @@
+import { describe, expect, it } from 'vitest';
+import { createDefaultConfiguration, parseConfiguration } from './configuration';
+import { evaluateConfiguration } from './evaluateConfiguration';
+import {
+  addToField, applyKindToFields, canPlace, fieldEquipmentSummaryDe, findField, listFields, reconcileFieldEquipment,
+  removeFromField, setLowerHeight, swapElements, updateElement,
+} from './fieldEquipment';
+
+const base = () => createDefaultConfiguration();
+
+describe('field equipment', () => {
+  it('lists front fields garden-left first, then both sides', () => {
+    const configuration = base();
+    const fields = listFields(configuration);
+    // 500 cm Prime: three posts → two front fields.
+    expect(fields.map((field) => field.label)).toEqual(['Vorne · Feld 1', 'Vorne · Feld 2', 'Seite links', 'Seite rechts']);
+    const posts = configuration.postCenters!;
+    // Garden field 1 lies at the garden-left end, i.e. between the last two posts of the inside order.
+    expect(fields[0].id).toBe(`front:${posts[1].id}:${posts[2].id}`);
+    expect(fields[0].insideIndex).toBe(1);
+    expect(fields[0].heightMm).toBe(2300);
+    expect(fields[2].widthMm).toBe(3000);
+  });
+
+  it('adds up to two different elements and splits the field with a default lower height', () => {
+    const fieldId = listFields(base())[0].id;
+    let configuration = addToField(base(), fieldId, 'aluminiumwand')!;
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBeNull();
+    configuration = addToField(configuration, fieldId, 'seitenwand_licht')!;
+    expect(configuration.fieldEquipment[0].elements.map((element) => element.type)).toEqual(['aluminiumwand', 'seitenwand_licht']);
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1000);
+    expect(addToField(configuration, fieldId, 'glasschiebewand')).toBeNull();
+    expect(canPlace(configuration, findField(configuration, fieldId)!, 'aluminiumwand')).toEqual({ ok: false, reason: 'already_present' });
+    expect(evaluateConfiguration(configuration).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
+    expect(parseConfiguration(configuration).ok).toBe(true);
+  });
+
+  it('keeps the Giebeldreieck to the sides', () => {
+    const fields = listFields(base());
+    expect(addToField(base(), fields[0].id, 'giebeldreieck')).toBeNull();
+    const configuration = addToField(base(), 'side:left', 'giebeldreieck')!;
+    expect(configuration.fieldEquipment).toEqual([{ fieldId: 'side:left', elements: [], lowerHeightMm: null, gable: true }]);
+    expect(removeFromField(configuration, 'side:left', 'giebeldreieck').fieldEquipment).toEqual([]);
+  });
+
+  it('clamps the split height to the provisional 10 cm parts', () => {
+    const fieldId = 'side:right';
+    let configuration = addToField(addToField(base(), fieldId, 'aluminiumwand')!, fieldId, 'glasschiebewand')!;
+    configuration = setLowerHeight(configuration, fieldId, 50)!;
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(100);
+    configuration = setLowerHeight(configuration, fieldId, 9999)!;
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(2200);
+    configuration = swapElements(configuration, fieldId);
+    expect(configuration.fieldEquipment[0].elements[0].type).toBe('glasschiebewand');
+  });
+
+  it('stores Glasschiebewand options and lists them in the summary', () => {
+    const fieldId = listFields(base())[0].id;
+    let configuration = addToField(base(), fieldId, 'glasschiebewand')!;
+    configuration = updateElement(configuration, fieldId, 'glasschiebewand', { glassTone: 'satiniert', openingDirection: 'links' });
+    expect(fieldEquipmentSummaryDe(configuration)).toEqual([
+      { label: 'Vorne · Feld 1', value: 'Glasschiebewand (ganze Höhe, Glas Satiniert, Öffnung links)' },
+    ]);
+  });
+
+  it('applies an element from the Ausstattung section to the checked fields only', () => {
+    const fields = listFields(base());
+    const first = applyKindToFields(base(), 'glasschiebewand', [fields[0].id, fields[1].id, 'side:right']);
+    expect(first.rejected).toEqual([]);
+    expect(first.configuration.fieldEquipment.map((entry) => entry.fieldId).sort()).toEqual([fields[0].id, fields[1].id, 'side:right'].sort());
+    const second = applyKindToFields(first.configuration, 'glasschiebewand', [fields[1].id]);
+    expect(second.configuration.fieldEquipment.map((entry) => entry.fieldId)).toEqual([fields[1].id]);
+    // Giebeldreieck on a front field is rejected, the side takes it.
+    const gable = applyKindToFields(base(), 'giebeldreieck', [fields[0].id, 'side:left']);
+    expect(gable.rejected).toEqual([fields[0].id]);
+  });
+
+  it('drops equipment of fields that disappear after a post change and reports them', () => {
+    const fieldId = listFields(base())[0].id;
+    const previous = addToField(base(), fieldId, 'aluminiumwand')!;
+    const posts = previous.postCenters!;
+    const candidate = { ...previous, postCenters: [posts[0], posts[2]] };
+    const result = reconcileFieldEquipment(previous, candidate);
+    expect(result.dropped).toEqual(['Vorne · Feld 1']);
+    expect(result.configuration.fieldEquipment).toEqual([]);
+  });
+
+  it('flags equipment on unknown fields as invalid', () => {
+    const configuration = { ...base(), fieldEquipment: [{ fieldId: 'front:x:y', elements: [{ type: 'aluminiumwand' as const }], lowerHeightMm: null, gable: false }] };
+    expect(evaluateConfiguration(configuration).issues).toContainEqual({ kind: 'invalid', field: 'fieldEquipment', code: 'field_equipment_unknown_field' });
+  });
+
+  it('opens drafts saved before V2 without equipment', () => {
+    const { fieldEquipment: _, ...old } = base();
+    const parsed = parseConfiguration(old);
+    expect(parsed.ok && parsed.configuration.fieldEquipment).toEqual([]);
+  });
+});

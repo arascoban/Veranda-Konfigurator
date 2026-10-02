@@ -7,6 +7,7 @@ import { millimetresToMetres } from '../../domain/units';
 import { basisDeterminant, type AssemblyLayout, type AwningSlab, type PartPlacement } from './placements';
 import { assemblySpecs, type PartRole } from './spec';
 import { createSelectionMarker } from './annotations';
+import { createFieldPickPlanes } from './fieldPlanes';
 
 /** Selection colour of a post in the model (edge outline + tint). */
 export const SELECTION_BLUE = 0x2f9dff;
@@ -244,18 +245,7 @@ export function createAssemblyGroup(
     }
   }
 
-  if (options.includePostControls) {
-    const sorted = [...postCentersM].sort((a, b) => a - b);
-    for (let index = 0; index < sorted.length - 1; index += 1) {
-      const left = sorted[index];
-      const right = sorted[index + 1];
-      const field = new Mesh(new PlaneGeometry(right - left, frontHeightM),
-        new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0, depthWrite: false, side: DoubleSide }));
-      field.position.set((left + right) / 2, frontHeightM / 2, -depthM + 0.003);
-      field.userData.openingIndex = index;
-      group.add(field);
-    }
-  }
+  if (options.includePostControls) group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM));
   for (const slab of layout.awnings) group.add(createAwningPlaceholder(layout, slab, finishes));
   if (options.includeGroundGuide) {
     group.add(createGround(widthM, depthM));

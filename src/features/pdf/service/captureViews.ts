@@ -3,6 +3,7 @@ import {
   type Camera,
 } from 'three';
 import type { ConfigurationV1 } from '../../../domain/configuration';
+import { createEquipmentGroup } from '../../assembly/equipmentScene';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary } from '../../assembly/assemblyScene';
 import { assemblyLayoutFromConfiguration } from '../../assembly/placements';
 import { disposeSchematicGroup } from '../../viewer/schematicGeometry';
@@ -60,6 +61,8 @@ export async function captureConfigurationViews(
   const group = createAssemblyGroup(layout, parts, { includeGroundGuide: true, includePostControls: false });
   // Editing aids never reach the PDF: outlines are hidden, field planes are invisible by default.
   group.traverse((object) => { if (object.userData.selectionHalo || object.userData.roofFieldHalo) object.visible = false; });
+  // Schematic Ausstattung of the same revision (V2); disposed with the group.
+  group.add(createEquipmentGroup(configuration));
   scene.add(group);
   const bounds = productBounds(group);
 

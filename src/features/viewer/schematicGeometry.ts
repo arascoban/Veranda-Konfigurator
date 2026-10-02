@@ -3,6 +3,7 @@ import {
 } from 'three';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { createGround, createPostControls } from '../assembly/assemblyScene';
+import { createFieldPickPlanes } from '../assembly/fieldPlanes';
 import type { PreviewDimensions } from './previewGeometry';
 
 /** Disposes helper geometry; meshes cloned from the shared part library keep their geometry. */
@@ -75,17 +76,7 @@ export function createSchematicGroup(
     if (options.includePostControls) holder.add(...createPostControls(index, frontHeightM, depthM, postSectionM.towardsGardenM));
     group.add(holder);
   });
-  if (options.includePostControls) {
-    for (let index = 0; index < postCentersM.length - 1; index += 1) {
-      const left = postCentersM[index];
-      const right = postCentersM[index + 1];
-      const field = new Mesh(new PlaneGeometry(right - left, frontHeightM),
-        new MeshBasicMaterial({ color: 0x34424a, transparent: true, opacity: 0, depthWrite: false, side: DoubleSide }));
-      field.position.set((left + right) / 2, frontHeightM / 2, -depthM + 0.003);
-      field.userData.openingIndex = index;
-      group.add(field);
-    }
-  }
+  if (options.includePostControls) group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM));
   guideMaterial.dispose();
 
   if (options.includeGroundGuide) {
