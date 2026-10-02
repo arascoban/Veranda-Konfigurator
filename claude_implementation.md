@@ -250,3 +250,28 @@ Doğrulama: `npm run check`, 106 test (yeni: PDF bahçe sırası, iki uç tahliy
 ## Açık kayıtlar (değişmedi)
 
 `SOL-K01-001` (montaj referansları, fiziksel minimumlar), `SOL-P05-001` (gerçek fiyatlar), `SOL-P08-002` (HTTPS yayın/telefon AR) — **Bilgi bekliyor**.
+
+## 14. İş — V2 yeniden tasarım (Claude Design "Veranda Konfigurator Redesign v2") — DEVAM EDİYOR (2 Ekim)
+
+Durum: Planlama tamamlandı, kod değişikliği henüz yapılmadı. Çalışma dalı: `Veranda-KonfiguratorV2` (kullanıcı kararı: main ile ileride birleştirilecek). Oturum limiti nedeniyle kullanıcının isteğiyle burada durduruldu.
+
+Kaynak: Claude Design paketi (`Veranda Konfigurator v2.dc.html`, `Veranda Konfigurator Redesign v2.dc.html`, sohbet kaydı). Paket repoda değil; yeni oturumda tekrar eklenmesi gerekir (logo dosyası `assets/eg-veranda-logo.avif` dahil).
+
+### Kullanıcı kararları (2 Ekim 2026)
+
+- Kapsam: tam arayüz + Feld veri modeli. Ausstattung seçimleri konfigürasyonda saklanır; 3D'de yalnız şematik yarı saydam paneller; fiyat yok.
+- Glasflügel sayısı: tablo (3/4/5/6 ray) gelene kadar "Tabelle folgt" yer tutucusu. İki elemanlı bölmede geçici sınır: her parça en az 10 cm (vorläufig, belgelenecek).
+- AR: sol alttaki "AR" butonu iki seçenekli menü açar: (1) Profile im Detail ansehen und vergleichen (ProfileViewer, Prime/Premium karşılaştırma), (2) Ihre Terrasse in AR ansehen (yayın ortamı yok → pasif). Konstruktion'daki "Profil im Detail ansehen" butonu kaldırılır.
+- Font: Figtree (tasarımda seçildi), yerel paketle (`@fontsource-variable/figtree`), harici indirme yok.
+- Palet: antrasit + warm stone (tasarımdaki hex değerleri: #EEEAE4/#DED7CC arka plan, #FBF9F6 cam kart, #DDD6CB çizgi, #B3ACA1 kontrol kenarı, #62655F soluk metin, #383E42 vurgu, #2f9dff Feld mavisi).
+
+### Uygulama planı
+
+1. **Veri modeli** (`domain/configuration.ts`, yeni `domain/fieldEquipment.ts` + test): `openingOptions` korunur; yeni `fieldEquipment` (varsayılan `[]`): `{ fieldId: 'front:<solPostId>:<sağPostId>' | 'side:left' | 'side:right', elements: 1–2 × { type: glasschiebewand|aluminiumwand|seitenwand_licht|senkrechtmarkise, glassTone?, openingDirection? }, lowerHeightMm: number|null, gable: boolean }`. Giebeldreieck yalnız yan alanlarda bayrak (2 eleman sınırına sayılmaz — varsayım). Ayak silinince/eklenince geçersiz fieldId kayıtları bildirimle düşer. Adlar bahçeden: "Vorne · Feld n", "Seite links/rechts" (bahçe solu = iç x = W).
+2. **Shell** (`ConfiguratorShell.tsx`, yeni CSS): üst başlık kalkar; solda 348 px yüzen sütun: logo + Öffnen/Speichern, akordeon kartlar Konstruktion (4 model kartı: Prime, Premium, Prime-R Plus/Diamond Line "In Vorbereitung" pasif), Dach (mevcut RoofSettings), Ausstattung (5 eleman kartı → Felder kontrol listesi → "Auf n Felder anwenden", modelde vurgu), Feld (liste + ayrıntı: elemanlar, GSW Glaston/Öffnungsrichtung/Profilfarbe, bölme çubuğu + stepper). Übersicht sol panelden çıkar, "Ihre Planung" kartında kalır. Mobil: alt sayfa + bölüm çipleri.
+3. **Viewer** (`PreviewViewer.tsx`): sahne sütunu sol panelin sağında, saydam canvas; sol üst geri al/yinele/sıfırla; ortada 3D/Vorne/Seite/Oben + Bemaßungen + Studio/Garten; sağ üst FPS + Qualität (Niedrig/Mittel/Hoch/Auto; Auto uyarlanır, elle seçim sabit); alt orta zoom (−/%/+); sol alt AR; sağ alt Ihre Planung; bildirimler AR'ın üstüne.
+4. **Feld etkileşimi**: yan alan düzlemleri (`assemblyScene.ts`, `schematicGeometry.ts`); hover'da mavi saydam + HTML "+" ve etiket; tıklayınca radyal menü (5 dilim, ortada ✕, Giebeldreieck önde pasif "nur seitlich"); ikonlar kullanıcıdan gelecek, şimdilik basit SVG. Mevcut "Front n" sprite'ları HTML katmanına taşınır.
+5. **Özet/PDF**: PlanOverview ve PDF'e Ausstattung satırları.
+6. Doğrulama: `npm run check`, `npm test`, `npm run build`, Playwright ekran görüntüleri; `Problems.md`'ye hatalar `CLAUDE-V2-` önekiyle.
+
+Ortam notu: bu oturumda `npx npm@11.12.1 ci` ve 106 test başarılı (Node 22.22.0).
