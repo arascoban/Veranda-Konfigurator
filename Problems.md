@@ -906,3 +906,13 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosyalar: `src/domain/fieldEquipment.ts`, `src/domain/fieldEquipment.test.ts`.
 - Tek çözüm denemesi: Ön Feld listelenemiyorsa ön kayıtlar korunuyor ve ayrıca hata sayılmıyor (pfosten hatası kendi kaydıyla görünür). Silme yalnız geçerli düzende kimliği kaybolan Feld'lerde.
 - Doğrulama: Yeni test (genişlik 400 cm → kayıt korunur, ek hata yok); mevcut "yeni pfosten Feld'i böler" testi geçerli bir düzenle güncellendi; 116 test.
+
+## CLAUDE-V2-006 — Bemaßungen etiketleri sol panelin altında kalıyordu
+
+- Durum: Çözüldü
+- Tarih: 2 Ekim 2026. Görev/model: V2 kontrol turu, Claude.
+- Beklenen: Bemaßungen açıkken bütün ölçü etiketleri görünür.
+- Gerçek: Görünüm yalnız modele göre oturuyordu; bahçe solundaki yükseklik etiketleri (ör. "Gesamthöhe (C)") V2'de tuvalin üstündeki sol panelin altında kalıyordu.
+- Etkilenen dosya: `src/features/viewer/PreviewViewer.tsx`.
+- Tek çözüm denemesi: Bemaßungen açıkken görünüm, ölçü çizgilerinin uzandığı alan kadar (genişlik +1,8 m, derinlik +0,8 m, hedef bahçe soluna 0,7 m) büyütülmüş kutuya oturuyor. Açma/kapama yalnız kamera elle değiştirilmemişse yeniden oturtur.
+- Doğrulama: Playwright — 1440×900'de tüm etiketler panelin sağında; açma/kapamada zoom %100, elle %125 yapıldıktan sonra açınca %125 korunuyor; sayfa hatası yok.

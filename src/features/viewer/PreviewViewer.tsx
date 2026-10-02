@@ -51,6 +51,8 @@ type ViewerRuntime = {
   fitAspect: number;
   /** Width (CSS px) covered by the left column; the projection is shifted so the model centres right of it. */
   insetLeft: number;
+  /** Bemaßungen shown: the fitted view also makes room for the dimension lines around the model. */
+  fitWithDimensions: boolean;
 };
 
 /** Camera presets of the V2 view bar; "front" and "side" are seen from the garden (side = garden-left end). */
@@ -217,7 +219,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     }
     const runtime: ViewerRuntime = {
       scene, camera, renderer, controls, render, group: null, library: new PartLibrary(import.meta.env.BASE_URL),
-      quality: 'low', composer: null, gtao: null, sun: light, studio, aoBox: null, view: '3d', fitDistance: 1, backdrop: backdropRef.current, fitAspect: 1, insetLeft: 0,
+      quality: 'low', composer: null, gtao: null, sun: light, studio, aoBox: null, view: '3d', fitDistance: 1, backdrop: backdropRef.current, fitAspect: 1, insetLeft: 0, fitWithDimensions: false,
       setQuality: (next) => {
         if (runtime.quality === next) return;
         runtime.quality = next;
@@ -471,6 +473,19 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     applyDimensionLayer(runtime, showDimensions && dimensions ? configuration : null);
     runtime.render();
   }, [showDimensions, configuration, dimensions]);
+
+  // Switching Bemaßungen refits the view so the outer labels (heights on the garden-left side) are not cut off
+  // or hidden under the left column — but only while the customer has not zoomed or moved the camera.
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+    if (!runtime || runtime.fitWithDimensions === showDimensions) return;
+    const untouched = runtime.group && Math.abs(runtime.camera.position.distanceTo(runtime.controls.target) - runtime.fitDistance) < runtime.fitDistance * 0.01;
+    runtime.fitWithDimensions = showDimensions;
+    if (untouched && runtime.group) {
+      fitCamera(runtime, dimensionsFromGroup(runtime.group), runtime.fitAspect, runtime.view);
+      runtime.render();
+    }
+  }, [showDimensions]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -908,7 +923,11 @@ const viewDirections: Record<ViewPreset, Vector3> = {
 function fitCamera(runtime: ViewerRuntime, dimensions: PreviewDimensions, aspect: number, view: ViewPreset = '3d'): void {
   const { widthM, depthM, rearHeightM, frontHeightM } = dimensions;
   const target = new Vector3(widthM / 2, Math.max(rearHeightM, frontHeightM) / 2, -depthM / 2);
-  const distance = cameraDistanceForPreview(dimensions, runtime.camera.fov, aspect);
+  // Dimension lines reach about 2.3 m past the garden-left end (heights), 0.9 m past the other end and
+  // 0.8 m in front of the posts (see buildDimensionLines); the fitted box grows enough to keep them in view.
+  const fitted = runtime.fitWithDimensions ? { ...dimensions, widthM: widthM + 1.8, depthM: depthM + 0.8 } : dimensions;
+  if (runtime.fitWithDimensions) target.add(new Vector3(0.7, 0, -0.3));
+  const distance = cameraDistanceForPreview(fitted, runtime.camera.fov, aspect);
   runtime.camera.position.copy(target).add(viewDirections[view].clone().normalize().multiplyScalar(distance));
   runtime.camera.far = Math.max(100, distance * 4);
   runtime.camera.updateProjectionMatrix();

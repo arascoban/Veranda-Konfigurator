@@ -289,9 +289,10 @@ Kullanıcı isteğiyle değişikliklerin genel kontrolü; bulunan hatalar düzel
 - `body` arka planı hâlâ eski soğuk griydi (telefonda ui.css de ezerdi); taş tonuna alındı.
 - Kullanılmayan eski stiller temizlendi (`ui.css` 381 → 247 satır, `styles.css` 41 → 12): eski başlık, bölüm kartları, sahne araç çubuğu, fiyat kartı, opak mod vb.
 
+- Bemaßungen açılınca (kamera kullanıcı tarafından yakınlaştırılmamış/döndürülmemişse) görünüm ölçü çizgilerine yer açacak şekilde yeniden oturuyor; "Gesamthöhe (C)" gibi dış etiketler artık sol panelin altında kalmıyor. Elle zoom yapılmışsa kamera değişmez (`CLAUDE-V2-006`).
+
 Doğrulama: `npm run check`, 116 test, `npm run build`; Playwright regresyonu (radyal menü, Feld geçişi, Ausstattung sıfırlama, Dach + Bemaßungen, Übersicht, telefon) sayfa hatası olmadan.
 
 ### Açık / sonraki
 
 - Kullanıcıdan: radyal menü ve kart ikonları, model kartı görselleri (Prime, Premium, Prime-R Plus, Diamond Line), Glasschiebewand ray/genişlik tablosu, bölme sınırları, Ausstattung elemanlarının ölçü/model/fiyatları, Giebeldreieck varsayımının onayı, Garten için gerçek bahçe fotoğrafı (isteğe bağlı).
-- Gözlem: sol sütun tuvalin üzerinde olduğu için modelin solunda kalan Bemaßungen etiketleri (ör. "Gesamthöhe (C)") kısmen panelin altında kalabiliyor; yakınlaştırma/döndürmeyle görünür. Görsel kabulde değerlendirilecek.
