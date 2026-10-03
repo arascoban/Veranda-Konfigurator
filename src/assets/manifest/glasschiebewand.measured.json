@@ -1,0 +1,419 @@
+{
+  "product": "glasschiebewand",
+  "unit": "cm",
+  "upAxis": "Y",
+  "converter": "fbx2gltf 0.9.7-p1",
+  "parts": {
+    "rail3Top": {
+      "source": "Models/Glasschiebewand/3/ObereSchiene.fbx",
+      "sourceSha256": "c1b52af14d6c1dd1ce7711f4d35fefd7a2b3a096b456712b43a12f59fb1f9341",
+      "glb": "models/glasschiebewand/rail3Top.glb",
+      "glbBytes": 5092,
+      "glbSha256": "49705497b97c6e116a13a10662d75f02c30a348f854575cdf150e2db42a4ec1e",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        286.25,
+        10.0,
+        6.7
+      ],
+      "sizeCm": [
+        286.25,
+        10.0,
+        6.7
+      ],
+      "triangles": 160,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "rail3Bottom": {
+      "source": "Models/Glasschiebewand/3/UnterSchiene.fbx",
+      "sourceSha256": "417a84e9e33069c227b6034d8b0f2056ab85530dd30d9396dc8f96387bf35cbd",
+      "glb": "models/glasschiebewand/rail3Bottom.glb",
+      "glbBytes": 12324,
+      "glbSha256": "033f99c8f786c187d13bf53ac9bf24477aeda72dbb086a1c3adb1b15c7a3f3ca",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        286.0,
+        2.5,
+        6.703
+      ],
+      "sizeCm": [
+        286.0,
+        2.5,
+        6.703
+      ],
+      "triangles": 325,
+      "meshes": 4,
+      "materials": [
+        "M04_Stone_Frost"
+      ]
+    },
+    "rail3Side": {
+      "source": "Models/Glasschiebewand/3/U_Profil.fbx",
+      "sourceSha256": "82574a67e1afe393a12059a887e506bd09e4777f4eb9542c1b9af9c10dc269ac",
+      "glb": "models/glasschiebewand/rail3Side.glb",
+      "glbBytes": 1920,
+      "glbSha256": "234dcada812d7f5db202e2b30771c57fa0b1d3c725336f904c9bdfc155c7c6df",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium1_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        2.0,
+        199.5,
+        6.9
+      ],
+      "sizeCm": [
+        2.0,
+        199.5,
+        6.9
+      ],
+      "triangles": 36,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "rail4Top": {
+      "source": "Models/Glasschiebewand/4/ObereSchiene.fbx",
+      "sourceSha256": "7fe3971cc08882074a28761504df38783b67a630bdc1acec66c514dfb7ae4574",
+      "glb": "models/glasschiebewand/rail4Top.glb",
+      "glbBytes": 5808,
+      "glbSha256": "0a76048cf974066c0ff885ff6c98332edcf4b90ac8bedbe9ae3ca5719c8edeea",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        380.68,
+        10.0,
+        8.7
+      ],
+      "sizeCm": [
+        380.68,
+        10.0,
+        8.7
+      ],
+      "triangles": 182,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "rail4Bottom": {
+      "source": "Models/Glasschiebewand/4/UnterSchine.fbx",
+      "sourceSha256": "71efa4c3ba7949c9640f7577f488d7edb63e6f02a3ca5143ad752ae3d2a67818",
+      "glb": "models/glasschiebewand/rail4Bottom.glb",
+      "glbBytes": 15880,
+      "glbSha256": "585a22fdd5518f0c6fe13f42286c93bc4e75c452ddce2c345145997ed93b0e06",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Silver_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        380.38,
+        2.5,
+        8.89
+      ],
+      "sizeCm": [
+        380.38,
+        2.5,
+        8.89
+      ],
+      "triangles": 401,
+      "meshes": 6,
+      "materials": [
+        "M04_Stone_Frost",
+        "Silver"
+      ]
+    },
+    "rail4Side": {
+      "source": "Models/Glasschiebewand/4/U_Profil.fbx",
+      "sourceSha256": "5e2d724d7761cbdb3b682213c61029749f1412f241502a6ea8b8249db434b0b9",
+      "glb": "models/glasschiebewand/rail4Side.glb",
+      "glbBytes": 1920,
+      "glbSha256": "101db40ab1538275914f093db69e0831d5595a394cd6e6970aa90a3217db5dd2",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium1_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        2.0,
+        220.0,
+        9.135
+      ],
+      "sizeCm": [
+        2.0,
+        220.0,
+        9.135
+      ],
+      "triangles": 36,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "rail5Top": {
+      "source": "Models/Glasschiebewand/5/ObereSchiene.fbx",
+      "sourceSha256": "cb538f0afa1f4d63f037670c8290fc05a98a9d867c7d5d06f591a97a7bcee2d9",
+      "glb": "models/glasschiebewand/rail5Top.glb",
+      "glbBytes": 6332,
+      "glbSha256": "600c7cb5be59f60f8261c605bb94b823ecfa64c9d06809f551e3e8e81d40b5ec",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        408.164,
+        10.0,
+        11.035
+      ],
+      "sizeCm": [
+        408.164,
+        10.0,
+        11.035
+      ],
+      "triangles": 198,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "rail5Bottom": {
+      "source": "Models/Glasschiebewand/5/UnterSchiene.fbx",
+      "sourceSha256": "9c18e8602b3fc8b3ef7b375a694b4d0ae102f9a138a9d948f890b8b8222622ed",
+      "glb": "models/glasschiebewand/rail5Bottom.glb",
+      "glbBytes": 18792,
+      "glbSha256": "c2b48e6d901bb42d967404830dd887de30329c8cde0f65f949a001842ad2ad1a",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Silver_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        407.842,
+        2.5,
+        11.09
+      ],
+      "sizeCm": [
+        407.842,
+        2.5,
+        11.09
+      ],
+      "triangles": 477,
+      "meshes": 7,
+      "materials": [
+        "M04_Stone_Frost",
+        "Silver"
+      ]
+    },
+    "rail5Side": {
+      "source": "Models/Glasschiebewand/5/U_Profil.fbx",
+      "sourceSha256": "779286f00df9d3d32505b41b23a30409ae1b722febbfbf60ff1766a6c8f92a6b",
+      "glb": "models/glasschiebewand/rail5Side.glb",
+      "glbBytes": 1920,
+      "glbSha256": "a81d1d111d60e959c159c8c9ff6806ad937c641fdf8fef8c180c9b27341b3641",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium1_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        2.144,
+        220.0,
+        11.357
+      ],
+      "sizeCm": [
+        2.144,
+        220.0,
+        11.357
+      ],
+      "triangles": 36,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "rail6Top": {
+      "source": "Models/Glasschiebewand/6/ObereSchiene.fbx",
+      "sourceSha256": "7c866c770de50be6ec7fcac7305426d9f7c04717fcd297a823d7b8f6f75b9b87",
+      "glb": "models/glasschiebewand/rail6Top.glb",
+      "glbBytes": 6816,
+      "glbSha256": "207aa913de61a52936116c278f7091852c26a9a167cd3a169acdf8b6f9ca7c34",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        408.164,
+        10.0,
+        13.225
+      ],
+      "sizeCm": [
+        408.164,
+        10.0,
+        13.225
+      ],
+      "triangles": 214,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "rail6Bottom": {
+      "source": "Models/Glasschiebewand/6/UnterSchiene.fbx",
+      "sourceSha256": "c2a6d6dcd673ecb04a48d18589bd2c678b625921255b62ee4ffc3c7da87f44fc",
+      "glb": "models/glasschiebewand/rail6Bottom.glb",
+      "glbBytes": 21724,
+      "glbSha256": "e0e98950bd0febd96983f6c16fa24926fa6e5229c99f10c6a5b8666def9d2c6d",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: Silver_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        408.138,
+        2.5,
+        13.29
+      ],
+      "sizeCm": [
+        408.138,
+        2.5,
+        13.29
+      ],
+      "triangles": 553,
+      "meshes": 8,
+      "materials": [
+        "M04_Stone_Frost",
+        "Silver"
+      ]
+    },
+    "rail6Side": {
+      "source": "Models/Glasschiebewand/6/U_Profil.fbx",
+      "sourceSha256": "ef2601ea003c9267d2d339409b1a47822790805403bea3bd23f6de15b660023b",
+      "glb": "models/glasschiebewand/rail6Side.glb",
+      "glbBytes": 1920,
+      "glbSha256": "e0d192afbc3e18bb52d053169e821facacd5014f08dd26bbdbf180b4c88b5e07",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium1_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        2.144,
+        220.0,
+        13.579
+      ],
+      "sizeCm": [
+        2.144,
+        220.0,
+        13.579
+      ],
+      "triangles": 36,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium1"
+      ]
+    },
+    "glassLeaf": {
+      "source": "Models/Glasschiebewand/Glas90cm.fbx",
+      "sourceSha256": "6fc0adcc3dcad1f84e4068b2027a8b1216276ea84dbf9744d6545fc0c8d89d71",
+      "glb": "models/glasschiebewand/glassLeaf.glb",
+      "glbBytes": 36360,
+      "glbSha256": "a81d2647cc87a61ab9c5e018b27844ed672b6eaa430d553662f20a351cb831dc",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium1_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        1.8,
+        0.0
+      ],
+      "boundsMaxCm": [
+        91.3,
+        197.3,
+        1.501
+      ],
+      "sizeCm": [
+        91.3,
+        195.5,
+        1.501
+      ],
+      "triangles": 1106,
+      "meshes": 5,
+      "materials": [
+        "Glass_Basic_01",
+        "M_1k_Aluminium1",
+        "Silver"
+      ]
+    }
+  }
+}

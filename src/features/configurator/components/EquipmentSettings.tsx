@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import {
-  applyKindToFields, canPlace, elementNameDe, equipmentKinds, hasKind, listFields, type EquipmentKind,
+  applyKindToFields, canPlace, elementNameDe, equipmentKinds, hasKind, listFields, placeRefusalDe, type EquipmentKind,
 } from '../../../domain/fieldEquipment';
 import { useNoticeStore } from '../../../state/noticeStore';
 import { EquipmentIcon } from '../../../ui/EquipmentIcon';
@@ -65,7 +65,7 @@ export function EquipmentSettings({ configuration, onChange, onHighlightFields }
             const isChecked = checked.includes(field.id);
             const check = canPlace(configuration, field, kind);
             const blocked = !isChecked && !check.ok && check.reason !== 'already_present';
-            const reason = blocked ? check.ok ? '' : check.reason === 'field_full' ? 'Feld voll (2 Elemente)' : check.reason === 'side_only' ? 'Nur seitlich' : 'Feld zu niedrig' : '';
+            const reason = blocked && !check.ok ? placeRefusalDe[check.reason] : '';
             return (
               <label key={field.id} className={`v2-check-row ${isChecked ? 'v2-check-row--on' : ''} ${blocked ? 'v2-check-row--blocked' : ''}`}>
                 <input type="checkbox" checked={isChecked} disabled={blocked}

@@ -3,7 +3,7 @@ import { frameColors } from '../../../catalog/catalog';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import {
   addToField, canPlace, elementNameDe, equipmentFor, fieldElementTypes, glassToneDe, glassTones, listFields, MIN_SPLIT_PART_MM,
-  openingDirectionDe, openingDirections, removeFromField, setLowerHeight, splitRange, swapElements, updateElement,
+  elementHeightsMm, gswCheck, openingDirectionDe, openingDirections, placeRefusalDe, removeFromField, setLowerHeight, splitRange, swapElements, updateElement,
   type EquipmentKind, type FieldDescriptor, type FieldElement,
 } from '../../../domain/fieldEquipment';
 import { EquipmentIcon } from '../../../ui/EquipmentIcon';
@@ -139,13 +139,17 @@ function GlassSlidingSettings({ configuration, field, element, onChange }: {
   configuration: ConfigurationV1; field: FieldDescriptor; element: FieldElement; onChange: (next: ConfigurationV1) => void;
 }) {
   const frame = frameColors[configuration.frameColor];
+  const entry = equipmentFor(configuration, field.id);
+  const height = elementHeightsMm(field, entry)[entry.elements.findIndex((item) => item.type === 'glasschiebewand')] ?? field.heightMm;
+  const check = gswCheck(field, height);
   return (
     <div className="v2-stack">
       <div className="v2-readonly-row">
-        <span className="v2-row-text"><strong>Glasflügel<InfoTip text="Die Anzahl der Glasflügel wird automatisch aus der Feldbreite berechnet. Die Tabelle der Schienen (3, 4, 5 oder 6) wird noch ergänzt." /></strong>
-          <small>Automatisch aus der Feldbreite berechnet</small></span>
-        <strong className="v2-readonly-row__value">Tabelle folgt</strong>
+        <span className="v2-row-text"><strong>Glasflügel<InfoTip text="Anzahl der Flügel, Schienen und Glasbreite (90, 98 oder 103 cm) ergeben sich automatisch aus der lichten Weite des Feldes. Die Flügel überlappen mindestens 4 cm." /></strong>
+          <small>{check.ok ? `${check.layout.railProfile} Schienen · Glas ${cm(check.layout.glassWidthMm)} cm · Überlappung ${cm(check.layout.overlapMm)} cm` : 'Automatisch aus der lichten Weite'}</small></span>
+        <strong className="v2-readonly-row__value">{check.ok ? check.layout.leaves : '–'}</strong>
       </div>
+      {!check.ok && <p className="v2-hint v2-error-text">Glasschiebewand passt hier nicht: {placeRefusalDe[check.reason]}.</p>}
       <div className="v2-stack v2-stack--tight">
         <h3 className="v2-label">Glaston</h3>
         <div className="v2-tone-grid" role="radiogroup" aria-label="Glaston">
@@ -184,7 +188,7 @@ function SplitEditor({ configuration, field, elements, lowerMm: savedLowerMm, on
   const sketchRef = useRef<HTMLDivElement>(null);
   // While dragging only the sketch follows; one revision is recorded when the pointer is released.
   const [draftMm, setDraftMm] = useState<number | null>(null);
-  const range = splitRange(field);
+  const range = splitRange(field, elements);
   const lowerMm = draftMm ?? savedLowerMm;
   const lowerShare = Math.max(0, Math.min(1, lowerMm / field.heightMm));
   const setFromPointer = (clientY: number) => {
@@ -230,7 +234,7 @@ function SplitEditor({ configuration, field, elements, lowerMm: savedLowerMm, on
           </div>
           <DimensionField label={`Unten · ${shortName(elements[0].type)}`} valueMm={lowerMm} minimumMm={range?.minMm} maximumMm={range?.maxMm}
             onValueChange={(value) => { if (value !== null) { const next = setLowerHeight(configuration, field.id, value); if (next) onChange(next); } }} />
-          <p className="v2-hint">Linie ziehen oder Höhe eingeben. Gesamthöhe am Feld {cm(field.heightMm)} cm. Mindestens {cm(MIN_SPLIT_PART_MM)} cm je Teil (vorläufig).</p>
+          <p className="v2-hint">Linie ziehen oder Höhe eingeben. Gesamthöhe am Feld {cm(field.heightMm)} cm. {elements.some((element) => element.type === 'glasschiebewand') ? 'Glasschiebewand mindestens 100 cm, anderer Teil mindestens ' : 'Mindestens '}{cm(MIN_SPLIT_PART_MM)} cm (vorläufig).</p>
         </div>
       </div>
     </div>

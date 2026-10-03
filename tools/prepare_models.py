@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert the SketchUp FBX part sources into web GLB assets and measure them.
 
-Usage:  python3 tools/prepare_models.py [prime|premium|all]
+Usage:  python3 tools/prepare_models.py [prime|premium|glasschiebewand|all]
 
 - Sources under `Models/` (and the repaired caps under `PreparedModels/`) are never modified.
 - Output: `public/models/<product>/<part>.glb` plus `src/assets/manifest/<product>.measured.json`
@@ -59,6 +59,44 @@ PARTS: dict[str, dict[str, str]] = {
         'panel': 'Models/Terrassenüberdachungen/Premium/DachElement/DachElementGlasUndPolycarbonat.fbx',
     },
 }
+
+# Glasschiebewand (2 Oct 2026, docs/Masse.md): single profiles per rail count (the full "N Schienen" models have
+# other sizes; the owner named the single profiles authoritative) and one 90 cm glass leaf that the viewer scales.
+# Every part is moved so its bounds start at the origin: X = length, Y = up, Z = depth (0 = garden side).
+# The glass leaf keeps its height position (bottom profile 1.8 cm above the floor, glass from 7.8 cm).
+for _rails in (3, 4, 5, 6):
+    _folder = f'Models/Glasschiebewand/{_rails}'
+    PARTS.setdefault('glasschiebewand', {}).update({
+        f'rail{_rails}Top': f'{_folder}/ObereSchiene.fbx',
+        f'rail{_rails}Bottom': f'{_folder}/{"UnterSchine" if _rails == 4 else "UnterSchiene"}.fbx',
+        f'rail{_rails}Side': f'{_folder}/U_Profil.fbx',
+    })
+PARTS['glasschiebewand']['glassLeaf'] = 'Models/Glasschiebewand/Glas90cm.fbx'
+NORMALISE = {'glasschiebewand': {'keepY': ['glassLeaf']}}
+
+
+def normalise_part(product: str, part_id: str, path: Path) -> None:
+    """Moves the part to the origin (see NORMALISE); the source FBX positions are arbitrary."""
+    import numpy as np
+    import trimesh
+
+    scene = trimesh.load(str(path), force='scene')
+    lo, _ = scene.bounds
+    shift = -np.asarray(lo, dtype=float)
+    if part_id in NORMALISE[product].get('keepY', []):
+        shift[1] = 0.0
+    out = trimesh.Scene()
+    for index, node in enumerate(scene.graph.nodes_geometry):
+        transform, geometry_name = scene.graph[node]
+        mesh = scene.geometry[geometry_name].copy()
+        mesh.apply_transform(transform)
+        mesh.apply_translation(shift)
+        material = getattr(mesh.visual, 'material', None)
+        name = getattr(material, 'name', None) or 'part'
+        # Source textures are not used on the web; the material name decides the finish in the viewer.
+        mesh.visual = trimesh.visual.TextureVisuals(material=trimesh.visual.material.PBRMaterial(name=name))
+        out.add_geometry(mesh, node_name=f'{part_id}{index}', geom_name=f'{part_id}{index}')
+    out.export(str(path))
 
 
 def fbx2gltf_binary() -> Path:
@@ -199,6 +237,8 @@ def prepare(product: str) -> None:
         if result.returncode != 0 or not target.exists():
             sys.exit(f'{relative}: conversion failed\n{result.stdout}\n{result.stderr}')
         warnings = sorted({line.strip() for line in result.stdout.splitlines() if line.strip().startswith('Warning')})
+        if product in NORMALISE:
+            normalise_part(product, part_id, target)
         entry = {
             'source': relative,
             'sourceSha256': sha256(source),

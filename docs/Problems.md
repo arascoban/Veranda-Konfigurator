@@ -935,3 +935,12 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/ar/exportAssemblyModel.test.ts` (yalnız test).
 - Tek çözüm denemesi: Testte `self` → `globalThis` geçici olarak tanımlandı (mevcut `FileReader` taklidi gibi); uygulama kodu değişmedi.
 - Doğrulama: 2 test geçti.
+
+## CLAUDE-GSW-001 — Masse.md 304 cm sınırında bindirme 4 cm'nin altına düşüyor gibi görünüyordu
+
+- Durum: Çözüldü (yorum)
+- Tarih: 3 Ekim 2026. Görev/model: Glasschiebewand kuralları, Claude.
+- Gerçek: Bindirme lichte Weite'nin tamamıyla hesaplanınca 3 × 103 cm camda 304 cm'de (3090 − 3040) / 2 = 2,5 cm çıkıyor; kural en az 4 cm. Test bunu yakaladı.
+- Neden: Yapraklar iki uçtaki U-profillerin (modelde 2,0 cm) arasında çalışıyor; tablo bu payla uyumlu.
+- Tek çözüm denemesi: Bindirme `(n × cam − (lichte Weite − 2 × 2 cm)) / (n − 1)`; 3D yerleşim de yaprakları U-profillerin arasına koyuyor.
+- Doğrulama: 120–596 cm arası her milimetrede bindirme ≥ 4 cm (en dar 304 cm'de 4,5 cm). Tam modellerdeki (3/4/5/6 Schienen.fbx) farklı ölçüler kullanılmadı; kullanıcı tekil profilleri doğru kabul etti.

@@ -55,7 +55,7 @@ export function ConfiguratorApp() {
     // Equipment on fields that vanished with a post change is dropped; the customer is told which fields.
     const equipment = reconcileFieldEquipment(current, laidOut);
     if (equipment.dropped.length) {
-      useNoticeStore.getState().push({ title: 'Ausstattung entfernt', message: `Die Felder haben sich geändert; die Ausstattung von ${equipment.dropped.join(', ')} wurde entfernt.` });
+      useNoticeStore.getState().push({ title: 'Ausstattung entfernt', message: `Felder oder Maße haben sich geändert; entfernt: ${equipment.dropped.join(', ')}. Eine Glasschiebewand braucht 120–596 cm lichte Weite und mindestens 100 cm Höhe.` });
     } else if (equipment.clamped) {
       useNoticeStore.getState().push({ title: 'Aufteilung angepasst', message: 'Die Feldhöhe hat sich geändert; die Aufteilung der Elemente wurde angepasst.' });
     }

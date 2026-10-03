@@ -323,3 +323,24 @@ Kullanıcı isteği: HANDOFF listesindeki işlerle devam. Dal: `Veranda-Konfigur
 
 - **Gerçek cihaz kabulü (SW-07 kabul ölçütü):** HTTPS yayından sonra Android (Chrome/ARCore) ve iPhone'da yerleştirme, metre ölçeği, yön, cam görünümü ve ölçüler kontrol edilmeli. Bu ortamda AR cihazı yok.
 - Vercel hesabı/alan adı (kullanıcı). Montaj payları hâlâ vorläufig (SOL-K01-001).
+
+## 16. İş — Glasschiebewand gerçek modelle (3 Ekim)
+
+Kullanıcı: Ausstattung kuralları `docs/Masse.md` ve `docs/Ausstatungen_Kurallar.md`'de, modeller `Models/Glasschiebewand/` (tekil profiller doğru ölçülü) ve `Models/Ausstatungen/` (parçalar + Referans 1/2). Sıra: önce Glasschiebewand, sonra diğer elemanlar tek tek. Belgeler kullanıcı tarafından `docs/` klasörüne taşındı. iOS'ta AR denendi: sorunsuz çalışıyor (kullanıcı, 3 Ekim).
+
+Kullanıcı kararları (3 Ekim): sınır değer alt camı alır (262 cm → 3 ray, 90 cm); tablo genişliği lichte Weite (önde pfosten yüzleri arası, yanda duvardan pfosten arka yüzüne); raylar pfosten derinliğinin ortasında (Referans 2); 50×100 ara profil ve sürüklenebilir bölme (Kural 5/7) sonraki adımda.
+
+### Yapılanlar
+
+- **Model hattı** (`tools/prepare_models.py glasschiebewand`): 3/4/5/6 raylı Obere Schiene, Unterschiene, U-Profil ve Glas90cm → `public/models/glasschiebewand/*.glb` (toplam 164 KB), ölçüler `src/assets/manifest/glasschiebewand.measured.json`. Kaynak FBX konumları rastgele olduğu için parçalar orijine taşındı (X uzunluk, Y yukarı, Z derinlik); cam yaprağı yüksekliğini korur. Ölçülen: üst ray 10 cm, alt ray 2,5 cm, U-profil 2 cm; ray derinliği 6,7 / 8,7 / 11,0 / 13,2 cm; yaprak 91,3 cm, alt taşıyıcı 1,8–9,3 cm, cam 7,8 cm'den başlar ve üst rayda 2,2 cm aşağıda biter; raylar arası 2,2 cm (Referans 1/2 ile aynı).
+- **Kurallar** (`src/domain/glassSlidingDoor.ts`, Masse.md): 2–6 yaprak, 90/98/103 cm cam; 2 yaprak 3 raylı profilde. Lichte Weite 120–596 cm, yükseklik ≥ 100 cm. Bindirme U-profiller (2 × 2 cm) düşülerek hesaplanır; tablonun her yerinde ≥ 4 cm (en dar 304 cm'de 4,5 cm). Yan Feld lichte Tiefe = derinlik − pfosten derinliği (300 → 286,5 cm). Bölünmüş Feld'de Glasschiebewand kısmı ≥ 100 cm, diğer kısım geçici ≥ 10 cm. Ölçü değişince sığmayan Glasschiebewand bildirimle kaldırılır. Radyal menü/Ausstattung listesi nedenini gösterir ("Feld zu schmal (min. 120 cm)", "zu breit (max. 596 cm)", "zu niedrig").
+- **3D** (`src/features/assembly/glassSlidingScene.ts`): raylar lichte Weite boyunca uzatılır, U-profiller iki uçta yükseklik boyunca, yapraklar U-profillerin arasında eşit dağıtılır ve tablo genişliğine ölçeklenir; yalnız cam yükseklikle uzar, alt taşıyıcı sabit. Yapraklar Öffnungsrichtung'a göre raylara dizilir (komşu yapraklar asla aynı rayda değil). Önde pfosten yüzleri arasında, pfosten derinliğinin ortasında; yanda duvardan pfosten arka yüzüne, pfosten ekseninde. Profiller çerçeve rengi, raydaki gümüş parçalar metal, cam Glaston'a göre. Parçalar ilk kullanımda yüklenir; o ana kadar (veya hata olursa) şematik panel. Aynı kurucu PDF görünüşlerinde ve AR'da (GLB/USDZ) kullanılır.
+- **Feld paneli:** "Glasflügel 3 · 3 Schienen · Glas 90 cm · Überlappung 20,3 cm" gibi gerçek değerler ("Tabelle folgt" kalktı); sığmazsa neden.
+
+### Doğrulama
+
+`npm run check`, 150 test (yeni: `glassSlidingDoor.test.ts` tüm tablo sınırları ve bindirme, `glassSlidingScene.test.ts` gerçek parçalarla 233,5 × 230 cm duvar: ölçüler, 3 cam 7,8–227,8 cm, U-profiller arasında; ray ataması; Feld kuralları), `npm run build`. Playwright: üç Feld'e Ausstattung'dan Glasschiebewand (önde 2 × 233,5 cm, yanda 286,5 cm) → 3D, ön görünüş, yan görünüş, pfosten yakın plan; tarayıcıda AR GLB 618 KB / USDZ 1,8 MB. Sayfa hatası yok. Kayıt: `CLAUDE-GSW-001`.
+
+### Sonraki
+
+Kurallar 1–7: Giebeldreieck zorunluluğu, yan bölmeyi 50×100 ile bölme (en fazla 3, min. 15 cm), Giebeldreieck kaldırılınca alttakinin kalkması, üçgen altı ve elemanlar arası 50×100, Zip-Markise (Glasschiebewand önünde, 2 eleman sınırına sayılmaz), sürüklenebilir ara profil; ardından Aluminiumwand (F-Profil + Lamellen), Seitenwand lichtdurchlässig (WD-55), Freistehend (A-Profil, L-Kapak, 50×100).
