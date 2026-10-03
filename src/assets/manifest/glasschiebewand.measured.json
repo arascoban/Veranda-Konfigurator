@@ -414,6 +414,40 @@
         "M_1k_Aluminium1",
         "Silver"
       ]
+    },
+    "glassLeafEdge": {
+      "source": "Models/Glasschiebewand/Glas90cmMitBuerste.fbx",
+      "sourceSha256": "cb4aeecd36b268ef7b1cf77b619c10b0371757fe078baa8362b84f3d2975f80a",
+      "glb": "models/glasschiebewand/glassLeafEdge.glb",
+      "glbBytes": 39256,
+      "glbSha256": "f656682c9d064027733d20738563f09bdd7f0f2cb56a9cf5acfa21fdb973392d",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium1_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        1.8,
+        0.0
+      ],
+      "boundsMaxCm": [
+        91.3,
+        197.3,
+        1.501
+      ],
+      "sizeCm": [
+        91.3,
+        195.5,
+        1.501
+      ],
+      "triangles": 1138,
+      "meshes": 8,
+      "materials": [
+        "Glass_Basic_01",
+        "M_1k_Aluminium1",
+        "Silver"
+      ]
     }
   }
 }

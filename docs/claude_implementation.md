@@ -344,3 +344,16 @@ Kullanıcı kararları (3 Ekim): sınır değer alt camı alır (262 cm → 3 ra
 ### Sonraki
 
 Kurallar 1–7: Giebeldreieck zorunluluğu, yan bölmeyi 50×100 ile bölme (en fazla 3, min. 15 cm), Giebeldreieck kaldırılınca alttakinin kalkması, üçgen altı ve elemanlar arası 50×100, Zip-Markise (Glasschiebewand önünde, 2 eleman sınırına sayılmaz), sürüklenebilir ara profil; ardından Aluminiumwand (F-Profil + Lamellen), Seitenwand lichtdurchlässig (WD-55), Freistehend (A-Profil, L-Kapak, 50×100).
+
+## 17. İş — Glasschiebewand düzeltmeleri ve köşe taşıyıcısı (3 Ekim, akşam)
+
+Kullanıcı geri bildirimi (varsayımlarımın düzeltilmesi) ve kararları:
+- **Öffnungsrichtung yalnız Links/Rechts** (Mittig yok). Varsayılan: ön Feld'ler links, sağ yan rechts, sol yan links — her yüze dışarıdan bakarak. Yönler bu bakışa göre (`defaultOpening`, `openingOf`). Kayıtlı eski "mittig" Feld varsayılanıyla açılır.
+- **Glaston yalnız Klar/Getönt.** Eski "satiniert" kayıtları Klar olarak açılır (şemada `preprocess`).
+- **Kenar çıtası** (`Models/Glasschiebewand/Glas90cmMitBuerste.fbx` → `glassLeafEdge.glb`): komşuya bakan kenarda; sola açılımda en sağdaki, sağa açılımda en soldaki camda yok (`leafStrips`). Çıta alt taşıyıcının üstünden (9,3 cm) cam üstünün 8,4 cm altına kadar uzar.
+- **Mavi vurgu:** Feld yalnız fare üstündeyken, radyal menü açıkken veya Ausstattung listesinde işaretliyken mavi; seçmek, eklemek ya da menüyü kapatmak vurguyu kaldırır.
+- **Köşe taşıyıcısı** (`src/domain/cornerRafters.ts`, `calculatePostSideFieldGeometry`): uç pfosten içeri alınmışsa ve o yanda Ausstattung varsa oluk ucundaki taşıyıcı kalır, pfostenin dış yüzü hizasından ek bir taşıyıcı gelir; dış Dachfeld daralır, geri kalanı eşit bölünür (kullanıcı onayı). Müşteri +0…+2 bölmeyi yeni minimumun üstüne ekleyebilir. Düzen oluşunca/değişince/kalkınca bölme sayısı ve Dachfeld tonları sıfırlanır, "Eckträger versetzt" bildirimi çıkar. **Varsayım (vorläufig):** dış bölmenin net genişliği 5 cm'den azsa (pfosten < 10,5 cm içeride) düzen değişmez. Tek Markise'nin kenar alanları varsa onlar önceliklidir.
+
+Ayrıca kullanıcı kararları (sonraki adım için): Giebeldreieck seçenekleri Alüminyum panel (lamellerden), Glas Klar/Milch/Getönt, Polycarbonat Opal/Klar/Bronze (Anthrazit); cam/polikarbonat çerçevesi WD-55, alüminyumun kenarları F-Profil. Zip-Markise modeli gelene kadar bekliyor.
+
+Doğrulama: `npm run check`, testler (yeni: `cornerRafters.test.ts` — ek taşıyıcı, dar dış bölme, eşit kalan bölmeler, toplam genişlik, küçük içeri alma, +2 sınırı; yön/ton varsayılanları ve eski kayıt göçü; kenar çıtası kuralı ve 3D çıta sayısı), `npm run build`. Playwright: radyal menüden ekledikten sonra Feld saydamlığı 0; sol yana Glasschiebewand + Pfosten 1 → 40 cm: bildirim "links 34,5 cm", 7 Dachfeld, ek taşıyıcı pfostenin üstünde (3D ve üstten); önden yakın planda çıtalar sola açılımda iki sol camın sağ kenarında.

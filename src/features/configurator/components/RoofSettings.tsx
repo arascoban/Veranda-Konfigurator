@@ -33,12 +33,13 @@ export function RoofSettings({ configuration, evaluation, onChange, selectedRoof
   const width = configuration.dimensionsMm.width;
   const depth = configuration.dimensionsMm.depth;
   const family = configuration.roofMaterialId;
-  const minimum = width === null ? null : minimumRoofBayCount(width, family);
+  // With corner bays over inset posts the layout has its own minimum (narrow bays included).
+  const minimum = roof?.minimumBayCount ?? (width === null ? null : minimumRoofBayCount(width, family));
   const fieldFinishes = resolveRoofFieldFinishes(configuration, roof);
   const availability = awningAvailability(configuration);
   const sideFieldMode = roof?.awningSideFields ?? false;
   const canIncrease = Boolean(roof && minimum !== null && !sideFieldMode && roof.bayCount < minimum + MAX_EXTRA_ROOF_BAYS
-    && width !== null && calculateRoofBayGeometry(width, family, roof.bayCount + 1)?.valid);
+    && width !== null && (roof.postSideFields || calculateRoofBayGeometry(width, family, roof.bayCount + 1)?.valid));
   const changeCount = (delta: number) => {
     if (!roof || minimum === null) return;
     const next = roof.bayCount + delta;

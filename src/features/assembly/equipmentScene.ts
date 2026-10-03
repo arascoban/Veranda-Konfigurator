@@ -4,7 +4,7 @@ import {
 } from 'three';
 import { frameColors, postSections, postWidthMm } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
-import { elementHeightsMm, gswCheck, listFields, type FieldElement } from '../../domain/fieldEquipment';
+import { elementHeightsMm, gswCheck, listFields, openingOf, type FieldElement } from '../../domain/fieldEquipment';
 import type { GswLayout } from '../../domain/glassSlidingDoor';
 import { buildGlassSlidingWall, createGswMaterials, hasGswParts, type EquipmentParts } from './glassSlidingScene';
 
@@ -12,7 +12,7 @@ type Point = [number, number, number];
 
 /** Screen approximations; the real element models and materials are not supplied yet (schematic only). */
 const elementLook = {
-  glasschiebewand: { klar: { color: 0xd3e4ee, opacity: 0.35 }, getoent: { color: 0x3f474d, opacity: 0.6 }, satiniert: { color: 0xeef1f0, opacity: 0.85 } },
+  glasschiebewand: { klar: { color: 0xd3e4ee, opacity: 0.35 }, getoent: { color: 0x3f474d, opacity: 0.6 } },
   seitenwand_licht: { color: 0xf4f6f5, opacity: 0.7 },
   senkrechtmarkise: { color: 0x8c8676, opacity: 0.88 },
   gable: { color: 0xd3e4ee, opacity: 0.35 },
@@ -113,7 +113,10 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
       const height = heights[index];
       const layout = layouts[index];
       if (element.type === 'glasschiebewand' && layout && hasGswParts(parts, layout)) {
-        const wall = buildGlassSlidingWall(parts, gswMaterials, { lengthMm: field.widthMm, heightMm: height, layout, element, leavesFromGardenLeft: field.kind === 'front' ? false : field.side === 'right' });
+        // Customer's left from outside: front → garden-left (inside max X); right side → garden end (local max X);
+        // left side → wall end (local X = 0).
+        const wall = buildGlassSlidingWall(parts, gswMaterials, { lengthMm: field.widthMm, heightMm: height, layout, element,
+          opening: openingOf(element, field), leftIsLocalMax: !(field.kind === 'side' && field.side === 'left') });
         const depthMm = wall.userData.depthMm as number;
         if (field.kind === 'front') {
           // Between the post faces, centred on the post depth (owner decision 3 Oct 2026).

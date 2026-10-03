@@ -4,7 +4,8 @@ import { awningAvailability, validateAwning } from './awning';
 import { maxLedPerRafter } from './led';
 import { validateFieldEquipment } from './fieldEquipment';
 import type { ConfigurationV1 } from './configuration';
-import { calculateAwningSideFieldGeometry, calculateRoofBayGeometry, minimumRoofBayCount, type RoofBayGeometry } from './geometry/roof';
+import { calculateAwningSideFieldGeometry, calculatePostSideFieldGeometry, calculateRoofBayGeometry, minimumRoofBayCount, type RoofBayGeometry } from './geometry/roof';
+import { cornerRafterPitches } from './cornerRafters';
 import { validatePostCenters } from './geometry/posts';
 import { calculateRoofSlope, type RoofAttachmentOffsetsMm, type SlopeResult } from './geometry/slope';
 
@@ -69,13 +70,24 @@ export function evaluateConfiguration(
     if (requestedBays === null || minimumBays === null) {
       issues.push({ kind: 'invalid', field: 'dimensionsMm.width', code: 'roof_bays_not_possible' });
     } else {
+      // Equipment on a side under an inset end post moves the corner rafter with the post (3 Oct 2026); the single
+      // awning's side fields take precedence.
+      const corners = sideFields ? null : cornerRafterPitches(configuration);
+      const cornerCount = corners ? (corners.leftMm ? 1 : 0) + (corners.rightMm ? 1 : 0) : 0;
       roof = sideFields
         ? calculateAwningSideFieldGeometry(width, configuration.roofMaterialId)
-        : calculateRoofBayGeometry(width, configuration.roofMaterialId, requestedBays);
+        : corners
+          ? calculatePostSideFieldGeometry(width, configuration.roofMaterialId,
+            configuration.roofBayCount === null ? 0 : configuration.roofBayCount - cornerCount - (minimumRoofBayCount(width - (corners.leftMm ?? 0) - (corners.rightMm ?? 0), configuration.roofMaterialId) ?? 0),
+            corners)
+          : calculateRoofBayGeometry(width, configuration.roofMaterialId, requestedBays);
       for (const reason of roof?.reasons ?? []) {
         issues.push({ kind: 'invalid', field: 'roofBayCount', code: reason });
       }
-      if (!sideFields && requestedBays > minimumBays + MAX_EXTRA_ROOF_BAYS) {
+      if (corners && roof && roof.minimumBayCount !== undefined && roof.bayCount > roof.minimumBayCount + MAX_EXTRA_ROOF_BAYS) {
+        issues.push({ kind: 'invalid', field: 'roofBayCount', code: 'roof_bays_above_limit' });
+      }
+      if (!sideFields && !corners && requestedBays > minimumBays + MAX_EXTRA_ROOF_BAYS) {
         issues.push({ kind: 'invalid', field: 'roofBayCount', code: 'roof_bays_above_limit' });
       }
       if (roof?.valid) {

@@ -62,10 +62,21 @@ describe('field equipment', () => {
   it('stores Glasschiebewand options and lists them in the summary', () => {
     const fieldId = listFields(base())[0].id;
     let configuration = addToField(base(), fieldId, 'glasschiebewand')!;
-    configuration = updateElement(configuration, fieldId, 'glasschiebewand', { glassTone: 'satiniert', openingDirection: 'links' });
+    // Front fields open to the left by default; the right side to the right.
+    expect(configuration.fieldEquipment[0].elements[0]).toMatchObject({ glassTone: 'klar', openingDirection: 'links' });
+    expect(addToField(base(), 'side:right', 'glasschiebewand')!.fieldEquipment[0].elements[0].openingDirection).toBe('rechts');
+    expect(addToField(base(), 'side:left', 'glasschiebewand')!.fieldEquipment[0].elements[0].openingDirection).toBe('links');
+    configuration = updateElement(configuration, fieldId, 'glasschiebewand', { glassTone: 'getoent', openingDirection: 'rechts' });
     expect(fieldEquipmentSummaryDe(configuration)).toEqual([
-      { label: 'Vorne · Feld 1', value: 'Glasschiebewand (ganze Höhe, Glas Satiniert, Öffnung links)' },
+      { label: 'Vorne · Feld 1', value: 'Glasschiebewand (ganze Höhe, Glas Getönt, Öffnung rechts)' },
     ]);
+  });
+
+  it('opens drafts with the former Satiniert / Mittig options as Klar / the field default', () => {
+    const fieldId = listFields(base())[0].id;
+    const old = { ...base(), fieldEquipment: [{ fieldId, elements: [{ type: 'glasschiebewand', glassTone: 'satiniert', openingDirection: 'mittig' }], lowerHeightMm: null, gable: false }] };
+    const parsed = parseConfiguration(old);
+    expect(parsed.ok && parsed.configuration.fieldEquipment[0].elements[0]).toEqual({ type: 'glasschiebewand', glassTone: 'klar' });
   });
 
   it('applies an element from the Ausstattung section to the checked fields only', () => {

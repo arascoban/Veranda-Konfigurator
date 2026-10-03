@@ -11,6 +11,14 @@ export type RoofBayGeometry = {
   capWidthsMm: number[];
   /** True when the outer bays are the Milchglas side fields of a single awning. */
   awningSideFields: boolean;
+  /**
+   * Corner rafter moved with an inset end post (owner rule 3 Oct 2026): the end rafter stays at the gutter end and
+   * one more rafter stands over the post; the bay between them is narrow. Pitch = gutter end to post outer face, mm.
+   * `left`/`right` as seen from the garden (garden-right = inside x = 0).
+   */
+  postSideFields?: { leftMm?: number; rightMm?: number };
+  /** Smallest selectable bay count of this layout (includes the narrow corner bays). */
+  minimumBayCount?: number;
   valid: boolean;
   reasons: Array<'non_positive_cap' | 'panel_too_wide' | 'awning_side_field_out_of_range'>;
 };
@@ -75,6 +83,34 @@ export function calculateAwningSideFieldGeometry(widthMm: number, materialId: Ro
     awningSideFields: true,
     valid: reasons.length === 0,
     reasons,
+  };
+}
+
+/** Narrowest corner bay that is built (cap ≥ 5 cm; provisional, 3 Oct 2026); smaller insets keep the plain layout. */
+export const MIN_CORNER_CAP_MM = 50;
+
+/**
+ * Roof with narrow corner bays over inset end posts. `rightPitchMm` sits at x = 0 (garden-right), `leftPitchMm` at
+ * x = W. The rest is divided equally with the minimum bay count plus `extraBays` (the customer's +0…+2).
+ */
+export function calculatePostSideFieldGeometry(widthMm: number, materialId: RoofMaterialId, extraBays: number,
+  sides: { leftMm?: number; rightMm?: number }): RoofBayGeometry | null {
+  const right = sides.rightMm ?? 0;
+  const left = sides.leftMm ?? 0;
+  const centreWidth = widthMm - right - left;
+  const minimumCentre = minimumRoofBayCount(centreWidth, materialId);
+  if (minimumCentre === null) return null;
+  const centre = calculateRoofBayGeometry(centreWidth, materialId, minimumCentre + Math.max(0, extraBays));
+  if (!centre) return null;
+  const caps = [...(right ? [right - ROOF_SUPPORT_WIDTH_MM] : []), ...centre.capWidthsMm, ...(left ? [left - ROOF_SUPPORT_WIDTH_MM] : [])];
+  const extra = (right ? 1 : 0) + (left ? 1 : 0);
+  return {
+    ...centre,
+    bayCount: centre.bayCount + extra,
+    supportCount: centre.supportCount + extra,
+    capWidthsMm: caps,
+    postSideFields: { ...(left ? { leftMm: left } : {}), ...(right ? { rightMm: right } : {}) },
+    minimumBayCount: minimumCentre + extra,
   };
 }
 

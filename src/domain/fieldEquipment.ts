@@ -18,8 +18,9 @@ export type FieldElementType = typeof fieldElementTypes[number];
 export type EquipmentKind = FieldElementType | 'giebeldreieck';
 export const equipmentKinds: readonly EquipmentKind[] = [...fieldElementTypes, 'giebeldreieck'];
 
-export const glassTones = ['klar', 'getoent', 'satiniert'] as const;
-export const openingDirections = ['links', 'rechts', 'mittig'] as const;
+/** Owner decision 3 Oct 2026: Klar and Getönt only; two opening directions, no centre opening. */
+export const glassTones = ['klar', 'getoent'] as const;
+export const openingDirections = ['links', 'rechts'] as const;
 
 /** Provisional (2 Oct 2026, until the owner supplies limits): each part of a split field is at least 10 cm high. */
 export const MIN_SPLIT_PART_MM = 100;
@@ -30,8 +31,9 @@ export const MAX_ELEMENTS_PER_FIELD = 2;
 export const fieldElementSchema = z.object({
   type: z.enum(fieldElementTypes),
   /** Glasschiebewand only; the profile colour always follows the frame colour. */
-  glassTone: z.enum(glassTones).optional(),
-  openingDirection: z.enum(openingDirections).optional(),
+  // Drafts saved before 3 Oct 2026 may hold "satiniert" / "mittig": they open with Klar / the field's default.
+  glassTone: z.preprocess((value) => value === 'satiniert' ? 'klar' : value, z.enum(glassTones).optional()),
+  openingDirection: z.preprocess((value) => value === 'mittig' ? undefined : value, z.enum(openingDirections).optional()),
 }).strict();
 export type FieldElement = z.infer<typeof fieldElementSchema>;
 
@@ -71,8 +73,21 @@ export const elementNameDe: Record<EquipmentKind, string> = {
   senkrechtmarkise: 'Senkrechtmarkise',
   giebeldreieck: 'Giebeldreieck',
 };
-export const glassToneDe: Record<typeof glassTones[number], string> = { klar: 'Klar', getoent: 'Getönt', satiniert: 'Satiniert' };
-export const openingDirectionDe: Record<typeof openingDirections[number], string> = { links: 'Links', rechts: 'Rechts', mittig: 'Mittig' };
+export const glassToneDe: Record<typeof glassTones[number], string> = { klar: 'Klar', getoent: 'Getönt' };
+export const openingDirectionDe: Record<typeof openingDirections[number], string> = { links: 'Links', rechts: 'Rechts' };
+export type OpeningDirection = typeof openingDirections[number];
+
+/**
+ * Default opening (owner, 3 Oct 2026): front fields open to the left, the right side to the right, the left side to
+ * the left — always as seen from outside, looking at that face.
+ */
+export function defaultOpening(field: Pick<FieldDescriptor, 'kind' | 'side'>): OpeningDirection {
+  return field.kind === 'side' && field.side === 'right' ? 'rechts' : 'links';
+}
+
+export function openingOf(element: FieldElement, field: Pick<FieldDescriptor, 'kind' | 'side'>): OpeningDirection {
+  return element.openingDirection ?? defaultOpening(field);
+}
 
 export function frontFieldId(leftPostId: string, rightPostId: string): string {
   return `front:${leftPostId}:${rightPostId}`;
@@ -137,7 +152,7 @@ export function canPlace(configuration: ConfigurationV1, field: FieldDescriptor,
   if (entry.elements.some((element) => element.type === kind)) return { ok: false, reason: 'already_present' };
   if (entry.elements.length >= MAX_ELEMENTS_PER_FIELD) return { ok: false, reason: 'field_full' };
   // A second element needs room for itself plus the minimum of the element already there.
-  const elements = [...entry.elements, newElement(kind)];
+  const elements = [...entry.elements, newElement(kind, field)];
   if (entry.elements.length === 1 && !splitRange(field, elements)) return { ok: false, reason: 'too_low' };
   if (kind === 'glasschiebewand') {
     // Full height alone; in a split field the Glasschiebewand part needs its own 100 cm (checked by splitRange).
@@ -162,8 +177,8 @@ export function hasKind(configuration: ConfigurationV1, fieldId: string, kind: E
   return kind === 'giebeldreieck' ? entry.gable : entry.elements.some((element) => element.type === kind);
 }
 
-export function newElement(type: FieldElementType): FieldElement {
-  return type === 'glasschiebewand' ? { type, glassTone: 'klar', openingDirection: 'mittig' } : { type };
+export function newElement(type: FieldElementType, field?: Pick<FieldDescriptor, 'kind' | 'side'>): FieldElement {
+  return type === 'glasschiebewand' ? { type, glassTone: 'klar', openingDirection: field ? defaultOpening(field) : 'links' } : { type };
 }
 
 /**
@@ -197,7 +212,7 @@ export function addToField(configuration: ConfigurationV1, fieldId: string, kind
   if (!field || !canPlace(configuration, field, kind).ok) return null;
   const entry = equipmentFor(configuration, fieldId);
   if (kind === 'giebeldreieck') return withEntry(configuration, { ...entry, gable: true });
-  const elements = [...entry.elements, newElement(kind)];
+  const elements = [...entry.elements, newElement(kind, field)];
   return withEntry(configuration, { ...entry, elements, lowerHeightMm: elements.length === 2 ? defaultLowerHeight(field, elements) : null });
 }
 
@@ -350,7 +365,7 @@ export function fieldEquipmentSummaryDe(configuration: ConfigurationV1): { label
         ? index === 0 ? `unten ${cm(entry.lowerHeightMm ?? 0)} cm` : `oben ${cm(field.heightMm - (entry.lowerHeightMm ?? 0))} cm`
         : 'ganze Höhe';
       const options = element.type === 'glasschiebewand'
-        ? `, Glas ${glassToneDe[element.glassTone ?? 'klar']}, Öffnung ${openingDirectionDe[element.openingDirection ?? 'mittig'].toLowerCase()}` : '';
+        ? `, Glas ${glassToneDe[element.glassTone ?? 'klar']}, Öffnung ${openingDirectionDe[openingOf(element, field)].toLowerCase()}` : '';
       return `${elementNameDe[element.type]} (${position}${options})`;
     });
     if (entry.gable) parts.push(elementNameDe.giebeldreieck);

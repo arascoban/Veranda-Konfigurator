@@ -72,7 +72,9 @@ for _rails in (3, 4, 5, 6):
         f'rail{_rails}Side': f'{_folder}/U_Profil.fbx',
     })
 PARTS['glasschiebewand']['glassLeaf'] = 'Models/Glasschiebewand/Glas90cm.fbx'
-NORMALISE = {'glasschiebewand': {'keepY': ['glassLeaf']}}
+# Same leaf with the vertical edge strip (brush seal) on its left edge (3 Oct 2026).
+PARTS['glasschiebewand']['glassLeafEdge'] = 'Models/Glasschiebewand/Glas90cmMitBuerste.fbx'
+NORMALISE = {'glasschiebewand': {'keepY': ['glassLeaf', 'glassLeafEdge']}}
 
 
 def normalise_part(product: str, part_id: str, path: Path) -> None:

@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { Box3, Mesh, Vector3, type Group } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { glassSlidingLayout } from '../../domain/glassSlidingDoor';
-import { buildGlassSlidingWall, createGswMaterials, gswPartPath, leafTracks, type EquipmentParts } from './glassSlidingScene';
+import { buildGlassSlidingWall, createGswMaterials, gswPartPath, leafStrips, leafTracks, type EquipmentParts } from './glassSlidingScene';
 
 beforeAll(() => { vi.stubGlobal('self', globalThis); });
 
@@ -23,9 +23,9 @@ describe('Glasschiebewand from the single profiles', () => {
     // Default draft, front field: 233,5 cm clear → 3 leaves of 90 cm on the 3-rail profile.
     const layout = glassSlidingLayout(2335)!;
     expect(layout).toMatchObject({ leaves: 3, railProfile: 3, glassWidthMm: 900 });
-    const parts = await loadParts(['rail3Top', 'rail3Bottom', 'rail3Side', 'glassLeaf']);
+    const parts = await loadParts(['rail3Top', 'rail3Bottom', 'rail3Side', 'glassLeaf', 'glassLeafEdge']);
     const wall = buildGlassSlidingWall(parts, createGswMaterials('#383E42'), {
-      lengthMm: 2335, heightMm: 2300, layout, element: { type: 'glasschiebewand', glassTone: 'klar', openingDirection: 'mittig' }, leavesFromGardenLeft: false,
+      lengthMm: 2335, heightMm: 2300, layout, element: { type: 'glasschiebewand', glassTone: 'klar' }, opening: 'links', leftIsLocalMax: true,
     });
     wall.updateMatrixWorld(true);
     const box = new Box3().setFromObject(wall);
@@ -36,20 +36,28 @@ describe('Glasschiebewand from the single profiles', () => {
     expect(size.z).toBeLessThan(0.075);
     const panes: Box3[] = [];
     wall.traverse((object) => { if (object instanceof Mesh && object.geometry.boundingBox && object.scale.y !== 1) panes.push(new Box3().setFromObject(object)); });
-    expect(panes).toHaveLength(3);
-    for (const pane of panes) {
+    expect(panes.filter((pane) => pane.max.y > 2.2)).toHaveLength(3);
+    // Edge strips: opening to the left → the two left leaves carry one, the right-most none.
+    // (each strip is three thin meshes in the owner's model)
+    expect(panes.filter((pane) => pane.max.y < 2.2 && pane.max.y > 2.1)).toHaveLength(6);
+    for (const pane of panes.filter((item) => item.max.y > 2.2)) {
       // Glass from 7,8 cm to 2,2 cm under the top.
       expect(pane.min.y).toBeCloseTo(0.078, 3);
       expect(pane.max.y).toBeCloseTo(2.278, 3);
     }
     // Leaves between the U profiles: first starts at 2 cm, last ends at clear width − 2 cm.
-    const xs = panes.map((pane) => pane.min.x).sort((a, b) => a - b);
+    const xs = panes.filter((pane) => pane.max.y > 2.2).map((pane) => pane.min.x).sort((a, b) => a - b);
     expect(xs[0]).toBeGreaterThan(0.02);
-    expect(Math.max(...panes.map((pane) => pane.max.x))).toBeLessThan(2.315 + 0.001);
+    expect(Math.max(...panes.filter((pane) => pane.max.y > 2.2).map((pane) => pane.max.x))).toBeLessThan(2.315 + 0.001);
+  });
+
+  it('puts the edge strip on the side facing the neighbour', () => {
+    expect(leafStrips(3, 'links')).toEqual(['right', 'right', null]);
+    expect(leafStrips(3, 'rechts')).toEqual([null, 'left', 'left']);
   });
 
   it('never puts neighbouring leaves on the same track', () => {
-    for (const opening of ['links', 'rechts', 'mittig'] as const) {
+    for (const opening of ['links', 'rechts'] as const) {
       for (let leaves = 2; leaves <= 6; leaves += 1) {
         const tracks = leafTracks(leaves, opening);
         expect(new Set(tracks).size).toBe(leaves);

@@ -3,7 +3,7 @@ import { frameColors } from '../../../catalog/catalog';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import {
   addToField, canPlace, elementNameDe, equipmentFor, fieldElementTypes, glassToneDe, glassTones, listFields, MIN_SPLIT_PART_MM,
-  elementHeightsMm, gswCheck, openingDirectionDe, openingDirections, placeRefusalDe, removeFromField, setLowerHeight, splitRange, swapElements, updateElement,
+  elementHeightsMm, gswCheck, openingDirectionDe, openingOf, openingDirections, placeRefusalDe, removeFromField, setLowerHeight, splitRange, swapElements, updateElement,
   type EquipmentKind, type FieldDescriptor, type FieldElement,
 } from '../../../domain/fieldEquipment';
 import { EquipmentIcon } from '../../../ui/EquipmentIcon';
@@ -12,7 +12,7 @@ import { DimensionField } from './DimensionField';
 
 const numberDe = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 const cm = (mm: number) => numberDe.format(mm / 10);
-const glassSwatch = { klar: 'rgba(211,228,238,.8)', getoent: 'rgba(63,71,77,.6)', satiniert: '#EEF1F0' } as const;
+const glassSwatch = { klar: 'rgba(211,228,238,.8)', getoent: 'rgba(63,71,77,.6)' } as const;
 
 /** Feld section (V2): list of front and side fields, or the detail of the selected field. */
 export function FieldSettings({ configuration, onChange, selectedFieldId, onSelectField }: {
@@ -166,7 +166,7 @@ function GlassSlidingSettings({ configuration, field, element, onChange }: {
         <h3 className="v2-label">Öffnungsrichtung</h3>
         <div className="v2-segmented" role="radiogroup" aria-label="Öffnungsrichtung">
           {openingDirections.map((direction) => (
-            <button key={direction} type="button" role="radio" aria-checked={(element.openingDirection ?? 'mittig') === direction}
+            <button key={direction} type="button" role="radio" aria-checked={openingOf(element, field) === direction}
               onClick={() => onChange(updateElement(configuration, field.id, 'glasschiebewand', { openingDirection: direction }))}>
               {openingDirectionDe[direction]}
             </button>

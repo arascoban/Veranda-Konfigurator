@@ -5,6 +5,7 @@ import { awningChangeNotice, reconcileAwning } from '../domain/awning';
 import { useNoticeStore } from '../state/noticeStore';
 import { evaluateConfiguration } from '../domain/evaluateConfiguration';
 import { addToField, hasKind, reconcileFieldEquipment, type EquipmentKind } from '../domain/fieldEquipment';
+import { cornerRafterPitches } from '../domain/cornerRafters';
 import type { Backdrop, ViewPreset } from '../features/viewer/PreviewViewer';
 import { ConfiguratorShell, type ConfiguratorActionStatus } from '../features/configurator';
 import { createPdfDraft, downloadPdf } from '../features/pdf/service/pdfExport';
@@ -59,7 +60,18 @@ export function ConfiguratorApp() {
     } else if (equipment.clamped) {
       useNoticeStore.getState().push({ title: 'Aufteilung angepasst', message: 'Die Feldhöhe hat sich geändert; die Aufteilung der Elemente wurde angepasst.' });
     }
-    const next = equipment.configuration;
+    let next = equipment.configuration;
+    // Corner rafter over an inset end post with side equipment (3 Oct 2026): when that layout appears, changes or
+    // goes, the bay count and per-field tones start fresh and the customer is told why the outer bay is narrow.
+    const cornersBefore = evaluateConfiguration(current).roof?.postSideFields;
+    const cornersAfter = cornerRafterPitches(next);
+    if (JSON.stringify(cornersBefore ?? null) !== JSON.stringify(cornersAfter)) {
+      next = { ...next, roofBayCount: null, roofFieldFinishes: [] };
+      if (cornersAfter) {
+        const sides = [cornersAfter.leftMm ? `links ${formatCm(cornersAfter.leftMm)} cm` : '', cornersAfter.rightMm ? `rechts ${formatCm(cornersAfter.rightMm)} cm` : ''].filter(Boolean).join(', ');
+        useNoticeStore.getState().push({ title: 'Eckträger versetzt', message: `Der Eckpfosten steht eingerückt (${sides}) und an dieser Seite ist Ausstattung gewählt: Ein zusätzlicher Träger steht über dem Pfosten, das äußere Dachfeld wird schmaler, die übrigen Dachfelder bleiben gleich breit.` });
+      }
+    }
     if (JSON.stringify(current) === JSON.stringify(next)) return;
     if (!useConfiguratorStore.getState().replaceConfiguration(next)) return;
     history.current.record(current);
@@ -177,4 +189,8 @@ function preserveAutomaticPostLayout(previous: ConfigurationV1, candidate: Confi
     JSON.stringify(previous.postCenters) === JSON.stringify(oldAuto));
   if (!userKeptAuto || JSON.stringify(candidate.postCenters) !== JSON.stringify(previous.postCenters)) return candidate;
   return { ...candidate, postCenters: createMinimumPostLayout(candidate.productId, newWidth) };
+}
+
+function formatCm(mm: number): string {
+  return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(mm / 10);
 }

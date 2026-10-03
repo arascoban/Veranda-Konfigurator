@@ -399,7 +399,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
         );
         runtime.gtao?.setSceneClipBox(runtime.aoBox);
         markSelectedPost(group, selectedIndexRef.current, -1);
-        markFields(group, fieldMarksRef.current.idOf, fieldMarksRef.current.selected, null, fieldMarksRef.current.highlighted);
+        markFields(group, fieldMarksRef.current.idOf, null, null, fieldMarksRef.current.highlighted);
         applyBackdrop(runtime, runtime.backdrop);
         markSelectedRoofField(group, selectedRoofFieldRef.current, -1);
       }
@@ -456,7 +456,9 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     const runtime = runtimeRef.current;
     if (!runtime?.group) return;
     markSelectedPost(runtime.group, selectedIndex, hoveredIndex);
-    markFields(runtime.group, fieldIdOf, selectedFieldId, radial?.fieldId ?? hoveredField, highlightFieldIds);
+    // Blue only while the pointer is over a field, its radial menu is open or the Ausstattung list ticks it;
+    // a field that is merely selected in the Feld section stays clear (owner, 3 Oct 2026).
+    markFields(runtime.group, fieldIdOf, radial?.fieldId ?? null, hoveredField, highlightFieldIds);
     markSelectedRoofField(runtime.group, selectedRoofField, hoveredRoofField);
     // Remaining travel in each direction, written on the arrows of the selected post.
     if (selectedIndex >= 0 && selectedRange && posts && dimensions) {
@@ -736,10 +738,12 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     runtime.controls.update();
     runtime.controls.dispatchEvent({ type: 'change' });
   };
+  // Closing the menu (pick, ✕, Escape or outside) also drops the hover tint; it returns on the next pointer move.
+  const closeRadial = () => { setRadial(null); setHoveredField(null); setPlusAnchor(null); };
   const pickRadial = (kind: EquipmentKind) => {
     if (!radial) return;
     onFieldPick?.(radial.fieldId, kind);
-    setRadial(null);
+    closeRadial();
   };
 
   return (
@@ -759,10 +763,10 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
         <span className="field-plus__label">{plusField.label} · Ausstattung hinzufügen</span>
       </div>}
       {radial && radialField && <>
-        <div className="radial-menu__backdrop" onPointerDown={() => setRadial(null)} aria-hidden="true" />
+        <div className="radial-menu__backdrop" onPointerDown={closeRadial} aria-hidden="true" />
         <RadialMenu title={`${radialField.label} · bis zu 2 Elemente`} options={radialOptions} scale={radialScale}
           x={clampToHost(radial.x, 380 * radialScale, hostSize.width, insetLeft)} y={clampToHost(radial.y, 380 * radialScale + 60, hostSize.height)}
-          onPick={pickRadial} onClose={() => setRadial(null)} />
+          onPick={pickRadial} onClose={closeRadial} />
       </>}
       {sceneStatus !== 'error' && interactive && <div className="fps-badge">
         <span className="fps-badge__fps" aria-label="Bildrate">{fps ?? '–'} FPS</span>
