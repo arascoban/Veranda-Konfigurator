@@ -27,4 +27,10 @@ Sol, Sağ, Ön kurallar:
 9. F Profil ve Lamellen Aluminiumwand da kullanılan profil
 10. A Profil, L Kapak, 50x100 Profil Freistehend de kullanılan profil
 
+11. Yükseklik Maksimumları:
+Glasschiebewand: 240 cm
+Aluminiumwand 300 cm üçgen kısmı hariç
+Seitenwand lichtdurchlässig 275 cm üçgen kısmı hariç
+zip markise 240 cm
+
 

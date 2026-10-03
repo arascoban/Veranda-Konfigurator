@@ -2,7 +2,7 @@ Bu belgede Glasschiebewand minimum maximum ölçüleri yazar.
 
 Standart Cam ölçülerimiz 90,98,103 cm.
 Minimum camların üst üste binme payı 4 cm Maksimum da sınır yok.
-Glasschiebewand koymak için bir Feld in minimum genişliği 120 cm olmalıdır. Ayrıca yüksekliği de minimum 100 cm olmalıdır.
+Glasschiebewand koymak için bir Feld in minimum genişliği 120 cm olmalıdır. Ayrıca yüksekliği de minimum 100 cm maksimum 240 cm olmalıdır.
 
 2 Schinen Glasschiebewand: 
 
