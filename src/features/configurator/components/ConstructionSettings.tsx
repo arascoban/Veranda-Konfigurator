@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, type FrameColorId, type ProductId } from '../../../catalog/catalog';
 import { assemblySpecs } from '../../../features/assembly/spec';
 import { dimensionRange, withDimension, type DimensionKey } from '../../../domain/adjustDimensions';
@@ -47,7 +46,6 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onPr
   const commitPosts = (next: ConfigurationV1['postCenters']) => { if (next) onChange({ ...configuration, postCenters: next }); };
   const selectedIndex = posts.findIndex((post) => post.id === selectedPostId);
   const drainBoth = widthMm !== null && widthMm > DRAIN_BOTH_SIDES_ABOVE_MM;
-  const [showFigure, setShowFigure] = useState(false);
 
   return (
     <section className="v2-construction" aria-label="Konstruktion">
@@ -65,12 +63,11 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onPr
         })}
       </div>
 
-      <div className="v2-subhead"><h3>Maße</h3>
-        <button type="button" className="v2-link-button" aria-expanded={showFigure} onClick={() => setShowFigure((value) => !value)}>
-          {showFigure ? 'Maßskizze ausblenden' : 'Maßskizze zeigen'}</button></div>
-      {showFigure && <figure className="measure-figure">
+      <div className="v2-subhead"><h3>Maße</h3></div>
+      {/* Always shown (owner, 3 Oct 2026): the letters A–E of the fields below refer to it. */}
+      <figure className="measure-figure">
         <img src={`${import.meta.env.BASE_URL}images/masse-abcde.jpg`} alt="Maßskizze: A Tiefe, B Breite, C Gesamthöhe, D Höhe hinten, E Höhe vorne" />
-      </figure>}
+      </figure>
       <div className="form-grid form-grid--pairs">
         {(['width', 'depth', 'frontHeight', 'rearHeight'] as DimensionKey[]).map((field) => {
           const range = dimensionRange(configuration, field);

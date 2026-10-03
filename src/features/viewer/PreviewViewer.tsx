@@ -244,7 +244,8 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
           composer.addPass(new RenderPass(scene, camera));
           const gtao = new GTAOPass(scene, camera, host.clientWidth, host.clientHeight);
           gtao.output = GTAOPass.OUTPUT.Default;
-          gtao.updateGtaoMaterial({ radius: 0.2 });
+          gtao.updateGtaoMaterial({ radius: AO_RADIUS_M });
+          excludeHelpersFromAo(gtao);
           if (runtime.aoBox) gtao.setSceneClipBox(runtime.aoBox);
           composer.addPass(gtao);
           composer.addPass(new OutputPass());
@@ -402,8 +403,11 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
         const cam = runtime.sun.shadow.camera;
         cam.left = -span; cam.right = span; cam.top = span; cam.bottom = -span; cam.near = 0.5; cam.far = span * 4;
         cam.updateProjectionMatrix();
+        // The ground stays outside the AO box (GTAO keeps everything within one radius of the box, hence the lift): on
+        // the ground plane it drew light halos around the post feet and a hard edge where the box ended (owner,
+        // 3 Oct 2026). Contact shading on the ground comes from the shadows in high quality.
         runtime.aoBox = new Box3(
-          new Vector3(-1, -0.2, -dimensions.depthM - 1),
+          new Vector3(-1, AO_RADIUS_M + 0.01, -dimensions.depthM - 1),
           new Vector3(dimensions.widthM + 1, Math.max(dimensions.rearHeightM, dimensions.frontHeightM) + 1, 1),
         );
         runtime.gtao?.setSceneClipBox(runtime.aoBox);
@@ -1049,6 +1053,29 @@ function applyBackdrop(runtime: ViewerRuntime, backdrop: Backdrop): void {
 function dimensionsFromGroup(group: Group): PreviewDimensions {
   return group.userData.dimensions as PreviewDimensions;
 }
+
+/**
+ * GTAO hides only points and lines from its normal/depth pass. Editing aids (invisible field and 50×100 pick
+ * meshes), the ground and the Bemaßungen layer must not occlude either: they darkened neighbouring parts and drew
+ * halos (owner, 3 Oct 2026). Everything not exported to AR counts as an aid.
+ */
+function excludeHelpersFromAo(gtao: GTAOPass): void {
+  const pass = gtao as unknown as { _overrideVisibility: () => void; _visibilityCache: Object3D[]; scene: Scene };
+  const hideLinesAndPoints = pass._overrideVisibility.bind(gtao);
+  pass._overrideVisibility = () => {
+    hideLinesAndPoints();
+    pass.scene.traverse((object) => {
+      const aid = object.userData.exportable === false || object.userData.dimensions === true;
+      if (aid && object.visible) {
+        object.visible = false;
+        pass._visibilityCache.push(object);
+      }
+    });
+  };
+}
+
+/** Ambient occlusion radius; the AO box starts this far above the ground. */
+const AO_RADIUS_M = 0.2;
 
 const viewDirections: Record<ViewPreset, Vector3> = {
   // Viewed from the garden side, slightly from the right.

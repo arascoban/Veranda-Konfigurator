@@ -416,3 +416,39 @@ Doğrulama:
   - Referans 2 düzeni: ön Feld 1'de alu + 50×100 + Glasschiebewand; sağda Glas Klar Giebel + 50×100 + Glasschiebewand; solda alu Giebel + 2/3 parçalı Aluminiumwand. "Giebeldreieck ergänzt" bildirimi çıktı.
   - 50×100 fareyle mavi yandı, yukarı sürüklendi ve kaydedildi; yan bölücü sürüklendi.
   - Test-PDF indi; sayfa hatası yok.
+
+## 19. İş — Kullanıcı testi düzeltmeleri (3 Ekim, gece)
+
+Kullanıcının testinden gelen düzeltmeler:
+- **Yatay bölmede en az 30 cm** (`MIN_SPLIT_PART_MM = 300`): Glasschiebewand dışındaki her parça için geçerli. Glasschiebewand 50×100'ün üstünden en az 100 cm olarak kalıyor. Önceki geçici 10 cm sınırı kalktı.
+- **Giebeldreieck ile Träger arasında boşluk yok:**
+  - Üçgenin üst kenarı artık gerçek Träger alt çizgisini (`rafterUndersideAt`, `placements.ts`) izliyor ve 1,5 cm içine giriyor.
+  - Kullanıcının açıklaması: sahada bu birleşim silikonla kapatılıyor.
+  - Önceki çizgi ön/arka yükseklikten gidiyordu; Träger alt kenarı bundan yüksek olduğu için boşluk kalıyordu.
+- **"Feld unterteilen" Pfosten eklemek gibi çalışıyor:**
+  - Her basış en geniş parçayı ortasından bir 50×100 ile böler (`addSideDivider`); en fazla 3 parça olur.
+  - "Feld gleich unterteilen" parçaları yeniden eşitler (`equalizeSide`).
+  - "Teilung entfernen" bölmeyi kaldırır ve yan taraf eski, bölünmemiş hâline döner (1. parçanın ekipmanı kalır).
+  - Bölünen parçaların ikisi de ekipmanı korur.
+- **Bemaßungen:**
+  - Bölünmüş yanda "Tiefe links/rechts" yerine her parçanın lichte Breite'si gösterilir ("Teil n", daha küçük yazı).
+  - Ölçü çizgileri altın yerine Feld hover mavisi (`DIMENSION_BLUE`).
+  - Çizgiler ve yazılar artık derinlik testli; bir pfostenin ya da duvarın arkasında kalınca görünmüyor.
+- **Yan hover alanı:**
+  - Zeminden Träger alt kenarına kadar yamuk bir alan; Giebel üçgeni de maviye boyanıyor.
+  - Alan pfostenin dış yüzünün 3 mm dışında; yan elemanların arkasında kalıp görünmez olmuyor.
+- **Maßskizze:** Konstruktion bölümünde her zaman görünür; aç/kapa düğmesi kalktı.
+- **Ambient Occlusion** (kullanıcının referans fotoğrafındaki tuhaf görünüm): üç neden vardı.
+  - (a) Görünmez yardımcı yüzeyler GTAO'nun normal/derinlik geçişine giriyordu: Feld seçim düzlemleri, 50×100 tutamakları, zemin ve ölçü katmanı. Pfosten ayaklarında açık halelere ve kutu kenarına yol açıyordu. Artık `exportable === false` olan her şey ve Bemaßungen bu geçişte gizli (`excludeHelpersFromAo`).
+  - (b) AO kutusu zemini içeriyordu: GTAO kutunun bir yarıçap (20 cm) çevresini de hesaplıyor. Kutu artık zeminden 21 cm yukarıda başlıyor.
+  - (c) Bunun sonucunda derinlik testli ölçü çizgileri AO ile kararıyordu; (a) bunu da çözdü.
+
+Doğrulama:
+- `npm run check`, 169 test ve `npm run build`.
+- Yeni testler: 30 cm sınırı, pfosten benzeri bölme, eşitleme ve kaldırma, parça ölçüleri.
+- Playwright (kontroller "Mittel" ve "Hoch" kalitede yapıldı):
+  - Pfosten ayaklarında hale yok, gölge kenarında kutu izi yok.
+  - Giebel'ler (alu ve cam) Träger'e kadar uzanıyor.
+  - Yamuk hover alanı üçgeni de kaplıyor.
+  - Parça ölçüleri üst üste binmiyor.
+  - Feld unterteilen 2 basışta 3 parça veriyor, 3. basış devre dışı; "Teilung entfernen" sonrası başlık yine "Seite links".

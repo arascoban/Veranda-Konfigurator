@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { frameColors } from '../../../catalog/catalog';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import {
-  addToField, BEAM_MM, canPlace, dividerRange, divideSide, elementNameDe, equipmentFor, fieldElementTypes, gableVariantDe, gableVariants, glassToneDe,
+  addSideDivider, addToField, BEAM_MM, canPlace, dividerRange, divideSide, equalizeSide, elementNameDe, equipmentFor, fieldElementTypes, gableVariantDe, gableVariants, glassToneDe,
   glassTones, listFields, MAX_SIDE_PARTS, MIN_SIDE_PART_MM, MIN_SPLIT_PART_MM, elementHeightsMm, gswCheck, openingDirectionDe, openingOf,
   openingDirections, placeRefusalDe, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf, sideOfField, splitHorizontally, splitRange,
   swapElements, updateElement, type EquipmentKind, type FieldDescriptor, type FieldElement, type GableVariant,
@@ -10,6 +10,7 @@ import {
 import { EquipmentIcon } from '../../../ui/EquipmentIcon';
 import { InfoTip } from '../../../ui/InfoTip';
 import { DimensionField } from './DimensionField';
+import { Button } from '../../../ui/Button';
 
 const numberDe = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 const cm = (mm: number) => numberDe.format(mm / 10);
@@ -149,7 +150,6 @@ function SideSettings({ configuration, field, onChange }: {
   const layout = sideLayoutOf(configuration, side);
   const sideName = side === 'left' ? 'Seite links' : 'Seite rechts';
   const parts = listFields(configuration).filter((item) => item.kind === 'side' && item.side === side);
-  const counts = Array.from({ length: MAX_SIDE_PARTS }, (_, index) => index + 1);
   return (
     <div className="v2-stack">
       <div className="v2-subhead"><h3>Giebeldreieck</h3><span>{sideName}</span></div>
@@ -173,17 +173,14 @@ function SideSettings({ configuration, field, onChange }: {
           ))}
         </div>
       )}
-      <div className="v2-subhead"><h3>Feld unterteilen</h3><span>mit 50×100</span></div>
-      <div className="v2-segmented" role="radiogroup" aria-label="Teile dieser Seite">
-        {counts.map((count) => {
-          const next = count === parts.length ? null : divideSide(configuration, side, count);
-          return (
-            <button key={count} type="button" role="radio" aria-checked={parts.length === count} disabled={count !== parts.length && !next}
-              onClick={() => { if (next) onChange(next); }}>
-              {count === 1 ? 'Ungeteilt' : `${count} Teile`}
-            </button>
-          );
-        })}
+      <div className="v2-subhead"><h3>Feld unterteilen</h3><span>{parts.length === 1 ? 'ungeteilt' : `${parts.length} Teile · 50×100`}</span></div>
+      <div className="post-actions">
+        <Button size="small" disabled={!addSideDivider(configuration, side)}
+          onClick={() => { const next = addSideDivider(configuration, side); if (next) onChange(next); }}>Feld unterteilen</Button>
+        <Button size="small" disabled={layout.dividersMm.length === 0}
+          onClick={() => { const next = divideSide(configuration, side, 1); if (next) onChange(next); }}>Teilung entfernen</Button>
+        <Button size="small" disabled={!equalizeSide(configuration, side)}
+          onClick={() => { const next = equalizeSide(configuration, side); if (next) onChange(next); }}>Feld gleich unterteilen</Button>
       </div>
       {layout.dividersMm.map((centre, index) => {
         const range = dividerRange(configuration, side, index);
@@ -197,7 +194,7 @@ function SideSettings({ configuration, field, onChange }: {
             onValueChange={(value) => { if (value !== null) { const next = setDivider(configuration, side, index, startOf + value + BEAM_MM / 2); if (next) onChange(next); } }} />
         );
       })}
-      {layout.dividersMm.length > 0 && <p className="v2-hint">Gleich geteilt; die 50×100-Profile lassen sich im Modell ziehen oder hier einstellen. Jeder Teil mindestens {cm(MIN_SIDE_PART_MM)} cm und ein eigenes Feld.</p>}
+      <p className="v2-hint">Jeder Klick teilt den breitesten Teil mit einem 50×100 (höchstens {MAX_SIDE_PARTS} Teile). Die 50×100 lassen sich im Modell ziehen oder hier einstellen; jeder Teil mindestens {cm(MIN_SIDE_PART_MM)} cm und ein eigenes Feld.</p>
     </div>
   );
 }
@@ -302,7 +299,7 @@ function SplitEditor({ configuration, field, elements, lowerMm: savedLowerMm, on
           </div>
           <DimensionField label={`Unten · ${shortName(elements[0].type)}`} valueMm={lowerMm} minimumMm={range?.minMm} maximumMm={range?.maxMm}
             onValueChange={(value) => { if (value !== null) { const next = setLowerHeight(configuration, field.id, value); if (next) onChange(next); } }} />
-          <p className="v2-hint">50×100 im Modell oder hier ziehen, oder Höhe eingeben. Gesamthöhe am Feld {cm(field.heightMm)} cm, davon 5 cm 50×100. {elements.some((element) => element.type === 'glasschiebewand') ? 'Glasschiebewand mindestens 100 cm über dem 50×100, anderer Teil mindestens ' : 'Mindestens '}{cm(MIN_SPLIT_PART_MM)} cm (vorläufig).</p>
+          <p className="v2-hint">50×100 im Modell oder hier ziehen, oder Höhe eingeben. Gesamthöhe am Feld {cm(field.heightMm)} cm, davon 5 cm 50×100. {elements.some((element) => element.type === 'glasschiebewand') ? 'Glasschiebewand mindestens 100 cm über dem 50×100, anderer Teil mindestens ' : 'Mindestens '}{cm(MIN_SPLIT_PART_MM)} cm.</p>
         </div>
       </div>
     </div>

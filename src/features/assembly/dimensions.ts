@@ -1,6 +1,7 @@
 import { postSections, postWidthMm } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { assemblySpecs } from './spec';
+import { listFields } from '../../domain/fieldEquipment';
 import type { Vec3 } from './placements';
 
 /**
@@ -18,6 +19,8 @@ export type DimensionLine = {
   plane: 'ground' | 'wall';
   /** Optional label shift from the line midpoint (mm) to keep neighbouring labels apart. */
   labelOffsetMm?: Vec3;
+  /** Smaller text for short lines (side parts). */
+  labelHeightM?: number;
 };
 
 /** Field (opening) names as the customer sees them from the garden: "Feld 1" is the garden-left field (same numbering as "Vorne · Feld 1" in the Feld section). */
@@ -38,6 +41,10 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
   const gap = 350;           // distance of the main lines from the structure
   // Depth behind the posts: from the post's wall-facing side to the wall, on the garden-left (x = W) and garden-right end.
   const behindPost = D - postSections[configuration.productId].towardsGardenMm;
+  // A side divided by 50×100 profiles shows the clear width of every part instead of the side's whole clear depth,
+  // on the same line and with smaller text (owner, 3 Oct 2026).
+  const sideParts = listFields(configuration).filter((field) => field.kind === 'side' && field.partIndex);
+  const divided = (side: 'left' | 'right') => sideParts.some((field) => field.side === side);
   const lines: DimensionLine[] = [
     { id: 'width', label: `Breite (B)\n${cm(W)}`, fromMm: [0, 0, -D - gap - 450], toMm: [W, 0, -D - gap - 450], tick: [0, 0, 1], plane: 'ground' },
     { id: 'depth', label: `Tiefe (A)\n${cm(D)}`, fromMm: [W + gap + 350, 0, 0], toMm: [W + gap + 350, 0, -D], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [200, 0, 0] },
@@ -61,6 +68,20 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
       id: `field-${posts[index].id}-${posts[index + 1].id}`,
       label: `${fieldName(index, fieldCount)}\n${cm(right - left)}`,
       fromMm: [left, 0, -D - gap], toMm: [right, 0, -D - gap], tick: [0, 0, 1], plane: 'ground',
+    });
+  }
+  for (const side of ['left', 'right'] as const) {
+    if (!divided(side)) continue;
+    const index = lines.findIndex((line) => line.id === (side === 'left' ? 'depthLeft' : 'depthRight'));
+    lines.splice(index, 1);
+  }
+  for (const part of sideParts) {
+    const x = part.side === 'left' ? W + gap : -gap;
+    const start = part.startMm ?? 0;
+    lines.push({
+      id: `side-${part.id}`, label: `Teil ${part.partIndex}\n${cm(part.widthMm)}`,
+      fromMm: [x, 0, -start], toMm: [x, 0, -(start + part.widthMm)], tick: [part.side === 'left' ? -1 : 1, 0, 0], plane: 'ground',
+      labelOffsetMm: [part.side === 'left' ? -170 : 170, 0, 0], labelHeightM: 0.17,
     });
   }
   return [...lines, ...extraLines];

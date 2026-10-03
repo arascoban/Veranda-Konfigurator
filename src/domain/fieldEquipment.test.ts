@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultConfiguration, parseConfiguration } from './configuration';
 import { evaluateConfiguration } from './evaluateConfiguration';
 import {
-  addToField, applyKindToFields, BEAM_MM, canPlace, divideSide, elementHeightsMm, equipmentRuleNotices, fieldEquipmentSummaryDe,
+  addSideDivider, addToField, applyKindToFields, BEAM_MM, equalizeSide, canPlace, divideSide, elementHeightsMm, equipmentRuleNotices, fieldEquipmentSummaryDe,
   findField, listFields, reconcileFieldEquipment, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf,
   splitHorizontally, splitRange, swapElements, updateElement,
 } from './fieldEquipment';
@@ -46,11 +46,11 @@ describe('field equipment', () => {
     expect(removeFromField(configuration, 'side:left', 'giebeldreieck').sideLayouts).toEqual([]);
   });
 
-  it('clamps the split height: 10 cm for most parts, 100 cm for a Glasschiebewand above the 50×100', () => {
+  it('clamps the split height: 30 cm for most parts, 100 cm for a Glasschiebewand above the 50×100', () => {
     const fieldId = 'side:right';
     let configuration = addToField(addToField(base(), fieldId, 'aluminiumwand')!, fieldId, 'glasschiebewand')!;
     configuration = setLowerHeight(configuration, fieldId, 50)!;
-    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(100);
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(300);
     configuration = setLowerHeight(configuration, fieldId, 9999)!;
     // Side height 230 − 20,5 = 209,5 cm; the 50×100 (5 cm) and 100 cm Glasschiebewand leave 104,5 cm below.
     expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1045);
@@ -214,6 +214,22 @@ describe('Ausstattung rules 1–7 (docs/Ausstatungen_Kurallar.md, 3 Oct 2026)', 
     expect(field.heightMm).toBe(2095);
   });
 
+  it('rule 2 like posts: each "Feld unterteilen" adds one 50×100 in the widest part, "gleich" equalises', () => {
+    let configuration = addToField(base(), 'side:left', 'aluminiumwand')!;
+    configuration = addSideDivider(configuration, 'left')!;
+    // 286,5 cm clear: the divider sits in the middle.
+    expect(sideLayoutOf(configuration, 'left').dividersMm).toEqual([1433]);
+    expect(configuration.fieldEquipment.map((entry) => entry.fieldId).sort()).toEqual(['side:left:1', 'side:left:2']);
+    configuration = setDivider(configuration, 'left', 0, 600)!;
+    configuration = addSideDivider(configuration, 'left')!;
+    // The wider part (by the post) is split; three parts, every one with the Aluminiumwand.
+    expect(sideLayoutOf(configuration, 'left').dividersMm).toEqual([600, 1745]);
+    expect(configuration.fieldEquipment).toHaveLength(3);
+    expect(addSideDivider(configuration, 'left')).toBeNull();
+    expect(sideLayoutOf(equalizeSide(configuration, 'left')!, 'left').dividersMm).toEqual([947, 1918]);
+    expect(divideSide(configuration, 'left', 1)!.sideLayouts).toEqual([{ side: 'left', gable: 'aluminium', dividersMm: [] }]);
+  });
+
   it('rules 5 and 7: a 50×100 lies between two elements; a Glasschiebewand keeps 100 cm above it', () => {
     const configuration = { ...base(), dimensionsMm: { ...base().dimensionsMm, frontHeight: 2000 } };
     const field = listFields(configuration)[0];
@@ -223,7 +239,7 @@ describe('Ausstattung rules 1–7 (docs/Ausstatungen_Kurallar.md, 3 Oct 2026)', 
     // "Horizontal teilen": Aluminiumwand comes below, the Glasschiebewand moves up.
     expect(entry.elements.map((element) => element.type)).toEqual(['aluminiumwand', 'glasschiebewand']);
     // 200 cm = 95 cm Aluminiumwand + 5 cm 50×100 + 100 cm Glasschiebewand at most.
-    expect(splitRange(field, entry.elements)).toEqual({ minMm: 100, maxMm: 950 });
+    expect(splitRange(field, entry.elements)).toEqual({ minMm: 300, maxMm: 950 });
     expect(elementHeightsMm(field, entry)).toEqual([950, 1000]);
     expect(splitHorizontally(next, field.id)).toBeNull();
     expect(splitHorizontally(addToField(configuration, field.id, 'aluminiumwand')!, field.id)).toBeNull();

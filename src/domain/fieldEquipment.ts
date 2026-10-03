@@ -22,8 +22,8 @@ export const equipmentKinds: readonly EquipmentKind[] = [...fieldElementTypes, '
 export const glassTones = ['klar', 'getoent'] as const;
 export const openingDirections = ['links', 'rechts'] as const;
 
-/** Provisional (2 Oct 2026, until the owner supplies limits): each part of a split field is at least 10 cm high. */
-export const MIN_SPLIT_PART_MM = 100;
+/** Owner rule (3 Oct 2026): in a horizontally split field every part other than a Glasschiebewand is at least 30 cm high. */
+export const MIN_SPLIT_PART_MM = 300;
 /**
  * 50×100 profile (docs/Ausstatungen_Kurallar.md rules 2, 4, 5): lying, it is 5 cm high and 10 cm deep; standing as
  * a side divider it takes 5 cm of the side's depth.
@@ -247,28 +247,51 @@ export function setGable(configuration: ConfigurationV1, side: Side, variant: Ga
 }
 
 /**
- * "Feld unterteilen" (rule 2): 1–3 equal parts with standing 50×100 profiles. A divided side needs the
- * Giebeldreieck (aluminium unless one is chosen). Each new part takes the equipment of the part that was there
- * (the whole side, or the part with the same number); what no longer fits is dropped by the reconcile step.
- * Returns null when the side is too shallow for that many parts.
+ * New dividers for a side; part i of the result takes the equipment of old part `sourceOf(i)`. A divided side
+ * needs the Giebeldreieck (rule 2: aluminium unless one is chosen). What no longer fits is dropped by the
+ * reconcile step with a notice.
+ */
+function withDividers(configuration: ConfigurationV1, side: Side, dividersMm: number[], sourceOf: (index: number) => number): ConfigurationV1 | null {
+  if (!dividersValid(sideClearMm(configuration), dividersMm)) return null;
+  const layout = sideLayoutOf(configuration, side);
+  const oldEntries = sideFieldIds(configuration, side).map((id) => configuration.fieldEquipment.find((entry) => entry.fieldId === id));
+  const gable = layout.gable ?? (dividersMm.length ? DEFAULT_GABLE : null);
+  const next = withSideLayout(configuration, { ...layout, gable, dividersMm });
+  const moved = sideFieldIds(next, side).flatMap((id, index) => {
+    const source = oldEntries[Math.min(sourceOf(index), oldEntries.length - 1)];
+    return source ? [{ ...source, fieldId: id, elements: source.elements.map((element) => ({ ...element })) }] : [];
+  });
+  return { ...next, fieldEquipment: [...configuration.fieldEquipment.filter((entry) => sideOfField(entry.fieldId) !== side), ...moved] };
+}
+
+/**
+ * "Feld unterteilen" (rule 2, owner 3 Oct 2026: like adding a post): one more standing 50×100 in the middle of the
+ * widest part, up to 3 parts. Both halves keep the split part's equipment. Null when no part can take it.
+ */
+export function addSideDivider(configuration: ConfigurationV1, side: Side): ConfigurationV1 | null {
+  const layout = sideLayoutOf(configuration, side);
+  if (layout.dividersMm.length >= MAX_SIDE_PARTS - 1) return null;
+  const parts = sideParts(sideClearMm(configuration), layout.dividersMm);
+  const widest = parts.reduce((best, part, index) => part.widthMm > parts[best].widthMm ? index : best, 0);
+  const centre = Math.round(parts[widest].startMm + parts[widest].widthMm / 2);
+  const dividersMm = [...layout.dividersMm, centre].sort((a, b) => a - b);
+  return withDividers(configuration, side, dividersMm, (index) => index <= widest ? index : index - 1);
+}
+
+/** "Feld gleich unterteilen": the current number of parts, equally wide again. */
+export function equalizeSide(configuration: ConfigurationV1, side: Side): ConfigurationV1 | null {
+  const count = sideLayoutOf(configuration, side).dividersMm.length + 1;
+  if (count === 1) return null;
+  return withDividers(configuration, side, equalDividers(sideClearMm(configuration), count), (index) => index);
+}
+
+/**
+ * Sets 1–3 equal parts at once; 1 removes the division ("Teilung entfernen"), the first part's equipment stays.
+ * Null when the side is too shallow for that many parts.
  */
 export function divideSide(configuration: ConfigurationV1, side: Side, count: number): ConfigurationV1 | null {
   if (!Number.isInteger(count) || count < 1 || count > MAX_SIDE_PARTS) return null;
-  const clear = sideClearMm(configuration);
-  const dividersMm = count === 1 ? [] : equalDividers(clear, count);
-  if (!dividersValid(clear, dividersMm)) return null;
-  const layout = sideLayoutOf(configuration, side);
-  const oldIds = sideFieldIds(configuration, side);
-  const oldEntries = oldIds.map((id) => configuration.fieldEquipment.find((entry) => entry.fieldId === id));
-  const gable = layout.gable ?? (count > 1 ? DEFAULT_GABLE : null);
-  let next = withSideLayout(configuration, { ...layout, gable, dividersMm });
-  const newIds = sideFieldIds(next, side);
-  const moved = newIds.flatMap((id, index) => {
-    const source = oldEntries[Math.min(index, oldEntries.length - 1)];
-    return source ? [{ ...source, fieldId: id, elements: source.elements.map((element) => ({ ...element })) }] : [];
-  });
-  next = { ...next, fieldEquipment: [...configuration.fieldEquipment.filter((entry) => sideOfField(entry.fieldId) !== side), ...moved] };
-  return next;
+  return withDividers(configuration, side, count === 1 ? [] : equalDividers(sideClearMm(configuration), count), (index) => index);
 }
 
 /** Moves one side divider (drag or cm input), clamped so every part keeps 15 cm. */
@@ -322,7 +345,7 @@ export function gswCheck(field: Pick<FieldDescriptor, 'widthMm'>, heightMm: numb
   return checkGlassSliding(field.widthMm, heightMm);
 }
 
-/** Smallest height an element may get in a split field (Glasschiebewand 100 cm, others provisional 10 cm). */
+/** Smallest height an element may get in a split field (Glasschiebewand 100 cm, others 30 cm). */
 function minPartMm(element: FieldElement | undefined): number {
   return element?.type === 'glasschiebewand' ? GSW_MIN_HEIGHT_MM : MIN_SPLIT_PART_MM;
 }

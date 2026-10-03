@@ -1,5 +1,5 @@
 import type { SideFieldSpan } from './placements';
-import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry, type Object3D } from 'three';
+import { BufferGeometry, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMaterial, PlaneGeometry, type Object3D } from 'three';
 
 /**
  * Invisible pick planes for the fields that take equipment: one per gap between posts on the garden face
@@ -20,12 +20,20 @@ export function createFieldPickPlanes(postCentersM: readonly number[], depthM: n
     planes.push(field);
   }
   if (sorted.length >= 2 && sideFields?.length) {
-    // Side parts (3 Oct 2026): one plane per part of a side divided by 50×100 profiles, up to the side field height.
+    // Side parts (3 Oct 2026): one area per part of a side divided by 50×100 profiles, from the ground up to the
+    // rafter underside, so the blue covers the triangle under the roof as well (a trapezoid, owner request).
     for (const span of sideFields) {
-      const field = new Mesh(new PlaneGeometry(span.widthMm / 1000, span.heightMm / 1000), material());
-      field.rotation.y = Math.PI / 2;
-      const x = span.side === 'right' ? sorted[0] - 0.003 : sorted[sorted.length - 1] + 0.003;
-      field.position.set(x, span.heightMm / 2000, -(span.startMm + span.widthMm / 2) / 1000);
+      const x = span.outerXMm / 1000;
+      const z0 = -span.startMm / 1000;
+      const z1 = -(span.startMm + span.widthMm) / 1000;
+      const geometry = new BufferGeometry();
+      geometry.setAttribute('position', new Float32BufferAttribute([
+        x, 0, z0, x, 0, z1, x, span.topEndMm / 1000, z1, x, span.topStartMm / 1000, z0,
+      ], 3));
+      geometry.setIndex([0, 1, 2, 0, 2, 3]);
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+      const field = new Mesh(geometry, material());
       field.userData.sideField = span.side;
       field.userData.fieldId = span.fieldId;
       field.userData.exportable = false;

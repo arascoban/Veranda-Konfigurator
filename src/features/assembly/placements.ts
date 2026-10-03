@@ -1,5 +1,5 @@
 import { listFields } from '../../domain/fieldEquipment';
-import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type FrameColorId, type ProductId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, postWidthMm, roofMaterials, type FrameColorId, type ProductId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
 import { awningSpans, type AwningType } from '../../domain/awning';
 import { resolveRoofFieldFinishes } from '../../domain/roofFinish';
 import type { ConfigurationV1 } from '../../domain/configuration';
@@ -48,7 +48,8 @@ export type AssemblyLayout = {
   sideFields?: SideFieldSpan[];
 };
 
-export type SideFieldSpan = { fieldId: string; side: 'left' | 'right'; startMm: number; widthMm: number; heightMm: number };
+/** `topStartMm` / `topEndMm`: rafter underside above the part's start and end, so the pick area covers the triangle too. */
+export type SideFieldSpan = { fieldId: string; side: 'left' | 'right'; outerXMm: number; startMm: number; widthMm: number; heightMm: number; topStartMm: number; topEndMm: number };
 
 /** A simple box standing in for an awning: `xMm` from the inside-left end, running `depthMm` down the roof from the wall (null = rafter cover length). */
 export type AwningSlab = { type: AwningType; xMm: number; widthMm: number; depthMm: number | null };
@@ -113,6 +114,21 @@ export type AssemblyInput = {
   postCentersMm: readonly number[];
 };
 
+/** Rafter underside line from the garden end to the wall end (mm, scene z and y). */
+function rafterUndersideEnds(productId: ProductId, D: number, Hr: number, Hf: number) {
+  const spec = assemblySpecs[productId];
+  return {
+    front: { z: -D + spec.rafterFront.zFromPostFaceMm, y: Hf + spec.attachmentOffsets.frontConnectionAboveGutterUndersideMm },
+    rear: { z: -spec.rafterRear.zFromWallFaceMm, y: Hr + spec.attachmentOffsets.rearConnectionAboveWallUndersideMm },
+  };
+}
+
+/** Height of the rafter underside at `fromWallMm` from the wall (mm); the Giebeldreieck reaches up to it. */
+export function rafterUndersideAt(productId: ProductId, D: number, Hr: number, Hf: number, fromWallMm: number): number {
+  const { front, rear } = rafterUndersideEnds(productId, D, Hr, Hf);
+  return rear.y + (rear.y - front.y) / (rear.z - front.z) * (-fromWallMm - rear.z);
+}
+
 /** Pure placement of all parts; the viewer only loads GLBs and applies these transforms. */
 export function buildAssemblyLayout(input: AssemblyInput): AssemblyLayout {
   const spec = assemblySpecs[input.productId];
@@ -127,9 +143,7 @@ export function buildAssemblyLayout(input: AssemblyInput): AssemblyLayout {
   const bayLeft = (i: number) => supportLeft(i) + spec.supportWidthMm;
   const c = (i: number) => caps[i];
 
-  // Rafter underside line from the garden end to the wall end.
-  const front = { z: -D + spec.rafterFront.zFromPostFaceMm, y: Hf + spec.attachmentOffsets.frontConnectionAboveGutterUndersideMm };
-  const rear = { z: -spec.rafterRear.zFromWallFaceMm, y: Hr + spec.attachmentOffsets.rearConnectionAboveWallUndersideMm };
+  const { front, rear } = rafterUndersideEnds(input.productId, D, Hr, Hf);
   const run = rear.z - front.z;
   const rise = rear.y - front.y;
   const length = Math.hypot(run, rise);
@@ -330,7 +344,13 @@ export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1):
     awnings: awningSpans(configuration),
     postCentersMm: configuration.postCenters.map((post) => post.xMm),
   });
+  // Pick areas of the sides lie just outside the end posts' outer faces, in front of any side element.
+  const posts = configuration.postCenters;
+  const half = postWidthMm(configuration.productId) / 2;
+  const sideOuterX = (side: 'left' | 'right') => side === 'left' ? posts[posts.length - 1].xMm + half + 3 : posts[0].xMm - half - 3;
   layout.sideFields = listFields(configuration).flatMap((field) => field.kind === 'side'
-    ? [{ fieldId: field.id, side: field.side!, startMm: field.startMm ?? 0, widthMm: field.widthMm, heightMm: field.heightMm }] : []);
+    ? [{ fieldId: field.id, side: field.side!, startMm: field.startMm ?? 0, outerXMm: sideOuterX(field.side!), widthMm: field.widthMm, heightMm: field.heightMm,
+      topStartMm: rafterUndersideAt(configuration.productId, depth, rearHeight, frontHeight, field.startMm ?? 0),
+      topEndMm: rafterUndersideAt(configuration.productId, depth, rearHeight, frontHeight, (field.startMm ?? 0) + field.widthMm) }] : []);
   return layout;
 }

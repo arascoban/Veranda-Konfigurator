@@ -972,3 +972,21 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Etkilenen dosya: `src/features/configurator/components/FieldSettings.tsx`.
 - Tek çözüm denemesi: Seçili yan Feld bulunamazsa aynı yanın 1. parçası (ya da bütün yan) gösteriliyor.
 - Doğrulama: Playwright — 3 Teile sonrası başlık "Seite links · Teil 1".
+
+## CLAUDE-AO-001 — Yüksek/orta kalitede AO hale ve kutu kenarı çiziyordu
+
+- Durum: Çözüldü
+- Tarih: 3 Ekim 2026. Görev/model: kalite ayarı, kullanıcı testi, Claude.
+- Beklenen: AO yalnız yapıda hafif temas gölgesi versin.
+- Gerçek:
+  - Pfosten ayaklarında açık haleler görülüyordu.
+  - Zeminde AO kutusunun sınırında bir "basamak" oluşuyordu (kullanıcı fotoğrafı).
+  - Derinlik testine alınan ölçü çizgileri cam önünde siyaha dönüyordu.
+- Neden:
+  - GTAOPass normal/derinlik geçişinden yalnız çizgi ve noktaları gizliyor. Görünmez seçim yüzeyleri, 50×100 tutamakları, zemin ve ölçü çubukları geçişe girip gerçek parçaları örtüyordu.
+  - GTAO kutu sınırını bir yarıçap genişletiyor; zemin kutunun içinde kalıyordu.
+- Etkilenen dosya: `src/features/viewer/PreviewViewer.tsx`.
+- Tek çözüm denemesi:
+  - Bu geçişte `exportable === false` olan nesneler ve Bemaßungen de gizleniyor (`excludeHelpersFromAo`).
+  - AO kutusu zeminden yarıçap + 1 cm yukarıda başlıyor.
+- Doğrulama: Playwright — "Mittel" ve "Hoch" kalitede pfosten ayakları temiz, ölçü çizgisi mavi, gölge kenarında iz yok.

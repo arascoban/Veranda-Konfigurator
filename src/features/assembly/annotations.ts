@@ -10,6 +10,8 @@ import type { DimensionLine } from './dimensions';
 export const ANTHRACITE = 0x383e42;
 /** Move arrows (user choice 30 Sep 2026). */
 export const ARROW_GOLD = 0xd4af37;
+/** Dimension lines: the same blue as a hovered field (owner, 3 Oct 2026). */
+export const DIMENSION_BLUE = 0x2f9dff;
 
 /** One or two lines of text (split at "\n"); no background unless requested, so it sits directly on the floor. */
 function textCanvas(text: string, options: { background?: string; color?: string; bold?: boolean }): HTMLCanvasElement {
@@ -41,12 +43,12 @@ function textCanvas(text: string, options: { background?: string; color?: string
  * Text fixed in the scene (it does not turn with the camera): lying on the ground or standing parallel to
  * the wall, both readable from the garden side.
  */
-export function createFlatLabel(text: string, plane: 'ground' | 'wall', heightM = 0.28, color = '#111111'): Mesh {
+export function createFlatLabel(text: string, plane: 'ground' | 'wall', heightM = 0.28, color = '#111111', depthTest = false): Mesh {
   const canvas = textCanvas(text, { bold: true, color });
   heightM = heightM * (text.split('\n').length > 1 ? 1.75 : 1);
   const texture = new CanvasTexture(canvas);
   const mesh = new Mesh(new PlaneGeometry(heightM * canvas.width / canvas.height, heightM),
-    new MeshBasicMaterial({ map: texture, transparent: true, depthTest: false, side: DoubleSide }));
+    new MeshBasicMaterial({ map: texture, transparent: true, depthTest, side: DoubleSide }));
   // Reading direction runs towards −X because the customer looks from the garden (facing +Z).
   if (plane === 'ground') mesh.rotation.x = -Math.PI / 2;
   mesh.rotateOnWorldAxis(new Vector3(0, 1, 0), Math.PI);
@@ -99,7 +101,8 @@ export function createDimensionGroup(lines: DimensionLine[]): Group {
     for (const end of [a, b]) {
       positions.push(end.x - tick.x, end.y - tick.y, end.z - tick.z, end.x + tick.x, end.y + tick.y, end.z + tick.z);
     }
-    const label = createFlatLabel(line.label, line.plane);
+    // Fixed in the scene like any part (owner, 3 Oct 2026): a post or wall in front hides the line and its label.
+    const label = createFlatLabel(line.label, line.plane, line.labelHeightM, undefined, true);
     const mid = a.clone().add(b).multiplyScalar(0.5);
     // Ground labels sit just above the floor beside their line; wall labels stand next to the height line.
     if (line.plane === 'ground') label.position.copy(mid).add(new Vector3(0, 0.01, a.x === b.x ? 0 : -0.36));
@@ -109,8 +112,8 @@ export function createDimensionGroup(lines: DimensionLine[]): Group {
     if (line.labelOffsetMm) label.position.add(new Vector3(...line.labelOffsetMm.map(millimetresToMetres)));
     group.add(label);
   }
-  // WebGL ignores line widths, so every segment is a thin gold bar (2 cm) that stays visible from afar.
-  const bars = new Mesh(thickSegments(positions, 0.02), new MeshBasicMaterial({ color: ARROW_GOLD, depthTest: false }));
+  // WebGL ignores line widths, so every segment is a thin bar (2 cm) that stays visible from afar.
+  const bars = new Mesh(thickSegments(positions, 0.02), new MeshBasicMaterial({ color: DIMENSION_BLUE }));
   bars.renderOrder = 9;
   group.add(bars);
   return group;

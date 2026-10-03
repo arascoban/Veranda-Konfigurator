@@ -7,6 +7,7 @@ import type { ConfigurationV1 } from '../../domain/configuration';
 import {
   BEAM_DEPTH_MM, BEAM_MM, elementHeightsMm, GABLE_ROOM_MM, gswCheck, listFields, openingOf, sideClearMm, type FieldElement,
 } from '../../domain/fieldEquipment';
+import { rafterUndersideAt } from './placements';
 import { buildAluminiumWall, buildBeamLying, buildBeamStanding, buildGable, createAusstattungMaterials } from './ausstattungScene';
 import type { GswLayout } from '../../domain/glassSlidingDoor';
 import { buildGlassSlidingWall, createGswMaterials, hasGswParts, type EquipmentParts } from './glassSlidingScene';
@@ -55,6 +56,8 @@ function beamHandleMesh(handle: BeamHandle, lengthMm: number, heightMm: number):
   mesh.renderOrder = 3;
   return mesh;
 }
+
+const GABLE_INTO_RAFTER_MM = 15;
 
 /** How far each element's outer face sits inside the end post's outer face on a side (Referans 1/2, mm). */
 const SIDE_INSET_MM = { aluminiumwand: 10, glasschiebewand: 5, beam: 0, gable: 10 } as const;
@@ -178,7 +181,9 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
   // Per side: the 50×100 under the Giebeldreieck (rule 4), the standing 50×100 between parts (rule 2) and the gable.
   const sideClear = sideClearMm(configuration);
   const sideHeight = frontHeight - GABLE_ROOM_MM - BEAM_MM;
-  const roofAt = (fromWallMm: number) => rearHeight - (rearHeight - frontHeight) * (fromWallMm / depth);
+  // Giebeldreieck up to the side rafter's underside and 1,5 cm into it: on site the joint is sealed with silicone,
+  // in the model no gap may show between rafter and triangle (owner, 3 Oct 2026).
+  const roofAt = (fromWallMm: number) => rafterUndersideAt(configuration.productId, depth, rearHeight, frontHeight, fromWallMm) + GABLE_INTO_RAFTER_MM;
   for (const layout of configuration.sideLayouts) {
     const field = { kind: 'side' as const, side: layout.side };
     layout.dividersMm.forEach((centre, index) => {
