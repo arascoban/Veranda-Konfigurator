@@ -4,6 +4,8 @@ Last updated: 2 October 2026. State at commit `6128ffb` on `main` (and on the wo
 
 **V2 redesign (2 Oct 2026):** branch `Veranda-KonfiguratorV2` holds the new layout (left glass column, viewer controls, Feld/Ausstattung with radial menu), `vercel.json` and AR from the real assembly (QR on desktop → AR page on the phone; iOS Quick Look, Android WebXR). See `claude_implementation.md` §14–§15; not merged into `main` yet. Real-device AR acceptance needs the HTTPS deployment.
 
+**3 Oct 2026:** all Markdown documents now live in `docs/`. Glasschiebewand is built from the real profiles (§16); further Ausstattung rules in `docs/Ausstatungen_Kurallar.md`, sizes in `docs/Masse.md`.
+
 Read this file first, then `AGENTS.md`. Everything below is a summary; the detailed records live in the files listed under "Where to read more".
 
 ## 1. What this project is

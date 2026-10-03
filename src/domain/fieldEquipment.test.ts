@@ -19,7 +19,8 @@ describe('field equipment', () => {
     expect(fields[0].id).toBe(`front:${posts[1].id}:${posts[2].id}`);
     expect(fields[0].insideIndex).toBe(1);
     expect(fields[0].heightMm).toBe(2300);
-    expect(fields[2].widthMm).toBe(3000);
+    // Side clear width: depth minus the post depth (13,5 cm).
+    expect(fields[2].widthMm).toBe(2865);
   });
 
   it('adds up to two different elements and splits the field with a default lower height', () => {
@@ -43,15 +44,19 @@ describe('field equipment', () => {
     expect(removeFromField(configuration, 'side:left', 'giebeldreieck').fieldEquipment).toEqual([]);
   });
 
-  it('clamps the split height to the provisional 10 cm parts', () => {
+  it('clamps the split height: 10 cm for most parts, 100 cm for a Glasschiebewand', () => {
     const fieldId = 'side:right';
     let configuration = addToField(addToField(base(), fieldId, 'aluminiumwand')!, fieldId, 'glasschiebewand')!;
     configuration = setLowerHeight(configuration, fieldId, 50)!;
     expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(100);
     configuration = setLowerHeight(configuration, fieldId, 9999)!;
-    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(2200);
+    // The Glasschiebewand on top keeps its 100 cm: 230 − 100 = 130 cm for the lower part at most.
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1300);
     configuration = swapElements(configuration, fieldId);
     expect(configuration.fieldEquipment[0].elements[0].type).toBe('glasschiebewand');
+    // Now at the bottom, the Glasschiebewand needs at least 100 cm.
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1300);
+    expect(setLowerHeight(configuration, fieldId, 200)!.fieldEquipment[0].lowerHeightMm).toBe(1000);
   });
 
   it('stores Glasschiebewand options and lists them in the summary', () => {
@@ -119,5 +124,30 @@ describe('Giebeldreieck rule (confirmed 2 Oct 2026)', () => {
     expect(configuration.fieldEquipment[0]).toMatchObject({ gable: true, elements: [{ type: 'aluminiumwand' }, { type: 'seitenwand_licht' }] });
     expect(addToField(configuration, 'side:left', 'senkrechtmarkise')).toBeNull();
     expect(evaluateConfiguration(configuration).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
+  });
+});
+
+describe('Glasschiebewand in fields', () => {
+  it('needs 120–596 cm clear width and 100 cm height, and is removed when the field shrinks', () => {
+    const configuration = base();
+    const field = listFields(configuration)[0];
+    expect(canPlace(configuration, field, 'glasschiebewand')).toEqual({ ok: true });
+    // Front height 90 cm: too low for a Glasschiebewand.
+    const low = { ...configuration, dimensionsMm: { ...configuration.dimensionsMm, frontHeight: 900 } };
+    expect(canPlace(low, listFields(low)[0], 'glasschiebewand')).toEqual({ ok: false, reason: 'too_low' });
+    // Narrow side: 120 cm depth − 13,5 cm post = 106,5 cm clear.
+    const narrow = { ...configuration, dimensionsMm: { ...configuration.dimensionsMm, depth: 1200 } };
+    expect(canPlace(narrow, findField(narrow, 'side:left')!, 'glasschiebewand')).toEqual({ ok: false, reason: 'too_narrow' });
+    const withGsw = addToField(configuration, 'side:left', 'glasschiebewand')!;
+    const shrunk = reconcileFieldEquipment(withGsw, { ...withGsw, dimensionsMm: { ...withGsw.dimensionsMm, depth: 1200 } });
+    expect(shrunk.dropped).toEqual(['Seite links: Glasschiebewand']);
+    expect(shrunk.configuration.fieldEquipment).toEqual([]);
+  });
+
+  it('refuses a second element when the Glasschiebewand would get less than 100 cm', () => {
+    const configuration = { ...base(), dimensionsMm: { ...base().dimensionsMm, frontHeight: 1050 } };
+    const fieldId = listFields(configuration)[0].id;
+    const withAlu = addToField(configuration, fieldId, 'aluminiumwand')!;
+    expect(canPlace(withAlu, findField(withAlu, fieldId)!, 'glasschiebewand')).toEqual({ ok: false, reason: 'too_low' });
   });
 });

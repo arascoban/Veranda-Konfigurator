@@ -5,7 +5,8 @@ import { parseConfiguration, type ConfigurationV1 } from '../../domain/configura
 import { evaluateConfiguration } from '../../domain/evaluateConfiguration';
 import { assemblyLayoutFromConfiguration } from '../assembly/placements';
 import { createAssemblyGroup, loadLayoutParts, type PartLibrary } from '../assembly/assemblyScene';
-import { createEquipmentGroup } from '../assembly/equipmentScene';
+import { createEquipmentGroup, gswLayoutsFor } from '../assembly/equipmentScene';
+import { loadEquipmentParts } from '../assembly/glassSlidingScene';
 import { disposeSchematicGroup } from '../viewer/schematicGeometry';
 
 /**
@@ -24,7 +25,8 @@ export async function buildArGroup(configuration: ConfigurationV1, library: Part
   if (!layout) return null;
   const parts = await loadLayoutParts(layout, library);
   const assembly = createAssemblyGroup(layout, parts, { includeGroundGuide: false, includePostControls: false });
-  assembly.add(createEquipmentGroup(configuration));
+  const equipmentParts = await loadEquipmentParts(configuration, library, gswLayoutsFor(configuration)).catch(() => null);
+  assembly.add(createEquipmentGroup(configuration, equipmentParts));
   // Editing aids and anything flagged as not exportable never reach the AR file.
   const hidden: Object3D[] = [];
   assembly.traverse((object) => {

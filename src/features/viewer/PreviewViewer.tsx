@@ -11,8 +11,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary, peekLayoutParts, preloadProductParts } from '../assembly/assemblyScene';
 import { createDimensionGroup, disposeAnnotations, setMarkerLimits } from '../assembly/annotations';
-import { createEquipmentGroup, disposeEquipmentGroup } from '../assembly/equipmentScene';
-import { canPlace, elementNameDe, equipmentKinds, findField, frontFieldId, hasKind, type EquipmentKind } from '../../domain/fieldEquipment';
+import { createEquipmentGroup, disposeEquipmentGroup, gswLayoutsFor } from '../assembly/equipmentScene';
+import { loadEquipmentParts, peekEquipmentParts, type EquipmentParts } from '../assembly/glassSlidingScene';
+import { canPlace, elementNameDe, equipmentKinds, findField, frontFieldId, hasKind, placeRefusalDe, type EquipmentKind } from '../../domain/fieldEquipment';
 import { RadialMenu, type RadialOption } from './RadialMenu';
 import { postSections } from '../../catalog/catalog';
 import { buildDimensionLines } from '../assembly/dimensions';
@@ -515,14 +516,25 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     runtime.render();
   }, [backdrop]);
 
-  // Schematic Ausstattung layer, rebuilt with every revision of the equipment or the frame.
+  // Ausstattung layer, rebuilt with every revision of the equipment or the frame. Glasschiebewand profiles
+  // load on first use; until then (or if loading fails) the translucent stand-in is shown.
   useEffect(() => {
     const runtime = runtimeRef.current;
     if (!runtime) return;
-    const previous = runtime.scene.getObjectByName('Ausstattung');
-    if (previous instanceof Group) { runtime.scene.remove(previous); disposeEquipmentGroup(previous); }
-    if (dimensions) runtime.scene.add(createEquipmentGroup(configuration));
-    runtime.render();
+    let cancelled = false;
+    const show = (parts: EquipmentParts | null) => {
+      const previous = runtime.scene.getObjectByName('Ausstattung');
+      if (previous instanceof Group) { runtime.scene.remove(previous); disposeEquipmentGroup(previous); }
+      if (dimensions) runtime.scene.add(createEquipmentGroup(configuration, parts));
+      runtime.render();
+    };
+    const layouts = gswLayoutsFor(configuration);
+    const cached = peekEquipmentParts(configuration, runtime.library, layouts);
+    show(cached);
+    if (!cached && dimensions) {
+      loadEquipmentParts(configuration, runtime.library, layouts).then((parts) => { if (!cancelled) show(parts); }).catch(() => undefined);
+    }
+    return () => { cancelled = true; };
   }, [configuration, dimensions]);
 
   useEffect(() => {
@@ -708,7 +720,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     const check = canPlace(configuration, radialField, kind);
     return check.ok ? { kind, label: elementNameDe[kind], state: 'available' as const }
       : { kind, label: elementNameDe[kind], state: 'disabled' as const,
-        note: check.reason === 'side_only' ? 'nur seitlich' : check.reason === 'field_full' ? 'Feld voll' : 'zu niedrig' };
+        note: placeRefusalDe[check.reason].replace(/^Feld /, '').replace(' (2 Elemente)', '') };
   }) : [];
   const plusField = plusAnchor && !radial ? findField(configuration, plusAnchor.fieldId) : undefined;
   const hostSize = { width: hostRef.current?.clientWidth ?? 800, height: hostRef.current?.clientHeight ?? 600 };

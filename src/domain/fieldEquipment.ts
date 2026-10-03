@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { postWidthMm } from '../catalog/catalog';
+import { postSections, postWidthMm } from '../catalog/catalog';
 import type { ConfigurationV1 } from './configuration';
 import { validatePostCenters } from './geometry/posts';
+import { checkGlassSliding, GSW_MIN_HEIGHT_MM, type GswCheck } from './glassSlidingDoor';
 
 /**
  * Ausstattung per Feld (V2 design, user decisions 2 Oct 2026). A front field lies between two posts, a side
@@ -99,12 +100,14 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
       });
     }
   }
+  // Side clear width: from the wall to the back face of the end post (owner rule, docs/Ausstatungen_Kurallar.md).
+  const sideClear = depth - postSections[configuration.productId].towardsGardenMm;
   for (const side of ['left', 'right'] as const) {
     fields.push({
       id: `side:${side}`, kind: 'side', side,
       label: side === 'left' ? 'Seite links' : 'Seite rechts',
-      detail: `Tiefe ${cm(depth)} cm`,
-      widthMm: depth, heightMm: frontHeight,
+      detail: `lichte Tiefe ${cm(sideClear)} cm`,
+      widthMm: sideClear, heightMm: frontHeight,
     });
   }
   return fields;
@@ -120,14 +123,38 @@ export function equipmentFor(configuration: ConfigurationV1, fieldId: string): F
 }
 
 /** Whether `kind` may be placed on `field`, and why not. */
+export type PlaceRefusal = 'side_only' | 'already_present' | 'field_full' | 'too_low' | 'too_narrow' | 'too_wide';
+/** Short German reason for menus and checklists. */
+export const placeRefusalDe: Record<PlaceRefusal, string> = {
+  side_only: 'nur seitlich', already_present: 'bereits gewählt', field_full: 'Feld voll (2 Elemente)',
+  too_low: 'Feld zu niedrig', too_narrow: 'Feld zu schmal (min. 120 cm)', too_wide: 'Feld zu breit (max. 596 cm)',
+};
+
 export function canPlace(configuration: ConfigurationV1, field: FieldDescriptor, kind: EquipmentKind):
-  { ok: true } | { ok: false; reason: 'side_only' | 'already_present' | 'field_full' | 'too_low' } {
+  { ok: true } | { ok: false; reason: PlaceRefusal } {
   const entry = equipmentFor(configuration, field.id);
   if (kind === 'giebeldreieck') return field.kind !== 'side' ? { ok: false, reason: 'side_only' } : entry.gable ? { ok: false, reason: 'already_present' } : { ok: true };
   if (entry.elements.some((element) => element.type === kind)) return { ok: false, reason: 'already_present' };
   if (entry.elements.length >= MAX_ELEMENTS_PER_FIELD) return { ok: false, reason: 'field_full' };
-  if (entry.elements.length === 1 && field.heightMm < 2 * MIN_SPLIT_PART_MM) return { ok: false, reason: 'too_low' };
+  // A second element needs room for itself plus the minimum of the element already there.
+  const elements = [...entry.elements, newElement(kind)];
+  if (entry.elements.length === 1 && !splitRange(field, elements)) return { ok: false, reason: 'too_low' };
+  if (kind === 'glasschiebewand') {
+    // Full height alone; in a split field the Glasschiebewand part needs its own 100 cm (checked by splitRange).
+    const check = gswCheck(field, entry.elements.length === 1 ? GSW_MIN_HEIGHT_MM : field.heightMm);
+    if (!check.ok) return check;
+  }
   return { ok: true };
+}
+
+/** Width/height check of a Glasschiebewand of `heightMm` in this field (docs/Masse.md). */
+export function gswCheck(field: Pick<FieldDescriptor, 'widthMm'>, heightMm: number): GswCheck {
+  return checkGlassSliding(field.widthMm, heightMm);
+}
+
+/** Smallest height an element may get in a split field (Glasschiebewand 100 cm, others provisional 10 cm). */
+function minPartMm(element: FieldElement | undefined): number {
+  return element?.type === 'glasschiebewand' ? GSW_MIN_HEIGHT_MM : MIN_SPLIT_PART_MM;
 }
 
 export function hasKind(configuration: ConfigurationV1, fieldId: string, kind: EquipmentKind): boolean {
@@ -139,14 +166,19 @@ export function newElement(type: FieldElementType): FieldElement {
   return type === 'glasschiebewand' ? { type, glassTone: 'klar', openingDirection: 'mittig' } : { type };
 }
 
-/** Lower-part limits of a split field; null when the field is too low to split. */
-export function splitRange(field: Pick<FieldDescriptor, 'heightMm'>): { minMm: number; maxMm: number } | null {
-  const maxMm = field.heightMm - MIN_SPLIT_PART_MM;
-  return maxMm >= MIN_SPLIT_PART_MM ? { minMm: MIN_SPLIT_PART_MM, maxMm } : null;
+/**
+ * Lower-part limits of a split field (`elements` bottom to top); null when the field is too low to split.
+ * A Glasschiebewand part keeps at least 100 cm. The 50×100 separator profile between the parts follows in the
+ * next step (owner, 3 Oct 2026) and is not deducted yet.
+ */
+export function splitRange(field: Pick<FieldDescriptor, 'heightMm'>, elements: readonly FieldElement[] = []): { minMm: number; maxMm: number } | null {
+  const minMm = minPartMm(elements[0]);
+  const maxMm = field.heightMm - minPartMm(elements[1]);
+  return maxMm >= minMm ? { minMm, maxMm } : null;
 }
 
-export function defaultLowerHeight(field: Pick<FieldDescriptor, 'heightMm'>): number | null {
-  const range = splitRange(field);
+export function defaultLowerHeight(field: Pick<FieldDescriptor, 'heightMm'>, elements: readonly FieldElement[] = []): number | null {
+  const range = splitRange(field, elements);
   if (!range) return null;
   return DEFAULT_LOWER_HEIGHT_MM >= range.minMm && DEFAULT_LOWER_HEIGHT_MM <= range.maxMm
     ? DEFAULT_LOWER_HEIGHT_MM : Math.round(field.heightMm / 20) * 10;
@@ -166,7 +198,7 @@ export function addToField(configuration: ConfigurationV1, fieldId: string, kind
   const entry = equipmentFor(configuration, fieldId);
   if (kind === 'giebeldreieck') return withEntry(configuration, { ...entry, gable: true });
   const elements = [...entry.elements, newElement(kind)];
-  return withEntry(configuration, { ...entry, elements, lowerHeightMm: elements.length === 2 ? defaultLowerHeight(field) : null });
+  return withEntry(configuration, { ...entry, elements, lowerHeightMm: elements.length === 2 ? defaultLowerHeight(field, elements) : null });
 }
 
 export function removeFromField(configuration: ConfigurationV1, fieldId: string, kind: EquipmentKind): ConfigurationV1 {
@@ -184,16 +216,30 @@ export function updateElement(configuration: ConfigurationV1, fieldId: string, t
 export function setLowerHeight(configuration: ConfigurationV1, fieldId: string, heightMm: number): ConfigurationV1 | null {
   const field = findField(configuration, fieldId);
   const entry = equipmentFor(configuration, fieldId);
-  const range = field ? splitRange(field) : null;
+  const range = field ? splitRange(field, entry.elements) : null;
   if (!range || entry.elements.length !== 2 || !Number.isFinite(heightMm)) return null;
   return withEntry(configuration, { ...entry, lowerHeightMm: Math.max(range.minMm, Math.min(range.maxMm, Math.round(heightMm))) });
 }
 
-/** Swaps upper and lower element; the lower height stays where it is. */
+/** Swaps upper and lower element; the lower height stays where it is, clamped to the new minimums. */
 export function swapElements(configuration: ConfigurationV1, fieldId: string): ConfigurationV1 {
   const entry = equipmentFor(configuration, fieldId);
-  if (entry.elements.length !== 2) return configuration;
-  return withEntry(configuration, { ...entry, elements: [entry.elements[1], entry.elements[0]] });
+  const field = findField(configuration, fieldId);
+  if (entry.elements.length !== 2 || !field) return configuration;
+  const elements = [entry.elements[1], entry.elements[0]];
+  const range = splitRange(field, elements);
+  if (!range) return configuration;
+  const lower = Math.max(range.minMm, Math.min(range.maxMm, entry.lowerHeightMm ?? range.minMm));
+  return withEntry(configuration, { ...entry, elements, lowerHeightMm: lower });
+}
+
+/** Height of each element (bottom to top) in its field. */
+export function elementHeightsMm(field: Pick<FieldDescriptor, 'heightMm'>, entry: FieldEquipment): number[] {
+  if (entry.elements.length === 2) {
+    const lower = entry.lowerHeightMm ?? field.heightMm / 2;
+    return [lower, field.heightMm - lower];
+  }
+  return entry.elements.map(() => field.heightMm);
 }
 
 /**
@@ -216,7 +262,7 @@ export function applyKindToFields(configuration: ConfigurationV1, kind: Equipmen
 }
 
 export type FieldEquipmentIssue = 'field_equipment_unknown_field' | 'field_equipment_duplicate' | 'field_equipment_gable_on_front'
-  | 'field_equipment_split_out_of_range' | 'field_equipment_duplicate_element';
+  | 'field_equipment_split_out_of_range' | 'field_equipment_duplicate_element' | 'field_equipment_gsw_size';
 
 export function validateFieldEquipment(configuration: ConfigurationV1): FieldEquipmentIssue[] {
   const issues = new Set<FieldEquipmentIssue>();
@@ -233,11 +279,15 @@ export function validateFieldEquipment(configuration: ConfigurationV1): FieldEqu
     if (entry.gable && field.kind !== 'side') issues.add('field_equipment_gable_on_front');
     if (new Set(entry.elements.map((element) => element.type)).size !== entry.elements.length) issues.add('field_equipment_duplicate_element');
     if (entry.elements.length === 2) {
-      const range = splitRange(field);
+      const range = splitRange(field, entry.elements);
       if (!range || entry.lowerHeightMm === null || entry.lowerHeightMm < range.minMm || entry.lowerHeightMm > range.maxMm) {
         issues.add('field_equipment_split_out_of_range');
       }
     }
+    const heights = elementHeightsMm(field, entry);
+    entry.elements.forEach((element, index) => {
+      if (element.type === 'glasschiebewand' && !gswCheck(field, heights[index]).ok) issues.add('field_equipment_gsw_size');
+    });
   }
   return [...issues];
 }
@@ -269,15 +319,22 @@ export function reconcileFieldEquipment(previous: ConfigurationV1, candidate: Co
       continue;
     }
     let next = entry;
-    if (entry.elements.length === 2) {
-      const range = splitRange(field);
-      if (!range) { next = { ...entry, elements: entry.elements.slice(0, 1), lowerHeightMm: null }; clamped = true; }
-      else if (entry.lowerHeightMm === null || entry.lowerHeightMm < range.minMm || entry.lowerHeightMm > range.maxMm) {
-        next = { ...entry, lowerHeightMm: Math.max(range.minMm, Math.min(range.maxMm, entry.lowerHeightMm ?? defaultLowerHeight(field) ?? range.minMm)) };
+    // A Glasschiebewand that no longer fits the new width (120–596 cm) or height is removed with a notice.
+    const fitting = entry.elements.filter((element) => element.type !== 'glasschiebewand'
+      || gswCheck(field, entry.elements.length === 2 ? GSW_MIN_HEIGHT_MM : field.heightMm).ok);
+    if (fitting.length !== entry.elements.length) {
+      dropped.push(`${field.label}: Glasschiebewand`);
+      next = { ...entry, elements: fitting, lowerHeightMm: null };
+    }
+    if (next.elements.length === 2) {
+      const range = splitRange(field, next.elements);
+      if (!range) { next = { ...next, elements: next.elements.slice(0, 1), lowerHeightMm: null }; clamped = true; }
+      else if (next.lowerHeightMm === null || next.lowerHeightMm < range.minMm || next.lowerHeightMm > range.maxMm) {
+        next = { ...next, lowerHeightMm: Math.max(range.minMm, Math.min(range.maxMm, next.lowerHeightMm ?? defaultLowerHeight(field, next.elements) ?? range.minMm)) };
         clamped = true;
       }
     }
-    kept.push(next);
+    if (next.elements.length || next.gable) kept.push(next);
   }
   if (!dropped.length && !clamped) return { configuration: candidate, dropped, clamped };
   return { configuration: { ...candidate, fieldEquipment: kept }, dropped, clamped };

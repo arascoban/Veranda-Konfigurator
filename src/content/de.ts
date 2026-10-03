@@ -55,4 +55,5 @@ export const issueTextDe: Record<string, string> = {
   field_equipment_gable_on_front: 'Ein Giebeldreieck ist nur an den Seiten möglich.',
   field_equipment_split_out_of_range: 'Die Aufteilung eines Feldes liegt außerhalb der zulässigen Höhe.',
   field_equipment_duplicate_element: 'Ein Element ist in einem Feld doppelt gewählt.',
+  field_equipment_gsw_size: 'Eine Glasschiebewand braucht ein Feld von 120 bis 596 cm lichter Weite und mindestens 100 cm Höhe.',
 };

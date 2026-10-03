@@ -4,7 +4,9 @@ import {
 } from 'three';
 import { frameColors, postSections, postWidthMm } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
-import { listFields, type FieldElement } from '../../domain/fieldEquipment';
+import { elementHeightsMm, gswCheck, listFields, type FieldElement } from '../../domain/fieldEquipment';
+import type { GswLayout } from '../../domain/glassSlidingDoor';
+import { buildGlassSlidingWall, createGswMaterials, hasGswParts, type EquipmentParts } from './glassSlidingScene';
 
 type Point = [number, number, number];
 
@@ -16,12 +18,29 @@ const elementLook = {
   gable: { color: 0xd3e4ee, opacity: 0.35 },
 } as const;
 
+/** Glasschiebewand layout of each element of a field (null for other elements or when it does not fit). */
+export function gswLayoutsFor(configuration: ConfigurationV1): (fieldId: string) => (GswLayout | null)[] {
+  const fields = new Map(listFields(configuration).map((field) => [field.id, field]));
+  return (fieldId) => {
+    const field = fields.get(fieldId);
+    const entry = configuration.fieldEquipment.find((item) => item.fieldId === fieldId);
+    if (!field || !entry) return [];
+    const heights = elementHeightsMm(field, entry);
+    return entry.elements.map((element, index) => {
+      if (element.type !== 'glasschiebewand') return null;
+      const check = gswCheck(field, heights[index]);
+      return check.ok ? check.layout : null;
+    });
+  };
+}
+
 /**
- * Schematic Ausstattung layer (V2): one translucent panel per element in its field, framed in the frame
+ * Ausstattung layer (V2). Glasschiebewand: the real profiles and glass when `parts` are loaded (3 Oct 2026),
+ * otherwise a translucent stand-in. Other elements stay schematic until their models are built: one translucent panel per element in its field, framed in the frame
  * colour, with the split line where a field holds two elements. Front fields sit in the post centre plane
  * between the post faces, sides between the wall and the end post. Not a product model; never picked.
  */
-export function createEquipmentGroup(configuration: ConfigurationV1): Group {
+export function createEquipmentGroup(configuration: ConfigurationV1, parts?: EquipmentParts | null): Group {
   const group = new Group();
   group.name = 'Ausstattung';
   group.userData.equipment = true;
@@ -43,6 +62,8 @@ export function createEquipmentGroup(configuration: ConfigurationV1): Group {
     }
     return found;
   };
+  const gswMaterials = createGswMaterials(frameHex);
+  const layoutsFor = gswLayoutsFor(configuration);
   const lookFor = (element: FieldElement) => {
     switch (element.type) {
       case 'glasschiebewand': { const look = elementLook.glasschiebewand[element.glassTone ?? 'klar']; return material(`gsw-${element.glassTone ?? 'klar'}`, look.color, look.opacity); }
@@ -85,12 +106,31 @@ export function createEquipmentGroup(configuration: ConfigurationV1): Group {
           material('gable', elementLook.gable.color, elementLook.gable.opacity));
       }
     }
-    if (entry.elements.length === 1) addPolygon(band(0, frontHeight), lookFor(entry.elements[0]));
-    else if (entry.elements.length === 2) {
-      const lower = entry.lowerHeightMm ?? frontHeight / 2;
-      addPolygon(band(0, lower), lookFor(entry.elements[0]));
-      addPolygon(band(lower, frontHeight), lookFor(entry.elements[1]));
-    }
+    const heights = elementHeightsMm(field, entry);
+    const layouts = layoutsFor(field.id);
+    let base = 0;
+    entry.elements.forEach((element, index) => {
+      const height = heights[index];
+      const layout = layouts[index];
+      if (element.type === 'glasschiebewand' && layout && hasGswParts(parts, layout)) {
+        const wall = buildGlassSlidingWall(parts, gswMaterials, { lengthMm: field.widthMm, heightMm: height, layout, element, leavesFromGardenLeft: field.kind === 'front' ? false : field.side === 'right' });
+        const depthMm = wall.userData.depthMm as number;
+        if (field.kind === 'front') {
+          // Between the post faces, centred on the post depth (owner decision 3 Oct 2026).
+          const index = field.insideIndex!;
+          wall.position.set((posts[index].xMm + half) / 1000, base / 1000, (frontZ - depthMm / 2) / 1000);
+        } else {
+          // From the wall to the back face of the end post, centred on the post width; local X runs to the garden.
+          const centre = field.side === 'left' ? posts[posts.length - 1].xMm : posts[0].xMm;
+          wall.rotation.y = Math.PI / 2;
+          wall.position.set((centre - depthMm / 2) / 1000, base / 1000, 0);
+        }
+        group.add(wall);
+      } else {
+        addPolygon(band(base, base + height), lookFor(element));
+      }
+      base += height;
+    });
   }
   return group;
 }
@@ -100,7 +140,8 @@ export function disposeEquipmentGroup(group: Group): void {
   group.traverse((object) => {
     if (!('geometry' in object && 'material' in object)) return;
     const drawable = object as Mesh;
-    drawable.geometry.dispose();
+    // Profile geometry belongs to the part library cache.
+    if (!object.userData.sharedAsset) drawable.geometry.dispose();
     for (const item of Array.isArray(drawable.material) ? drawable.material : [drawable.material]) materials.add(item);
   });
   for (const item of materials) {
