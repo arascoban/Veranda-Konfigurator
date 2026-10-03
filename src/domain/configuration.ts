@@ -4,7 +4,7 @@ import { CATALOG_VERSION, DEFAULT_SLOPE_DEGREES, products, roofFinishes, roofMat
 
 const roofFinishIds = Object.keys(roofFinishes) as [keyof typeof roofFinishes, ...(keyof typeof roofFinishes)[]];
 import { createMinimumPostLayout } from './geometry/posts';
-import { fieldEquipmentSchema } from './fieldEquipment';
+import { fieldEquipmentSchema, sideLayoutSchema } from './fieldEquipment';
 import { rearHeightForSlope } from './geometry/slope';
 
 const nullableMillimetres = z.number().int().safe().nullable();
@@ -55,6 +55,8 @@ export const configurationV1Schema = z.object({
   ledControl: z.enum(['schaltbar', 'dimmbar']).default('schaltbar'),
   /** Ausstattung per front/side field (V2, 2 Oct 2026); older drafts open without equipment. */
   fieldEquipment: z.array(fieldEquipmentSchema).default([]),
+  /** Giebeldreieck and 50×100 division per side (3 Oct 2026); missing sides are open and undivided. */
+  sideLayouts: z.array(sideLayoutSchema).max(2).default([]),
 }).strict();
 
 export type ConfigurationV1 = z.infer<typeof configurationV1Schema>;
@@ -71,7 +73,7 @@ export function parseConfiguration(raw: unknown): ParseConfigurationResult {
   if (candidate.schemaVersion !== 1 || candidate.catalogVersion !== CATALOG_VERSION) {
     return { ok: false, reason: 'unsupported_version', details: ['version'] };
   }
-  const parsed = configurationV1Schema.safeParse(raw);
+  const parsed = configurationV1Schema.safeParse(migrateGables(candidate));
   if (!parsed.success) {
     return {
       ok: false,
@@ -84,6 +86,24 @@ export function parseConfiguration(raw: unknown): ParseConfigurationResult {
     return { ok: false, reason: 'invalid', details: ['postCenters.duplicate_id'] };
   }
   return { ok: true, configuration: parsed.data };
+}
+
+/**
+ * Drafts saved before 3 Oct 2026 kept `gable: true` on the side field; it becomes the side's Giebeldreieck. Those
+ * drafts showed a clear glass triangle, so they open with "Glas Klar".
+ */
+function migrateGables(candidate: Record<string, unknown>): Record<string, unknown> {
+  const entries = candidate.fieldEquipment;
+  if (!Array.isArray(entries) || !entries.some((entry) => entry && typeof entry === 'object' && 'gable' in entry)) return candidate;
+  const sideLayouts = Array.isArray(candidate.sideLayouts) ? [...candidate.sideLayouts] : [];
+  const fieldEquipment = entries.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || !('gable' in entry)) return [entry];
+    const { gable, ...rest } = entry as Record<string, unknown>;
+    const side = /^side:(left|right)$/.exec(String(rest.fieldId))?.[1];
+    if (gable === true && side && !sideLayouts.some((layout) => layout?.side === side)) sideLayouts.push({ side, gable: 'glas_klar', dividersMm: [] });
+    return Array.isArray(rest.elements) && rest.elements.length === 0 ? [] : [rest];
+  });
+  return { ...candidate, fieldEquipment, sideLayouts };
 }
 
 export function createEmptyConfiguration(): ConfigurationV1 {
@@ -105,6 +125,7 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     ledPerRafter: 0,
     ledControl: 'schaltbar',
     fieldEquipment: [],
+    sideLayouts: [],
   };
 }
 

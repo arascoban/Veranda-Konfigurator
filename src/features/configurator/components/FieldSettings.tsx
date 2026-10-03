@@ -2,9 +2,10 @@ import { useRef, useState } from 'react';
 import { frameColors } from '../../../catalog/catalog';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import {
-  addToField, canPlace, elementNameDe, equipmentFor, fieldElementTypes, glassToneDe, glassTones, listFields, MIN_SPLIT_PART_MM,
-  elementHeightsMm, gswCheck, openingDirectionDe, openingOf, openingDirections, placeRefusalDe, removeFromField, setLowerHeight, splitRange, swapElements, updateElement,
-  type EquipmentKind, type FieldDescriptor, type FieldElement,
+  addToField, BEAM_MM, canPlace, dividerRange, divideSide, elementNameDe, equipmentFor, fieldElementTypes, gableVariantDe, gableVariants, glassToneDe,
+  glassTones, listFields, MAX_SIDE_PARTS, MIN_SIDE_PART_MM, MIN_SPLIT_PART_MM, elementHeightsMm, gswCheck, openingDirectionDe, openingOf,
+  openingDirections, placeRefusalDe, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf, sideOfField, splitHorizontally, splitRange,
+  swapElements, updateElement, type EquipmentKind, type FieldDescriptor, type FieldElement, type GableVariant,
 } from '../../../domain/fieldEquipment';
 import { EquipmentIcon } from '../../../ui/EquipmentIcon';
 import { InfoTip } from '../../../ui/InfoTip';
@@ -13,6 +14,10 @@ import { DimensionField } from './DimensionField';
 const numberDe = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 const cm = (mm: number) => numberDe.format(mm / 10);
 const glassSwatch = { klar: 'rgba(211,228,238,.8)', getoent: 'rgba(63,71,77,.6)' } as const;
+const gableSwatch: Record<GableVariant, string> = {
+  aluminium: 'repeating-linear-gradient(0deg, #4a5055 0 6px, #383e42 6px 7px)', glas_klar: 'rgba(211,228,238,.8)', glas_milch: '#eef0ef',
+  glas_getoent: 'rgba(63,71,77,.6)', poly_opal: '#f3efe4', poly_klar: 'rgba(221,232,238,.9)', poly_bronze: '#5a524c',
+};
 
 /** Feld section (V2): list of front and side fields, or the detail of the selected field. */
 export function FieldSettings({ configuration, onChange, selectedFieldId, onSelectField }: {
@@ -22,7 +27,9 @@ export function FieldSettings({ configuration, onChange, selectedFieldId, onSele
   onSelectField: (fieldId: string | null) => void;
 }) {
   const fields = listFields(configuration);
-  const selected = fields.find((field) => field.id === selectedFieldId);
+  // After "Feld unterteilen" the side's ids change: stay on the same side (its first part, or the whole side).
+  const selected = fields.find((field) => field.id === selectedFieldId)
+    ?? fields.find((field) => selectedFieldId?.startsWith('side:') && field.side === sideOfField(selectedFieldId) && (field.partIndex ?? 1) === 1);
   if (selected) return <FieldDetail key={selected.id} configuration={configuration} field={selected} onChange={onChange} onBack={() => onSelectField(null)} />;
   if (!fields.length) return <p className="v2-hint">Bitte zuerst gültige Maße festlegen.</p>;
   const groups = [
@@ -36,11 +43,12 @@ export function FieldSettings({ configuration, onChange, selectedFieldId, onSele
           <h3 className="v2-group__title">{group.title}</h3>
           {group.rows.map((field) => {
             const entry = equipmentFor(configuration, field.id);
-            const names = [...entry.elements.map((element) => elementNameDe[element.type]), ...(entry.gable ? [elementNameDe.giebeldreieck] : [])];
+            const gable = field.side ? sideLayoutOf(configuration, field.side).gable : null;
+            const names = [...entry.elements.map((element) => elementNameDe[element.type]), ...(gable && (field.partIndex ?? 1) === 1 ? [`Giebel ${gableVariantDe[gable]}`] : [])];
             return (
               <button key={field.id} type="button" className="v2-field-row" onClick={() => onSelectField(field.id)}>
                 <span className="v2-row-text"><strong>{field.label}</strong>
-                  <small>{field.kind === 'side' ? `${field.detail} · mit Giebeldreieck möglich` : field.detail}</small></span>
+                  <small>{field.detail}</small></span>
                 <span className="v2-field-row__status">{names.length ? names.join(' + ') : 'Leer'}</span>
                 <span className="v2-square-button" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14m-7-7h14" /></svg>
@@ -50,7 +58,7 @@ export function FieldSettings({ configuration, onChange, selectedFieldId, onSele
           })}
         </div>
       ))}
-      <p className="v2-hint">Bis zu 2 Elemente je Feld, zum Beispiel unten Aluminiumwand und oben Seitenwand lichtdurchlässig. Dachfelder werden im Bereich Dach eingestellt.</p>
+      <p className="v2-hint">Bis zu 2 Elemente je Feld, dazwischen ein 50×100-Profil. Seiten lassen sich im Feld in bis zu 3 Teile teilen. Dachfelder werden im Bereich Dach eingestellt.</p>
     </div>
   );
 }
@@ -69,7 +77,8 @@ function FieldDetail({ configuration, field, onChange, onBack }: {
   const gsw = elements.find((element) => element.type === 'glasschiebewand');
   const commit = (next: ConfigurationV1 | null) => { if (next) onChange(next); };
   const positionText = (index: number) => elements.length === 1 ? `Ganze Höhe · ${cm(field.heightMm)} cm`
-    : index === 0 ? `Unten · ${cm(lower)} cm` : `Oben · ${cm(field.heightMm - lower)} cm`;
+    : index === 0 ? `Unten · ${cm(lower)} cm` : `Oben · ${cm(field.heightMm - lower - BEAM_MM)} cm`;
+  const horizontal = splitHorizontally(configuration, field.id);
 
   return (
     <div className="v2-field-detail">
@@ -105,17 +114,14 @@ function FieldDetail({ configuration, field, onChange, onBack }: {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14m-7-7h14" /></svg>
           Zweites Element hinzufügen
         </button>)}
-
-      {field.kind === 'side' && (
-        <label className={`v2-check-row ${entry.gable ? 'v2-check-row--on' : ''}`}>
-          <input type="checkbox" checked={entry.gable}
-            onChange={() => onChange(entry.gable ? removeFromField(configuration, field.id, 'giebeldreieck') : addToField(configuration, field.id, 'giebeldreieck') ?? configuration)} />
-          <span className="v2-check-row__box" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6" /></svg>
-          </span>
-          <span className="v2-row-text"><strong>Giebeldreieck</strong><small>Dreieck zwischen Seitenwand und Dach</small></span>
-        </label>
+      {horizontal && (
+        <button type="button" className="v2-dashed-button" onClick={() => onChange(horizontal)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1.5" /><path d="M4 13h16" /></svg>
+          Horizontal teilen (unten Aluminiumwand)
+        </button>
       )}
+
+      {field.kind === 'side' && <SideSettings configuration={configuration} field={field} onChange={onChange} />}
 
       {elements.length === 2 && <SplitEditor configuration={configuration} field={field} elements={elements} lowerMm={lower} onChange={onChange} />}
 
@@ -131,6 +137,67 @@ function FieldDetail({ configuration, field, onChange, onBack }: {
           {openSettings === element.type && <p className="v2-hint">Ausführung, Farben und Maße folgen, sobald dieses Element freigegeben ist. Profilfarbe wie Rahmen ({frameColors[configuration.frameColor].ral}).</p>}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Giebeldreieck (rules 1, 3, 4) and "Feld unterteilen" (rule 2) of the side this field belongs to. */
+function SideSettings({ configuration, field, onChange }: {
+  configuration: ConfigurationV1; field: FieldDescriptor; onChange: (next: ConfigurationV1) => void;
+}) {
+  const side = field.side!;
+  const layout = sideLayoutOf(configuration, side);
+  const sideName = side === 'left' ? 'Seite links' : 'Seite rechts';
+  const parts = listFields(configuration).filter((item) => item.kind === 'side' && item.side === side);
+  const counts = Array.from({ length: MAX_SIDE_PARTS }, (_, index) => index + 1);
+  return (
+    <div className="v2-stack">
+      <div className="v2-subhead"><h3>Giebeldreieck</h3><span>{sideName}</span></div>
+      <label className={`v2-check-row ${layout.gable ? 'v2-check-row--on' : ''}`}>
+        <input type="checkbox" checked={layout.gable !== null}
+          onChange={() => onChange(layout.gable ? removeFromField(configuration, field.id, 'giebeldreieck') : addToField(configuration, field.id, 'giebeldreieck') ?? configuration)} />
+        <span className="v2-check-row__box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6" /></svg>
+        </span>
+        <span className="v2-row-text"><strong>Giebeldreieck</strong>
+          <small>Pflicht, sobald die Seite unten ausgestattet oder geteilt ist; darunter immer ein 50×100-Profil</small></span>
+      </label>
+      {layout.gable && (
+        <div className="v2-tone-grid v2-tone-grid--three" role="radiogroup" aria-label="Ausführung Giebeldreieck">
+          {gableVariants.map((variant) => (
+            <button key={variant} type="button" role="radio" aria-checked={layout.gable === variant} className="v2-tone-card"
+              onClick={() => onChange(setGable(configuration, side, variant))}>
+              <span className="v2-tone-card__disc" style={{ background: gableSwatch[variant] }} aria-hidden="true" />
+              {gableVariantDe[variant]}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="v2-subhead"><h3>Feld unterteilen</h3><span>mit 50×100</span></div>
+      <div className="v2-segmented" role="radiogroup" aria-label="Teile dieser Seite">
+        {counts.map((count) => {
+          const next = count === parts.length ? null : divideSide(configuration, side, count);
+          return (
+            <button key={count} type="button" role="radio" aria-checked={parts.length === count} disabled={count !== parts.length && !next}
+              onClick={() => { if (next) onChange(next); }}>
+              {count === 1 ? 'Ungeteilt' : `${count} Teile`}
+            </button>
+          );
+        })}
+      </div>
+      {layout.dividersMm.map((centre, index) => {
+        const range = dividerRange(configuration, side, index);
+        const part = parts[index];
+        if (!range || !part) return null;
+        // The customer types the clear width of the part on the wall side of this divider.
+        const startOf = part.startMm ?? 0;
+        return (
+          <DimensionField key={index} label={`Teil ${index + 1} · lichte Breite`} valueMm={Math.round(centre - BEAM_MM / 2 - startOf)}
+            minimumMm={range.minMm - BEAM_MM / 2 - startOf} maximumMm={range.maxMm - BEAM_MM / 2 - startOf}
+            onValueChange={(value) => { if (value !== null) { const next = setDivider(configuration, side, index, startOf + value + BEAM_MM / 2); if (next) onChange(next); } }} />
+        );
+      })}
+      {layout.dividersMm.length > 0 && <p className="v2-hint">Gleich geteilt; die 50×100-Profile lassen sich im Modell ziehen oder hier einstellen. Jeder Teil mindestens {cm(MIN_SIDE_PART_MM)} cm und ein eigenes Feld.</p>}
     </div>
   );
 }
@@ -191,6 +258,7 @@ function SplitEditor({ configuration, field, elements, lowerMm: savedLowerMm, on
   const range = splitRange(field, elements);
   const lowerMm = draftMm ?? savedLowerMm;
   const lowerShare = Math.max(0, Math.min(1, lowerMm / field.heightMm));
+  const beamShare = BEAM_MM / field.heightMm;
   const setFromPointer = (clientY: number) => {
     const box = sketchRef.current?.getBoundingClientRect();
     if (!box || !range) return;
@@ -213,9 +281,9 @@ function SplitEditor({ configuration, field, elements, lowerMm: savedLowerMm, on
           onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setFromPointer(event.clientY); }}
           onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) setFromPointer(event.clientY); }}
           onPointerUp={finishDrag} onPointerCancel={() => setDraftMm(null)}>
-          <div className="v2-split__part" style={{ top: 0, height: `${(1 - lowerShare) * 100}%`, background: fill(elements[1]) }} />
+          <div className="v2-split__part" style={{ top: 0, height: `${(1 - lowerShare - beamShare) * 100}%`, background: fill(elements[1]) }} />
           <div className="v2-split__part" style={{ bottom: 0, height: `${lowerShare * 100}%`, background: fill(elements[0]) }} />
-          <div className="v2-split__line" style={{ top: `${(1 - lowerShare) * 100}%` }}>
+          <div className="v2-split__line" style={{ top: `${(1 - lowerShare - beamShare / 2) * 100}%` }}>
             <span className="v2-split__handle" role="slider" tabIndex={0} aria-label="Höhe unten"
               aria-valuemin={(range?.minMm ?? MIN_SPLIT_PART_MM) / 10} aria-valuemax={(range?.maxMm ?? field.heightMm) / 10} aria-valuenow={lowerMm / 10}
               onKeyDown={(event) => {
@@ -230,11 +298,11 @@ function SplitEditor({ configuration, field, elements, lowerMm: savedLowerMm, on
         <div className="v2-split__fields">
           <div className="v2-stack v2-stack--tight">
             <span className="v2-label">Oben · {shortName(elements[1].type)}</span>
-            <output className="v2-readonly-value">{cm(field.heightMm - lowerMm)} <small>cm</small></output>
+            <output className="v2-readonly-value">{cm(field.heightMm - lowerMm - BEAM_MM)} <small>cm</small></output>
           </div>
           <DimensionField label={`Unten · ${shortName(elements[0].type)}`} valueMm={lowerMm} minimumMm={range?.minMm} maximumMm={range?.maxMm}
             onValueChange={(value) => { if (value !== null) { const next = setLowerHeight(configuration, field.id, value); if (next) onChange(next); } }} />
-          <p className="v2-hint">Linie ziehen oder Höhe eingeben. Gesamthöhe am Feld {cm(field.heightMm)} cm. {elements.some((element) => element.type === 'glasschiebewand') ? 'Glasschiebewand mindestens 100 cm, anderer Teil mindestens ' : 'Mindestens '}{cm(MIN_SPLIT_PART_MM)} cm (vorläufig).</p>
+          <p className="v2-hint">50×100 im Modell oder hier ziehen, oder Höhe eingeben. Gesamthöhe am Feld {cm(field.heightMm)} cm, davon 5 cm 50×100. {elements.some((element) => element.type === 'glasschiebewand') ? 'Glasschiebewand mindestens 100 cm über dem 50×100, anderer Teil mindestens ' : 'Mindestens '}{cm(MIN_SPLIT_PART_MM)} cm (vorläufig).</p>
         </div>
       </div>
     </div>

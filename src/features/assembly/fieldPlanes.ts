@@ -1,3 +1,4 @@
+import type { SideFieldSpan } from './placements';
 import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry, type Object3D } from 'three';
 
 /**
@@ -5,7 +6,7 @@ import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry, type Object3D } fro
  * (`openingIndex`, inside-left order) and one per side between the wall and the end post (`sideField`,
  * garden view: the garden-left side lies at the inside x = W end). The viewer tints them on hover/selection.
  */
-export function createFieldPickPlanes(postCentersM: readonly number[], depthM: number, frontHeightM: number): Object3D[] {
+export function createFieldPickPlanes(postCentersM: readonly number[], depthM: number, frontHeightM: number, sideFields?: readonly SideFieldSpan[]): Object3D[] {
   const sorted = [...postCentersM].sort((a, b) => a - b);
   const material = () => new MeshBasicMaterial({ color: 0x2f9dff, transparent: true, opacity: 0, depthWrite: false, side: DoubleSide });
   const planes: Object3D[] = [];
@@ -18,7 +19,19 @@ export function createFieldPickPlanes(postCentersM: readonly number[], depthM: n
     field.userData.exportable = false;
     planes.push(field);
   }
-  if (sorted.length >= 2) {
+  if (sorted.length >= 2 && sideFields?.length) {
+    // Side parts (3 Oct 2026): one plane per part of a side divided by 50×100 profiles, up to the side field height.
+    for (const span of sideFields) {
+      const field = new Mesh(new PlaneGeometry(span.widthMm / 1000, span.heightMm / 1000), material());
+      field.rotation.y = Math.PI / 2;
+      const x = span.side === 'right' ? sorted[0] - 0.003 : sorted[sorted.length - 1] + 0.003;
+      field.position.set(x, span.heightMm / 2000, -(span.startMm + span.widthMm / 2) / 1000);
+      field.userData.sideField = span.side;
+      field.userData.fieldId = span.fieldId;
+      field.userData.exportable = false;
+      planes.push(field);
+    }
+  } else if (sorted.length >= 2) {
     for (const [side, x, offset] of [['right', sorted[0], -0.003], ['left', sorted[sorted.length - 1], 0.003]] as const) {
       const field = new Mesh(new PlaneGeometry(depthM, frontHeightM), material());
       field.rotation.y = Math.PI / 2;

@@ -11,9 +11,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary, peekLayoutParts, preloadProductParts } from '../assembly/assemblyScene';
 import { createDimensionGroup, disposeAnnotations, setMarkerLimits } from '../assembly/annotations';
-import { createEquipmentGroup, disposeEquipmentGroup, gswLayoutsFor } from '../assembly/equipmentScene';
+import { beamHandleKey, createEquipmentGroup, disposeEquipmentGroup, gswLayoutsFor, type BeamHandle } from '../assembly/equipmentScene';
 import { loadEquipmentParts, peekEquipmentParts, type EquipmentParts } from '../assembly/glassSlidingScene';
-import { canPlace, elementNameDe, equipmentKinds, findField, frontFieldId, hasKind, placeRefusalDe, type EquipmentKind } from '../../domain/fieldEquipment';
+import {
+  canPlace, elementNameDe, equipmentKinds, findField, frontFieldId, hasKind, placeRefusalDe, setDivider, setLowerHeight, sideLayoutOf, type EquipmentKind,
+} from '../../domain/fieldEquipment';
 import { RadialMenu, type RadialOption } from './RadialMenu';
 import { postSections } from '../../catalog/catalog';
 import { buildDimensionLines } from '../assembly/dimensions';
@@ -26,6 +28,8 @@ import { createSchematicGroup, disposeSchematicGroup } from './schematicGeometry
 import './styles.css';
 
 type ViewerRuntime = {
+  /** Tint state of the 50×100 handles, re-applied after the Ausstattung layer is rebuilt. */
+  beamMarks?: { active: string | null; hovered: string | null };
   scene: Scene;
   camera: PerspectiveCamera;
   renderer: WebGLRenderer;
@@ -79,7 +83,7 @@ const highQualityAvailable = () => typeof window !== 'undefined'
 export type ProductModelStatus = 'loading' | 'ready' | 'missing' | 'error';
 
 export function PreviewViewer({ configuration, resetViewToken = 0, view = { preset: '3d', token: 0 }, backdrop = 'studio', showDimensions = false, selectedPostId = null, onSelectPost, selectedRoofField = null, onSelectRoofField,
-  selectedFieldId = null, onSelectField, highlightFieldIds = [], onFieldPick, onPostCentersChange, onSceneStatusChange, onProductModelStatusChange,
+  selectedFieldId = null, onSelectField, highlightFieldIds = [], onFieldPick, onPostCentersChange, onConfigurationChange, onSceneStatusChange, onProductModelStatusChange,
   interactive = true }: {
   configuration: ConfigurationV1;
   /** false: look only (AR page) — no post dragging, field menu or quality menu. */
@@ -104,6 +108,8 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
   selectedRoofField?: number | null;
   onSelectRoofField?: (index: number | null) => void;
   onPostCentersChange?: (posts: PostCenter[]) => void;
+  /** A 50×100 dragged in the model: the split height of a field or a side divider (3 Oct 2026). */
+  onConfigurationChange?: (next: ConfigurationV1) => void;
   onSceneStatusChange?: (status: 'loading' | 'ready' | 'missing' | 'error') => void;
   /** Real product parts: missing while the schematic stands in, ready once the GLB assembly is shown. */
   onProductModelStatusChange?: (status: ProductModelStatus) => void;
@@ -114,10 +120,13 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
   const [sceneStatus, setSceneStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   // Latest callbacks live in a ref so the pointer handlers are not torn down (and an active drag lost)
   // just because the parent re-rendered with new function identities (ASTRA-GP-02).
-  const callbacks = useRef({ onSelectPost, onSelectRoofField, onPostCentersChange, onSelectField });
-  callbacks.current = { onSelectPost, onSelectRoofField, onPostCentersChange, onSelectField };
+  const callbacks = useRef({ onSelectPost, onSelectRoofField, onPostCentersChange, onSelectField, onConfigurationChange });
+  callbacks.current = { onSelectPost, onSelectRoofField, onPostCentersChange, onSelectField, onConfigurationChange };
   const setSelectedPostId = (postId: string | null) => callbacks.current.onSelectPost?.(postId);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
+  /** 50×100 under the pointer and the one being dragged (`beamHandleKey`). */
+  const [hoveredBeam, setHoveredBeam] = useState<string | null>(null);
+  const [activeBeam, setActiveBeam] = useState<string | null>(null);
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   /** Screen anchor (viewer pixels) of the "+" over the hovered field. */
   const [plusAnchor, setPlusAnchor] = useState<{ fieldId: string; x: number; y: number } | null>(null);
@@ -518,18 +527,18 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     runtime.render();
   }, [backdrop]);
 
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+    if (runtime) markBeams(runtime, activeBeam, hoveredBeam);
+  }, [activeBeam, hoveredBeam]);
+
   // Ausstattung layer, rebuilt with every revision of the equipment or the frame. Glasschiebewand profiles
   // load on first use; until then (or if loading fails) the translucent stand-in is shown.
   useEffect(() => {
     const runtime = runtimeRef.current;
     if (!runtime) return;
     let cancelled = false;
-    const show = (parts: EquipmentParts | null) => {
-      const previous = runtime.scene.getObjectByName('Ausstattung');
-      if (previous instanceof Group) { runtime.scene.remove(previous); disposeEquipmentGroup(previous); }
-      if (dimensions) runtime.scene.add(createEquipmentGroup(configuration, parts));
-      runtime.render();
-    };
+    const show = (parts: EquipmentParts | null) => replaceEquipment(runtime, dimensions ? configuration : null, parts);
     const layouts = gswLayoutsFor(configuration);
     const cached = peekEquipmentParts(configuration, runtime.library, layouts);
     show(cached);
@@ -549,6 +558,27 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     const dragPlane = new Plane(new Vector3(0, 0, 1), dimensions.depthM);
     let drag: { pointerId: number; index: number; initialMm: number; currentMm: number; started: boolean; startX: number } | null = null;
     let press: { x: number; y: number } | null = null;
+    // 50×100 drag (rules 2 and 7): the split line moves up/down, a side divider along the side; the equipment
+    // layer follows live and one revision is recorded on release.
+    let beamDrag: { pointerId: number; handle: BeamHandle; plane: Plane; grabMm: number; startMm: number; startY: number; startX: number; started: boolean; next: ConfigurationV1 | null } | null = null;
+    const pickTargets = () => {
+      const equipment = runtime.scene.getObjectByName('Ausstattung');
+      return equipment ? [...runtime.group!.children, equipment] : runtime.group!.children;
+    };
+
+    const frontZM = -(dimensions.depthM - postSections[configuration.productId].towardsGardenMm / 2000);
+    const sidePostXM = (side: 'left' | 'right') => (side === 'left' ? posts[posts.length - 1].xMm : posts[0].xMm) / 1000;
+    /** Current value of a handle (mm): lower part height or divider centre from the wall. */
+    const beamValue = (handle: BeamHandle) => handle.kind === 'split'
+      ? configuration.fieldEquipment.find((entry) => entry.fieldId === handle.fieldId)?.lowerHeightMm ?? 0
+      : sideLayoutOf(configuration, handle.side).dividersMm[handle.index] ?? 0;
+    const beamPlane = (handle: BeamHandle): Plane | null => {
+      if (handle.kind === 'divider') return new Plane(new Vector3(1, 0, 0), -sidePostXM(handle.side));
+      const field = findField(configuration, handle.fieldId);
+      if (!field) return null;
+      return field.kind === 'front' ? new Plane(new Vector3(0, 0, 1), -frontZM) : new Plane(new Vector3(1, 0, 0), -sidePostXM(field.side!));
+    };
+    const beamAt = (handle: BeamHandle, hit: Vector3) => handle.kind === 'split' ? hit.y * 1000 : -hit.z * 1000;
     const setRay = (event: PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
       pointer.set(((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -565,10 +595,25 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
       if (event.button !== 0 || !runtime.group) return;
       setRay(event);
       press = { x: event.clientX, y: event.clientY };
-      const hits = raycaster.intersectObjects(runtime.group.children, true);
-      // Nearest selectable thing wins: a post, a roof field (Dach section) or a field between posts.
-      const nearest = hits.find((entry) => isPickable(entry.object.userData));
+      // Nearest selectable thing wins: a post, a 50×100, a roof field (Dach section) or a field between posts.
+      const nearest = pickNearest(raycaster.intersectObjects(pickTargets(), true));
       if (!nearest) return;
+      if (nearest.object.userData.beamHandle) {
+        const handle = nearest.object.userData.beamHandle as BeamHandle;
+        const plane = beamPlane(handle);
+        const hit = plane && raycaster.ray.intersectPlane(plane, new Vector3());
+        if (!plane || !hit) return;
+        setRadial(null);
+        setPlusAnchor(null);
+        const startMm = beamValue(handle);
+        beamDrag = { pointerId: event.pointerId, handle, plane, grabMm: beamAt(handle, hit) - startMm, startMm, startX: event.clientX, startY: event.clientY, started: false, next: null };
+        setActiveBeam(beamHandleKey(handle));
+        runtime.controls.enabled = false;
+        canvas.setPointerCapture(event.pointerId);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (Number.isInteger(nearest.object.userData.roofFieldIndex)) {
         setSelectedPostId(null);
         callbacks.current.onSelectField?.(null);
@@ -598,12 +643,42 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     };
     const onPointerMove = (event: PointerEvent) => {
       if (!runtime.group) return;
-      if (!drag) {
-        // Hover feedback: a post or a field under the pointer is highlighted.
+      if (beamDrag) {
+        if (event.pointerId !== beamDrag.pointerId) return;
+        if (!beamDrag.started) {
+          if (Math.hypot(event.clientX - beamDrag.startX, event.clientY - beamDrag.startY) < 4) return;
+          beamDrag.started = true;
+        }
         setRay(event);
-        const hits = raycaster.intersectObjects(runtime.group.children, true);
-        const nearest = hits.find((entry) => isPickable(entry.object.userData));
+        const hit = raycaster.ray.intersectPlane(beamDrag.plane, new Vector3());
+        if (!hit) return;
+        const handle = beamDrag.handle;
+        const wanted = Math.round((beamAt(handle, hit) - beamDrag.grabMm) / 10) * 10;
+        const next = handle.kind === 'split' ? setLowerHeight(configuration, handle.fieldId, wanted) : setDivider(configuration, handle.side, handle.index, wanted);
+        if (!next || (beamDrag.next && JSON.stringify(next.fieldEquipment) === JSON.stringify(beamDrag.next.fieldEquipment)
+          && JSON.stringify(next.sideLayouts) === JSON.stringify(beamDrag.next.sideLayouts))) return;
+        beamDrag.next = next;
+        replaceEquipment(runtime, next, peekEquipmentParts(next, runtime.library, gswLayoutsFor(next)));
+        markBeams(runtime, beamHandleKey(handle), null);
+        event.preventDefault();
+        return;
+      }
+      if (!drag) {
+        // Hover feedback: a post, a 50×100 or a field under the pointer is highlighted.
+        setRay(event);
+        const nearest = pickNearest(raycaster.intersectObjects(pickTargets(), true));
         const data = nearest?.object.userData ?? {};
+        if (data.beamHandle) {
+          const handle = data.beamHandle as BeamHandle;
+          canvas.style.cursor = handle.kind === 'split' ? 'ns-resize' : 'ew-resize';
+          setHoveredBeam(beamHandleKey(handle));
+          setHoveredIndex(-1);
+          setHoveredRoofField(-1);
+          setHoveredField(null);
+          setPlusAnchor(null);
+          return;
+        }
+        setHoveredBeam(null);
         const index = Number.isInteger(data.postIndex) ? (data.postIndex as number) : -1;
         const roofField = Number.isInteger(data.roofFieldIndex) ? (data.roofFieldIndex as number) : -1;
         const fieldId = index < 0 && roofField < 0 ? fieldIdFromUserData(data, openingSpans) : null;
@@ -645,11 +720,24 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
       event.preventDefault();
     };
     const finishDrag = (event: PointerEvent, cancelled: boolean) => {
+      if (beamDrag) {
+        if (event.pointerId !== beamDrag.pointerId) return;
+        const finished = beamDrag;
+        beamDrag = null;
+        press = null;
+        runtime.controls.enabled = true;
+        setActiveBeam(null);
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        if (!cancelled && finished.next) callbacks.current.onConfigurationChange?.(finished.next);
+        else if (finished.next) replaceEquipment(runtime, configuration, peekEquipmentParts(configuration, runtime.library, gswLayoutsFor(configuration)));
+        event.preventDefault();
+        return;
+      }
       if (!drag) {
         // A plain click on empty space (no orbit movement) clears the selection.
         if (!cancelled && press && Math.hypot(event.clientX - press.x, event.clientY - press.y) < 4 && runtime.group) {
           setRay(event);
-          const nearest = raycaster.intersectObjects(runtime.group.children, true).find((entry) => isPickable(entry.object.userData));
+          const nearest = pickNearest(raycaster.intersectObjects(pickTargets(), true));
           const fieldId = nearest ? fieldIdFromUserData(nearest.object.userData, openingSpans) : null;
           if (nearest && fieldId) {
             // A field opens its radial menu at the field centre (V2); the Feld section follows the selection.
@@ -687,9 +775,10 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     canvas.addEventListener('pointercancel', onPointerCancel, true);
     canvas.addEventListener('lostpointercapture', onLostPointerCapture, true);
     const onLeave = (event: PointerEvent) => {
-      if (drag) return;
+      if (drag || beamDrag) return;
       canvas.style.cursor = '';
       setHoveredIndex(-1);
+      setHoveredBeam(null);
       // Moving onto the "+" button keeps the field hovered.
       if (event.relatedTarget instanceof Element && event.relatedTarget.closest('.field-plus')) return;
       setHoveredField(null);
@@ -708,6 +797,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
       canvas.removeEventListener('pointercancel', onPointerCancel, true);
       canvas.removeEventListener('lostpointercapture', onLostPointerCapture, true);
       if (drag) restorePost(drag.index, drag.initialMm);
+      if (beamDrag?.next) replaceEquipment(runtime, configuration, peekEquipmentParts(configuration, runtime.library, gswLayoutsFor(configuration)));
       runtime.controls.enabled = true;
     };
   }, [configuration, dimensions, openingSpans, posts, widthMm, showDimensions, interactive]);
@@ -818,6 +908,25 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
   );
 }
 
+/** Replaces the Ausstattung layer (null configuration: none) and keeps the 50×100 tint. */
+function replaceEquipment(runtime: ViewerRuntime, configuration: ConfigurationV1 | null, parts: EquipmentParts | null): void {
+  const previous = runtime.scene.getObjectByName('Ausstattung');
+  if (previous instanceof Group) { runtime.scene.remove(previous); disposeEquipmentGroup(previous); }
+  if (configuration) runtime.scene.add(createEquipmentGroup(configuration, parts));
+  markBeams(runtime, runtime.beamMarks?.active ?? null, runtime.beamMarks?.hovered ?? null);
+}
+
+/** Blue glow around the dragged (strong) or hovered 50×100, like a selected post. */
+function markBeams(runtime: ViewerRuntime, active: string | null, hovered: string | null): void {
+  runtime.beamMarks = { active, hovered };
+  runtime.scene.getObjectByName('Ausstattung')?.traverse((object) => {
+    if (!(object instanceof Mesh) || !object.userData.beamHandle || !(object.material instanceof MeshBasicMaterial)) return;
+    const key = beamHandleKey(object.userData.beamHandle as BeamHandle);
+    object.material.opacity = key === active ? 0.45 : key === hovered ? 0.28 : 0;
+  });
+  runtime.render();
+}
+
 /** Replaces the "Bemaßungen" layer; null removes it. */
 function applyDimensionLayer(runtime: ViewerRuntime, configuration: ConfigurationV1 | null): void {
   const previous = runtime.scene.getObjectByName('Bemaßungen');
@@ -872,13 +981,25 @@ function markFields(group: Group, idOf: (data: Record<string, unknown>) => strin
   });
 }
 
+/**
+ * Nearest selectable hit. A 50×100 lies in its field's plane and wins over the invisible field plane, which may be
+ * a few millimetres in front of it.
+ */
+function pickNearest<T extends { object: Object3D; distance: number }>(hits: T[]): T | undefined {
+  const nearest = hits.find((entry) => isPickable(entry.object.userData));
+  const isFieldPlane = nearest && (Number.isInteger(nearest.object.userData.openingIndex) || nearest.object.userData.sideField !== undefined);
+  const beam = isFieldPlane ? hits.find((entry) => entry.object.userData.beamHandle && entry.distance - nearest.distance < 0.2) : undefined;
+  return beam ?? nearest;
+}
+
 function isPickable(data: Record<string, unknown>): boolean {
   return (Number.isInteger(data.postIndex) && !data.moveArrows) || Number.isInteger(data.roofFieldIndex)
-    || Number.isInteger(data.openingIndex) || data.sideField === 'left' || data.sideField === 'right';
+    || Number.isInteger(data.openingIndex) || data.sideField === 'left' || data.sideField === 'right' || Boolean(data.beamHandle);
 }
 
 /** Equipment field id of a pick plane: front planes via the post pair of their gap, sides directly. */
 function fieldIdFromUserData(data: Record<string, unknown>, spans: readonly OpeningAxisSpan[]): string | null {
+  if (typeof data.fieldId === 'string') return data.fieldId;
   if (data.sideField === 'left' || data.sideField === 'right') return `side:${data.sideField}`;
   if (!Number.isInteger(data.openingIndex)) return null;
   const span = spans.find((entry) => entry.index === data.openingIndex);

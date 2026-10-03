@@ -2,6 +2,7 @@ import { postWidthMm, ROOF_SUPPORT_WIDTH_MM } from '../catalog/catalog';
 import type { ConfigurationV1 } from './configuration';
 import { validatePostCenters } from './geometry/posts';
 import { MIN_CORNER_CAP_MM } from './geometry/roof';
+import { sideLayoutOf, sideOfField } from './fieldEquipment';
 
 /**
  * Owner rule (3 Oct 2026): when an end post is moved inwards and its side carries Ausstattung, the corner rafter
@@ -14,8 +15,8 @@ export function cornerRafterPitches(configuration: ConfigurationV1): { leftMm?: 
   const posts = configuration.postCenters;
   if (width === null || !posts || posts.length < 2 || validatePostCenters(configuration.productId, width, posts).length) return null;
   const half = postWidthMm(configuration.productId) / 2;
-  const equipped = (side: 'left' | 'right') => configuration.fieldEquipment
-    .some((entry) => entry.fieldId === `side:${side}` && (entry.elements.length > 0 || entry.gable));
+  const equipped = (side: 'left' | 'right') => sideLayoutOf(configuration, side).gable !== null || configuration.fieldEquipment
+    .some((entry) => sideOfField(entry.fieldId) === side && entry.elements.length > 0);
   // Garden-right is the inside x = 0 end, garden-left the x = W end.
   const rightInset = posts[0].xMm - half;
   const leftInset = width - (posts[posts.length - 1].xMm + half);

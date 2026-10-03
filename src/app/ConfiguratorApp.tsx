@@ -4,7 +4,7 @@ import { MAX_WIDTH_MM } from '../catalog/catalog';
 import { awningChangeNotice, reconcileAwning } from '../domain/awning';
 import { useNoticeStore } from '../state/noticeStore';
 import { evaluateConfiguration } from '../domain/evaluateConfiguration';
-import { addToField, hasKind, reconcileFieldEquipment, type EquipmentKind } from '../domain/fieldEquipment';
+import { addToField, equipmentRuleNotices, hasKind, reconcileFieldEquipment, type EquipmentKind } from '../domain/fieldEquipment';
 import { cornerRafterPitches } from '../domain/cornerRafters';
 import type { Backdrop, ViewPreset } from '../features/viewer/PreviewViewer';
 import { ConfiguratorShell, type ConfiguratorActionStatus } from '../features/configurator';
@@ -61,6 +61,7 @@ export function ConfiguratorApp() {
       useNoticeStore.getState().push({ title: 'Aufteilung angepasst', message: 'Die Feldhöhe hat sich geändert; die Aufteilung der Elemente wurde angepasst.' });
     }
     let next = equipment.configuration;
+    for (const notice of equipmentRuleNotices(current, next)) useNoticeStore.getState().push(notice);
     // Corner rafter over an inset end post with side equipment (3 Oct 2026): when that layout appears, changes or
     // goes, the bay count and per-field tones start fresh and the customer is told why the outer bay is narrow.
     const cornersBefore = evaluateConfiguration(current).roof?.postSideFields;
@@ -161,7 +162,8 @@ export function ConfiguratorApp() {
       selectedRoofField={selectedRoofField} onSelectRoofField={setSelectedRoofField}
       selectedFieldId={selectedFieldId} onSelectField={selectField} highlightFieldIds={highlightFieldIds} onFieldPick={pickForField}
       onSceneStatusChange={setSceneStatus}
-      onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })} />
+      onPostCentersChange={(posts) => applyConfiguration({ ...useConfiguratorStore.getState().configuration, postCenters: posts })}
+      onConfigurationChange={applyConfiguration} />
     </Suspense>}
     sceneStatus={sceneStatus} profileStatus={profileStatus}
     renderProfile={(productId) => <Suspense fallback={<p role="status">Profil wird geladen …</p>}>

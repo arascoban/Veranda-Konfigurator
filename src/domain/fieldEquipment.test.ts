@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultConfiguration, parseConfiguration } from './configuration';
 import { evaluateConfiguration } from './evaluateConfiguration';
 import {
-  addToField, applyKindToFields, canPlace, fieldEquipmentSummaryDe, findField, listFields, reconcileFieldEquipment,
-  removeFromField, setLowerHeight, swapElements, updateElement,
+  addToField, applyKindToFields, BEAM_MM, canPlace, divideSide, elementHeightsMm, equipmentRuleNotices, fieldEquipmentSummaryDe,
+  findField, listFields, reconcileFieldEquipment, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf,
+  splitHorizontally, splitRange, swapElements, updateElement,
 } from './fieldEquipment';
 
 const base = () => createDefaultConfiguration();
@@ -40,22 +41,23 @@ describe('field equipment', () => {
     const fields = listFields(base());
     expect(addToField(base(), fields[0].id, 'giebeldreieck')).toBeNull();
     const configuration = addToField(base(), 'side:left', 'giebeldreieck')!;
-    expect(configuration.fieldEquipment).toEqual([{ fieldId: 'side:left', elements: [], lowerHeightMm: null, gable: true }]);
-    expect(removeFromField(configuration, 'side:left', 'giebeldreieck').fieldEquipment).toEqual([]);
+    expect(configuration.sideLayouts).toEqual([{ side: 'left', gable: 'aluminium', dividersMm: [] }]);
+    expect(configuration.fieldEquipment).toEqual([]);
+    expect(removeFromField(configuration, 'side:left', 'giebeldreieck').sideLayouts).toEqual([]);
   });
 
-  it('clamps the split height: 10 cm for most parts, 100 cm for a Glasschiebewand', () => {
+  it('clamps the split height: 10 cm for most parts, 100 cm for a Glasschiebewand above the 50×100', () => {
     const fieldId = 'side:right';
     let configuration = addToField(addToField(base(), fieldId, 'aluminiumwand')!, fieldId, 'glasschiebewand')!;
     configuration = setLowerHeight(configuration, fieldId, 50)!;
     expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(100);
     configuration = setLowerHeight(configuration, fieldId, 9999)!;
-    // The Glasschiebewand on top keeps its 100 cm: 230 − 100 = 130 cm for the lower part at most.
-    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1300);
+    // Side height 230 − 20,5 = 209,5 cm; the 50×100 (5 cm) and 100 cm Glasschiebewand leave 104,5 cm below.
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1045);
     configuration = swapElements(configuration, fieldId);
     expect(configuration.fieldEquipment[0].elements[0].type).toBe('glasschiebewand');
     // Now at the bottom, the Glasschiebewand needs at least 100 cm.
-    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1300);
+    expect(configuration.fieldEquipment[0].lowerHeightMm).toBe(1045);
     expect(setLowerHeight(configuration, fieldId, 200)!.fieldEquipment[0].lowerHeightMm).toBe(1000);
   });
 
@@ -74,7 +76,7 @@ describe('field equipment', () => {
 
   it('opens drafts with the former Satiniert / Mittig options as Klar / the field default', () => {
     const fieldId = listFields(base())[0].id;
-    const old = { ...base(), fieldEquipment: [{ fieldId, elements: [{ type: 'glasschiebewand', glassTone: 'satiniert', openingDirection: 'mittig' }], lowerHeightMm: null, gable: false }] };
+    const old = { ...base(), fieldEquipment: [{ fieldId, elements: [{ type: 'glasschiebewand', glassTone: 'satiniert', openingDirection: 'mittig' }], lowerHeightMm: null }] };
     const parsed = parseConfiguration(old);
     expect(parsed.ok && parsed.configuration.fieldEquipment[0].elements[0]).toEqual({ type: 'glasschiebewand', glassTone: 'klar' });
   });
@@ -103,7 +105,7 @@ describe('field equipment', () => {
   });
 
   it('flags equipment on unknown fields as invalid', () => {
-    const configuration = { ...base(), fieldEquipment: [{ fieldId: 'front:x:y', elements: [{ type: 'aluminiumwand' as const }], lowerHeightMm: null, gable: false }] };
+    const configuration = { ...base(), fieldEquipment: [{ fieldId: 'front:x:y', elements: [{ type: 'aluminiumwand' as const }], lowerHeightMm: null }] };
     expect(evaluateConfiguration(configuration).issues).toContainEqual({ kind: 'invalid', field: 'fieldEquipment', code: 'field_equipment_unknown_field' });
   });
 
@@ -132,7 +134,8 @@ describe('Giebeldreieck rule (confirmed 2 Oct 2026)', () => {
     let configuration = addToField(base(), 'side:left', 'giebeldreieck')!;
     configuration = addToField(configuration, 'side:left', 'aluminiumwand')!;
     configuration = addToField(configuration, 'side:left', 'seitenwand_licht')!;
-    expect(configuration.fieldEquipment[0]).toMatchObject({ gable: true, elements: [{ type: 'aluminiumwand' }, { type: 'seitenwand_licht' }] });
+    expect(configuration.fieldEquipment[0]).toMatchObject({ elements: [{ type: 'aluminiumwand' }, { type: 'seitenwand_licht' }] });
+    expect(sideLayoutOf(configuration, 'left').gable).toBe('aluminium');
     expect(addToField(configuration, 'side:left', 'senkrechtmarkise')).toBeNull();
     expect(evaluateConfiguration(configuration).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
   });
@@ -160,5 +163,84 @@ describe('Glasschiebewand in fields', () => {
     const fieldId = listFields(configuration)[0].id;
     const withAlu = addToField(configuration, fieldId, 'aluminiumwand')!;
     expect(canPlace(withAlu, findField(withAlu, fieldId)!, 'glasschiebewand')).toEqual({ ok: false, reason: 'too_low' });
+  });
+});
+
+describe('Ausstattung rules 1–7 (docs/Ausstatungen_Kurallar.md, 3 Oct 2026)', () => {
+  it('rule 1: an element on a side brings the aluminium Giebeldreieck and says so', () => {
+    const next = addToField(base(), 'side:right', 'aluminiumwand')!;
+    expect(sideLayoutOf(next, 'right')).toEqual({ side: 'right', gable: 'aluminium', dividersMm: [] });
+    expect(equipmentRuleNotices(base(), next).map((notice) => notice.title)).toEqual(['Giebeldreieck ergänzt']);
+    // A chosen variant is kept.
+    const glass = addToField(setGable(base(), 'right', 'glas_milch'), 'side:right', 'aluminiumwand')!;
+    expect(sideLayoutOf(glass, 'right').gable).toBe('glas_milch');
+    expect(equipmentRuleNotices(base(), setGable(base(), 'right', 'glas_milch'))).toEqual([]);
+  });
+
+  it('rule 3: removing the Giebeldreieck removes the elements below and the division', () => {
+    let configuration = divideSide(addToField(base(), 'side:left', 'aluminiumwand')!, 'left', 2)!;
+    expect(configuration.fieldEquipment.map((entry) => entry.fieldId)).toEqual(['side:left:1', 'side:left:2']);
+    const removed = removeFromField(configuration, 'side:left:2', 'giebeldreieck');
+    expect(removed.fieldEquipment).toEqual([]);
+    expect(removed.sideLayouts).toEqual([]);
+    expect(equipmentRuleNotices(configuration, removed).map((notice) => notice.title)).toEqual(['Elemente entfernt']);
+    configuration = applyKindToFields(configuration, 'giebeldreieck', []).configuration;
+    expect(configuration.fieldEquipment).toEqual([]);
+  });
+
+  it('rule 2: divides a side into up to 3 equal parts with standing 50×100 profiles, each part its own field', () => {
+    const configuration = divideSide(base(), 'right', 3)!;
+    // 286,5 cm clear − 2 × 5 cm = 276,5 cm → three parts of about 92,2 cm (dividers on whole mm).
+    const parts = listFields(configuration).filter((field) => field.side === 'right');
+    expect(parts.map((field) => field.id)).toEqual(['side:right:1', 'side:right:2', 'side:right:3']);
+    expect(parts.map((field) => Math.round(field.widthMm))).toEqual([922, 921, 922]);
+    expect(parts.map((field) => field.label)).toEqual(['Seite rechts · Teil 1', 'Seite rechts · Teil 2', 'Seite rechts · Teil 3']);
+    // A divided side needs the Giebeldreieck (aluminium by default).
+    expect(sideLayoutOf(configuration, 'right').gable).toBe('aluminium');
+    expect(divideSide(base(), 'right', 4)).toBeNull();
+    // Dragging keeps 15 cm per part.
+    const moved = setDivider(configuration, 'right', 0, 0)!;
+    expect(listFields(moved).find((field) => field.id === 'side:right:1')!.widthMm).toBe(150);
+    expect(evaluateConfiguration(moved).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
+    // Back to one part: the first part's equipment stays.
+    const single = divideSide(addToField(configuration, 'side:right:1', 'aluminiumwand')!, 'right', 1)!;
+    expect(single.fieldEquipment.map((entry) => entry.fieldId)).toEqual(['side:right']);
+    expect(parseConfiguration(single).ok).toBe(true);
+  });
+
+  it('rule 4: side fields end under the 50×100 below the Giebeldreieck, at least 15 cm under the front height', () => {
+    const field = findField(base(), 'side:left')!;
+    expect(2300 - field.heightMm - BEAM_MM).toBeGreaterThanOrEqual(150);
+    expect(field.heightMm).toBe(2095);
+  });
+
+  it('rules 5 and 7: a 50×100 lies between two elements; a Glasschiebewand keeps 100 cm above it', () => {
+    const configuration = { ...base(), dimensionsMm: { ...base().dimensionsMm, frontHeight: 2000 } };
+    const field = listFields(configuration)[0];
+    let next = addToField(configuration, field.id, 'glasschiebewand')!;
+    next = splitHorizontally(next, field.id)!;
+    const entry = next.fieldEquipment[0];
+    // "Horizontal teilen": Aluminiumwand comes below, the Glasschiebewand moves up.
+    expect(entry.elements.map((element) => element.type)).toEqual(['aluminiumwand', 'glasschiebewand']);
+    // 200 cm = 95 cm Aluminiumwand + 5 cm 50×100 + 100 cm Glasschiebewand at most.
+    expect(splitRange(field, entry.elements)).toEqual({ minMm: 100, maxMm: 950 });
+    expect(elementHeightsMm(field, entry)).toEqual([950, 1000]);
+    expect(splitHorizontally(next, field.id)).toBeNull();
+    expect(splitHorizontally(addToField(configuration, field.id, 'aluminiumwand')!, field.id)).toBeNull();
+  });
+
+  it('re-divides a side equally when the depth leaves a part under 15 cm', () => {
+    const divided = setDivider(divideSide(base(), 'left', 2)!, 'left', 0, 2700)!;
+    const shallower = { ...divided, dimensionsMm: { ...divided.dimensionsMm, depth: 2500 } };
+    const result = reconcileFieldEquipment(divided, shallower);
+    expect(result.clamped).toBe(true);
+    expect(sideLayoutOf(result.configuration, 'left').dividersMm).toEqual([1183]);
+  });
+
+  it('opens drafts with the former gable flag as a clear glass Giebeldreieck', () => {
+    const old = { ...base(), fieldEquipment: [{ fieldId: 'side:left', elements: [], lowerHeightMm: null, gable: true }] };
+    const parsed = parseConfiguration(old);
+    expect(parsed.ok && parsed.configuration.sideLayouts).toEqual([{ side: 'left', gable: 'glas_klar', dividersMm: [] }]);
+    expect(parsed.ok && parsed.configuration.fieldEquipment).toEqual([]);
   });
 });

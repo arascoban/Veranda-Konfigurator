@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import {
-  applyKindToFields, canPlace, elementNameDe, equipmentKinds, hasKind, listFields, placeRefusalDe, type EquipmentKind,
+  applyKindToFields, canPlace, sideFieldIds, sideOfField, elementNameDe, equipmentKinds, hasKind, listFields, placeRefusalDe, type EquipmentKind,
 } from '../../../domain/fieldEquipment';
 import { useNoticeStore } from '../../../state/noticeStore';
 import { EquipmentIcon } from '../../../ui/EquipmentIcon';
@@ -22,14 +22,20 @@ export function EquipmentSettings({ configuration, onChange, onHighlightFields }
   onHighlightFields: (fieldIds: string[]) => void;
 }) {
   const [kind, setKind] = useState<EquipmentKind | null>(null);
-  const fields = useMemo(() => listFields(configuration)
-    .filter((field) => kind !== 'giebeldreieck' || field.kind === 'side'), [configuration, kind]);
+  // The Giebeldreieck belongs to a whole side, also when the side is divided: one row per side.
+  const fields = useMemo(() => listFields(configuration).flatMap((field) => kind !== 'giebeldreieck' ? [field]
+    : field.kind === 'side' && (field.partIndex ?? 1) === 1 ? [{ ...field, label: field.side === 'left' ? 'Seite links' : 'Seite rechts', detail: 'über der ganzen Seite' }] : []),
+  [configuration, kind]);
   const current = useMemo(() => kind ? fields.filter((field) => hasKind(configuration, field.id, kind)).map((field) => field.id) : [],
     [configuration, fields, kind]);
   const [checked, setChecked] = useState<string[]>([]);
   // Reset when the element changes too: two kinds with the same (e.g. empty) field list must not share ticks.
   useEffect(() => { setChecked(current); }, [kind, current.join(',')]);
-  useEffect(() => { onHighlightFields(kind ? checked : []); }, [kind, checked.join(',')]);
+  useEffect(() => {
+    // A ticked Giebeldreieck tints every part of its side.
+    const ids = kind === 'giebeldreieck' ? checked.flatMap((id) => sideFieldIds(configuration, sideOfField(id)!)) : checked;
+    onHighlightFields(kind ? ids : []);
+  }, [kind, checked.join(','), configuration]);
   useEffect(() => () => onHighlightFields([]), []);
   const pushNotice = useNoticeStore((state) => state.push);
   const changed = checked.length !== current.length || checked.some((id) => !current.includes(id));

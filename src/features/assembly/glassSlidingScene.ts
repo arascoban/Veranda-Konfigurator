@@ -13,6 +13,9 @@ import type { PartLibrary } from './assemblyScene';
 export const GSW_RAIL_PROFILES = [3, 4, 5, 6] as const;
 const railPart = (rails: number, piece: 'Top' | 'Bottom' | 'Side') => `rail${rails}${piece}`;
 export const gswPartPath = (partId: string) => `models/glasschiebewand/${partId}.glb`;
+/** Ausstattung profiles (50×100, F profile, lamella, WD-55) live next to the Glasschiebewand parts. */
+const AUSSTATTUNG_IDS = new Set(['beam50x100', 'fProfile', 'lamella', 'wd55']);
+export const equipmentPartPath = (partId: string) => AUSSTATTUNG_IDS.has(partId) ? `models/ausstattung/${partId}.glb` : gswPartPath(partId);
 
 /** Measured from the models (prepare_models.py): glass from 7.8 cm, top 2.2 cm below the rail top; tracks 2.2 cm apart, first at 0.6 cm. */
 const GLASS_BOTTOM_MM = 78;
@@ -28,6 +31,8 @@ export type EquipmentParts = Map<string, Group>;
 
 function neededPartIds(configuration: ConfigurationV1, layoutFor: (fieldId: string) => (GswLayout | null)[]): string[] {
   const ids = new Set<string>();
+  // Every equipped field or side may need the 50×100, the Aluminiumwand or a Giebeldreieck: all four are small.
+  if (configuration.fieldEquipment.length || configuration.sideLayouts.length) for (const id of AUSSTATTUNG_IDS) ids.add(id);
   for (const entry of configuration.fieldEquipment) {
     for (const layout of layoutFor(entry.fieldId)) {
       if (!layout) continue;
@@ -43,7 +48,7 @@ function neededPartIds(configuration: ConfigurationV1, layoutFor: (fieldId: stri
 export function peekEquipmentParts(configuration: ConfigurationV1, library: PartLibrary, layoutFor: (fieldId: string) => (GswLayout | null)[]): EquipmentParts | null {
   const parts: EquipmentParts = new Map();
   for (const id of neededPartIds(configuration, layoutFor)) {
-    const group = library.peek(gswPartPath(id));
+    const group = library.peek(equipmentPartPath(id));
     if (!group) return null;
     parts.set(id, group);
   }
@@ -52,7 +57,7 @@ export function peekEquipmentParts(configuration: ConfigurationV1, library: Part
 
 export async function loadEquipmentParts(configuration: ConfigurationV1, library: PartLibrary, layoutFor: (fieldId: string) => (GswLayout | null)[]): Promise<EquipmentParts> {
   const ids = neededPartIds(configuration, layoutFor);
-  const groups = await Promise.all(ids.map((id) => library.load(gswPartPath(id))));
+  const groups = await Promise.all(ids.map((id) => library.load(equipmentPartPath(id))));
   return new Map(ids.map((id, index) => [id, groups[index]]));
 }
 

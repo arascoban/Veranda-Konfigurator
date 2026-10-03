@@ -91,7 +91,8 @@ Waiting on the owner:
 
 Can be done without the owner:
 
-- ~~Vercel preparation~~, ~~AR from the real assembly + QR + entry page~~, ~~opening data model~~: done on `Veranda-KonfiguratorV2` (§14–§15). Left: connect the Vercel project/domain, then test AR on Android and iPhone.
+- ~~Vercel preparation~~, ~~AR from the real assembly + QR + entry page~~, ~~opening data model~~: done on `Veranda-KonfiguratorV2` (§14–§15).
+- ~~Glasschiebewand~~ (§16–§17), ~~Ausstattung rules 1–5 and 7, Aluminiumwand, 50×100, Giebeldreieck variants, side division, draggable 50×100~~ (§18). Next: Seitenwand lichtdurchlässig from WD-55 (Klar/Milch), Senkrechtmarkise, Freistehend (A-Profil, L-Kapak, 50×100; side field width shrinks), Zip-Markise in front of a Glasschiebewand once its model exists (rule 6). Left: connect the Vercel project/domain, then test AR on Android and iPhone.
 - Mobile/tablet layout and touch check (SW-10).
 
 Gaps compared with Schweng, from `schweng.md`: side openings and side posts, Freistehend, Unterzugträger, moving posts inwards up to 1 m (needs a support profile model), drain outlet direction/height, awning animation, save by e-mail and open by ID, live price and enquiry form, manual/dynamic quality mode.

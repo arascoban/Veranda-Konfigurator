@@ -1,0 +1,136 @@
+{
+  "product": "ausstattung",
+  "unit": "cm",
+  "upAxis": "Y",
+  "converter": "fbx2gltf 0.9.7-p1",
+  "parts": {
+    "beam50x100": {
+      "source": "Models/Ausstatungen/Parcalar/50x100.fbx",
+      "sourceSha256": "53dabf271dfdf4392b09412e599c95dd3159bec6c36cbd97ef161279d9f44da4",
+      "glb": "models/ausstattung/beam50x100.glb",
+      "glbBytes": 1760,
+      "glbSha256": "1b6bdcec8046af7a8e496ab05a4e13265e37a7965540b49059e48b45bb6a10d2",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        10.0,
+        100.0,
+        5.0
+      ],
+      "sizeCm": [
+        10.0,
+        100.0,
+        5.0
+      ],
+      "triangles": 32,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "fProfile": {
+      "source": "Models/Ausstatungen/Parcalar/F_Profil.fbx",
+      "sourceSha256": "05e31180bd620cbc076eb27d56d9913ff904d83e463b1766b81ec867b8554728",
+      "glb": "models/ausstattung/fProfile.glb",
+      "glbBytes": 2384,
+      "glbSha256": "cc67fabb90c8064707969eecbfb101f3e48d856b976c43a1d557b752be7eef50",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        100.0,
+        2.0,
+        2.9
+      ],
+      "sizeCm": [
+        100.0,
+        2.0,
+        2.9
+      ],
+      "triangles": 54,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "lamella": {
+      "source": "Models/Ausstatungen/Parcalar/Lamellen.fbx",
+      "sourceSha256": "e44d17b8908af6a902ac90124da096eb31bd1a919f233cf7af2734f852076eef",
+      "glb": "models/ausstattung/lamella.glb",
+      "glbBytes": 3164,
+      "glbSha256": "d7dabc5019e740c4d43015725abe143b2499a7a0784e3498d3d88809f30718fc",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        99.0,
+        15.0,
+        1.6
+      ],
+      "sizeCm": [
+        99.0,
+        15.0,
+        1.6
+      ],
+      "triangles": 76,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "wd55": {
+      "source": "Models/Ausstatungen/Parcalar/WD-55.fbx",
+      "sourceSha256": "65990e1c90daf9a5579314fe163fa4297c5f5dd99dbfc5f1bed0dc30fa99a09e",
+      "glb": "models/ausstattung/wd55.glb",
+      "glbBytes": 95896,
+      "glbSha256": "635ea1d32e2893ce9876881664c1586bfc16519fa44030fcc785e82658b1fe34",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        5.5,
+        5.95,
+        100.0
+      ],
+      "sizeCm": [
+        5.5,
+        5.95,
+        100.0
+      ],
+      "triangles": 3152,
+      "meshes": 2,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert the SketchUp FBX part sources into web GLB assets and measure them.
 
-Usage:  python3 tools/prepare_models.py [prime|premium|glasschiebewand|all]
+Usage:  python3 tools/prepare_models.py [prime|premium|glasschiebewand|ausstattung|all]
 
 - Sources under `Models/` (and the repaired caps under `PreparedModels/`) are never modified.
 - Output: `public/models/<product>/<part>.glb` plus `src/assets/manifest/<product>.measured.json`
@@ -74,7 +74,15 @@ for _rails in (3, 4, 5, 6):
 PARTS['glasschiebewand']['glassLeaf'] = 'Models/Glasschiebewand/Glas90cm.fbx'
 # Same leaf with the vertical edge strip (brush seal) on its left edge (3 Oct 2026).
 PARTS['glasschiebewand']['glassLeafEdge'] = 'Models/Glasschiebewand/Glas90cmMitBuerste.fbx'
-NORMALISE = {'glasschiebewand': {'keepY': ['glassLeaf', 'glassLeafEdge']}}
+# Ausstattung profiles (3 Oct 2026, docs/Ausstatungen_Kurallar.md 8-10): 50x100 separator, F profile frame and
+# lamella of the Aluminiumwand, WD-55 window profile of the translucent walls and glass/polycarbonate gables.
+PARTS['ausstattung'] = {
+    'beam50x100': 'Models/Ausstatungen/Parcalar/50x100.fbx',
+    'fProfile': 'Models/Ausstatungen/Parcalar/F_Profil.fbx',
+    'lamella': 'Models/Ausstatungen/Parcalar/Lamellen.fbx',
+    'wd55': 'Models/Ausstatungen/Parcalar/WD-55.fbx',
+}
+NORMALISE = {'glasschiebewand': {'keepY': ['glassLeaf', 'glassLeafEdge']}, 'ausstattung': {}}
 
 
 def normalise_part(product: str, part_id: str, path: Path) -> None:

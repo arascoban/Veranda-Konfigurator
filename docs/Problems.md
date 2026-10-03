@@ -944,3 +944,31 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Neden: Yapraklar iki uçtaki U-profillerin (modelde 2,0 cm) arasında çalışıyor; tablo bu payla uyumlu.
 - Tek çözüm denemesi: Bindirme `(n × cam − (lichte Weite − 2 × 2 cm)) / (n − 1)`; 3D yerleşim de yaprakları U-profillerin arasına koyuyor.
 - Doğrulama: 120–596 cm arası her milimetrede bindirme ≥ 4 cm (en dar 304 cm'de 4,5 cm). Tam modellerdeki (3/4/5/6 Schienen.fbx) farklı ölçüler kullanılmadı; kullanıcı tekil profilleri doğru kabul etti.
+
+## CLAUDE-AUS-001 — 50×100 tutamağı fareyle yakalanmıyordu
+
+- Durum: Çözüldü
+- Tarih: 3 Ekim 2026. Görev/model: Ausstattung kuralları, sürüklenen 50×100, Claude.
+- Beklenen: Yatay 50×100'ün üzerine gelince mavi yanması ve sürüklenebilmesi.
+- Gerçek: Fare 50×100 üzerindeyken Feld'in "+" işareti çıkıyordu. Işın testinde görünmez ön Feld düzlemi (z = −Tiefe + 3 mm) tutamaktan 2,5 cm daha yakındaydı, çünkü yukarıdan bakan ışın tutamağa üst yüzünden giriyor.
+- Etkilenen dosya: `src/features/viewer/PreviewViewer.tsx`.
+- Tek çözüm denemesi: `pickNearest` — en yakın seçilebilir nesne bir Feld düzlemiyse ve 20 cm içinde bir 50×100 tutamağı varsa tutamak seçilir.
+- Doğrulama: Playwright'ta mavi vurgu, sürükleme ve kayıt.
+
+## CLAUDE-AUS-002 — Eğik Giebel profili duvar ve pfosten ucundan taşıyordu
+
+- Durum: Çözüldü
+- Tarih: 3 Ekim 2026. Görev/model: Giebeldreieck 3D, Claude.
+- Gerçek: Yeni test, eğik F-Profil'in 2,7 mm, WD-55'in 7,9 mm duvar düzleminin arkasına geçtiğini gösterdi; profil derinliği eğimle yana kayıyor.
+- Etkilenen dosya: `src/features/assembly/ausstattungScene.ts`.
+- Tek çözüm denemesi: Eğik üye ve WD-55 çerçeve x = 0 ve x = yan uzunluğu düzlemleriyle kesiliyor (`withinSide`).
+- Doğrulama: `ausstattungScene.test.ts` — bütün köşeler 0…uzunluk arasında, alüminyumda çatı çizgisinin altında.
+
+## CLAUDE-AUS-003 — "Feld unterteilen" sonrası panel Feld listesine dönüyordu
+
+- Durum: Çözüldü
+- Tarih: 3 Ekim 2026. Görev/model: yan bölme arayüzü, Claude.
+- Gerçek: Bölünce `side:left` kimliği `side:left:1/2` olduğu için seçili Feld bulunamıyor ve liste gösteriliyordu.
+- Etkilenen dosya: `src/features/configurator/components/FieldSettings.tsx`.
+- Tek çözüm denemesi: Seçili yan Feld bulunamazsa aynı yanın 1. parçası (ya da bütün yan) gösteriliyor.
+- Doğrulama: Playwright — 3 Teile sonrası başlık "Seite links · Teil 1".

@@ -245,7 +245,7 @@ export function createAssemblyGroup(
     }
   }
 
-  if (options.includePostControls) group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM));
+  if (options.includePostControls) group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM, layout.sideFields));
   for (const slab of layout.awnings) group.add(createAwningPlaceholder(layout, slab, finishes));
   if (options.includeGroundGuide) {
     group.add(createGround(widthM, depthM));

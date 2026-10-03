@@ -357,3 +357,62 @@ Kullanıcı geri bildirimi (varsayımlarımın düzeltilmesi) ve kararları:
 Ayrıca kullanıcı kararları (sonraki adım için): Giebeldreieck seçenekleri Alüminyum panel (lamellerden), Glas Klar/Milch/Getönt, Polycarbonat Opal/Klar/Bronze (Anthrazit); cam/polikarbonat çerçevesi WD-55, alüminyumun kenarları F-Profil. Zip-Markise modeli gelene kadar bekliyor.
 
 Doğrulama: `npm run check`, testler (yeni: `cornerRafters.test.ts` — ek taşıyıcı, dar dış bölme, eşit kalan bölmeler, toplam genişlik, küçük içeri alma, +2 sınırı; yön/ton varsayılanları ve eski kayıt göçü; kenar çıtası kuralı ve 3D çıta sayısı), `npm run build`. Playwright: radyal menüden ekledikten sonra Feld saydamlığı 0; sol yana Glasschiebewand + Pfosten 1 → 40 cm: bildirim "links 34,5 cm", 7 Dachfeld, ek taşıyıcı pfostenin üstünde (3D ve üstten); önden yakın planda çıtalar sola açılımda iki sol camın sağ kenarında.
+
+## 18. İş — Ausstattung kuralları 1–7, Aluminiumwand, 50×100 ve Giebeldreieck (3 Ekim, gece)
+
+Kaynak: `docs/Ausstatungen_Kurallar.md`, Referans 1/2 ve `Models/Ausstatungen/Parcalar`. Kullanıcı kararları: 50×100 her zaman Giebel'in altında (alu+alu dahil); yan 50×100 yüksekliğini müşteri değiştiremez ama üstünde her zaman en az 15 cm kalır; yan bölme ve yatay bölme "eşit böl + sürükle". Zip-Markise (kural 6) model gelene kadar bekliyor.
+
+Model hattı: `tools/prepare_models.py ausstattung` → `public/models/ausstattung/{beam50x100,fProfile,lamella,wd55}.glb` ve `src/assets/manifest/ausstattung.measured.json`. Ölçülen kesitler:
+- F-Profil 2,0 × 2,9 cm: 1 mm sırt, 2 cm iki kol; lameller kollar arasındaki 1,6 cm kanala oturur.
+- Lamelle 15 × 1,6 cm, adım 14,6 cm.
+- 50×100 içi boş 10 × 5 cm.
+- WD-55 5,5 × 5,95 cm.
+
+Veri modeli (`src/domain/fieldEquipment.ts`, `configuration.ts`):
+- Yeni `sideLayouts: [{ side, gable: GableVariant | null, dividersMm }]` alanı. Giebeldreieck artık Feld'e değil yana ait; 7 varyant: Aluminium, Glas Klar/Milch/Getönt, Polycarbonat Opal/Klar/Bronze (Anthrazit).
+- Eski `gable: true` kayıtları "Glas Klar" olarak açılır; o zamanki görünüm şeffaf camdı.
+- Yan Feld yüksekliği = ön yükseklik − 15,5 cm (`GABLE_ROOM_MM`) − 5 cm (50×100) = varsayılanda 209,5 cm.
+- Bölünmüş yan: `side:left:1..3` Feld'leri (1 = duvar tarafı), her biri ayrı Feld. Bölücü merkezleri duvardan mm cinsinden; her parça ≥ 15 cm (`MIN_SIDE_PART_MM`).
+
+Kurallar:
+- **K1:** Yana eleman eklenince Aluminium Giebel otomatik eklenir ve "Giebeldreieck ergänzt" bildirimi çıkar (`addToField`, `equipmentRuleNotices`; reconcile de garanti eder).
+- **K2:** `divideSide` yanı 1–3 eşit parçaya böler ve Giebel'i zorunlu kılar; mevcut ekipman yeni parçalara kopyalanır, sığmayan Glasschiebewand bildirimle kalkar. `setDivider` 15 cm sınırıyla çalışır. Derinlik değişip bir parça 15 cm'nin altına düşerse yan yeniden eşit bölünür.
+- **K3:** Giebel kaldırılınca yanın tüm elemanları ve bölmesi kalkar, "Elemente entfernt" bildirimi çıkar.
+- **K4:** Giebel varsa altında 50×100 vardır (sadece Giebel seçili olsa da).
+- **K5 / K7:** İki eleman arasında 5 cm 50×100. `splitRange` ve `elementHeightsMm` bunu düşer; Glasschiebewand 50×100'ün üstünden en az 100 cm (200 cm = 95 + 5 + 100, testli). "Horizontal teilen" (`splitHorizontally`) tek elemanı yukarı alır ve alta Aluminiumwand koyar.
+- Yeni geçersizlik kodları: `field_equipment_gable_missing`, `field_equipment_side_division`.
+
+3D (`src/features/assembly/ausstattungScene.ts`, `equipmentScene.ts`):
+- **Aluminiumwand:** dört kenarda F-Profil, alttan 14,6 cm adımla lameller; üst lamel düzlemle kesilir (`clipGeometry`).
+- **Giebeldreieck:** duvar–pfosten arasında 50×100'ün üstünden çatı çizgisine uzanan beşgen.
+  - Alüminyum varyant: F-Profil çerçeve; eğik üst kenar ve lameller çatı çizgisinden kesilir.
+  - Cam/poli varyantlar: WD-55 çerçeve ve dolgu.
+- **Yerleşim:**
+  - Yan elemanlar pfosten dış yüzüne yaslı: Aluminiumwand ve Giebel 1 cm içeride, Glasschiebewand 0,5 cm içeride, 50×100 dış yüzle aynı hizada (referanslardaki gibi).
+  - Önde her şey pfosten derinliğinin ortasında.
+  - Seitenwand lichtdurchlässig ve Senkrechtmarkise hâlâ şematik.
+- **Sürükleme** (`PreviewViewer`): her hareketli 50×100'ün görünmez bir tutamağı var (`beamHandle`, AR/PDF'e girmez).
+  - Fare üstündeyken mavi, sürüklerken koyu mavi; imleç ns/ew-resize.
+  - Sürükleme sırasında Ausstattung katmanı canlı yeniden kurulur; bırakınca tek revizyon kaydedilir.
+  - Görünmez Feld düzlemi 50×100'ün birkaç mm önünde kaldığı için yakın tutamak önceliklidir (`pickNearest`).
+- Yan parçalar için ayrı seçim düzlemleri `AssemblyLayout.sideFields` ile gelir.
+
+UI (`FieldSettings.tsx`):
+- Yan Feld detayında Giebeldreieck kutusu ve 7 varyant kartı.
+- "Feld unterteilen" (Ungeteilt / 2 / 3 Teile) ve parça genişliği girişleri; bölünce seçim aynı yanın 1. parçasında kalır.
+- "Horizontal teilen" düğmesi.
+- Aufteilung çizimi 50×100 payını gösterir.
+- Ausstattung listesinde Giebeldreieck yan başına tek satırdır.
+
+**Varsayımlar (vorläufig):**
+- Dikey 50×100'ün yönü (yanda 5 cm genişlik, 10 cm derinlik): referanslarda dikey bölücü yoktu, yatay olanın kesitinden türetildi.
+- Giebel'in üst kenarı mevcut çatı çizgisi (arka yükseklik → ön yükseklik).
+- Yatay bölmede diğer parçanın en az 10 cm olması hâlâ geçici.
+
+Doğrulama:
+- `npm run check`, 167 test ve `npm run build`.
+- Yeni testler: kural 1–7, eski kayıt göçü, derinlik değişince yeniden bölme; `ausstattungScene.test.ts`: Aluminiumwand ölçüleri ve lamel sayısı, 50×100 yatay/dikey ölçüleri, Giebel'in çatı çizgisi ve yan uzunluğu içinde kalması, Referans 2 benzeri düzende tutamaklar.
+- Playwright:
+  - Referans 2 düzeni: ön Feld 1'de alu + 50×100 + Glasschiebewand; sağda Glas Klar Giebel + 50×100 + Glasschiebewand; solda alu Giebel + 2/3 parçalı Aluminiumwand. "Giebeldreieck ergänzt" bildirimi çıktı.
+  - 50×100 fareyle mavi yandı, yukarı sürüklendi ve kaydedildi; yan bölücü sürüklendi.
+  - Test-PDF indi; sayfa hatası yok.

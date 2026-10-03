@@ -97,7 +97,8 @@ export function ConfiguratorShell({
   const measurementSummary = width !== null && depth !== null ? `${formatCm(width)} × ${formatCm(depth)} cm` : '';
   const fields = listFields(configuration);
   const equippedFields = configuration.fieldEquipment.length;
-  const elementCount = configuration.fieldEquipment.reduce((sum, entry) => sum + entry.elements.length + (entry.gable ? 1 : 0), 0);
+  const elementCount = configuration.fieldEquipment.reduce((sum, entry) => sum + entry.elements.length, 0)
+    + configuration.sideLayouts.filter((layout) => layout.gable).length;
   const summaries: Record<ConfiguratorSection, string> = {
     construction: [productName, measurementSummary, configuration.postCenters ? `${configuration.postCenters.length} Pfosten` : ''].filter(Boolean).join(' · '),
     roof: [materialName, roofFinishes[configuration.roofFinish].toneDe, evaluation.roof ? `${evaluation.roof.bayCount} Dachfelder` : ''].filter(Boolean).join(' · '),

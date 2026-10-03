@@ -1,3 +1,4 @@
+import { listFields } from '../../domain/fieldEquipment';
 import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type FrameColorId, type ProductId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
 import { awningSpans, type AwningType } from '../../domain/awning';
 import { resolveRoofFieldFinishes } from '../../domain/roofFinish';
@@ -43,7 +44,11 @@ export type AssemblyLayout = {
   /** Rafter underside line at the wall end plus the roof directions, for things laid onto the roof plane. */
   roofPlane: { rearMm: Vec3; d: Vec3; nrm: Vec3; lengthMm: number; rafterHeightMm: number };
   placements: PartPlacement[];
+  /** Side fields for the pick planes (whole side or its 50×100 parts), from the wall; set from the configuration. */
+  sideFields?: SideFieldSpan[];
 };
+
+export type SideFieldSpan = { fieldId: string; side: 'left' | 'right'; startMm: number; widthMm: number; heightMm: number };
 
 /** A simple box standing in for an awning: `xMm` from the inside-left end, running `depthMm` down the roof from the wall (null = rafter cover length). */
 export type AwningSlab = { type: AwningType; xMm: number; widthMm: number; depthMm: number | null };
@@ -316,7 +321,7 @@ export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1):
   // An out-of-range slope is still drawn so the customer sees what the message describes.
   const blocking = evaluation.issues.some((issue) => issue.kind === 'invalid' && issue.code !== 'roof_slope_outside_5_to_12_degrees');
   if (!evaluation.roof?.valid || blocking) return null;
-  return buildAssemblyLayout({
+  const layout = buildAssemblyLayout({
     productId: configuration.productId, roofMaterialId: configuration.roofMaterialId,
     postCapStyle: configuration.postCapStyle, drainSide: configuration.drainSide, frameColor: configuration.frameColor,
     widthMm: width, depthMm: depth, rearHeightMm: rearHeight, frontHeightMm: frontHeight,
@@ -325,4 +330,7 @@ export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1):
     awnings: awningSpans(configuration),
     postCentersMm: configuration.postCenters.map((post) => post.xMm),
   });
+  layout.sideFields = listFields(configuration).flatMap((field) => field.kind === 'side'
+    ? [{ fieldId: field.id, side: field.side!, startMm: field.startMm ?? 0, widthMm: field.widthMm, heightMm: field.heightMm }] : []);
+  return layout;
 }

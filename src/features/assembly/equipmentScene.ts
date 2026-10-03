@@ -1,10 +1,13 @@
 import {
-  BufferGeometry, DoubleSide, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, Texture,
-  type Material,
+  BoxGeometry, BufferGeometry, DoubleSide, MeshBasicMaterial, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, Texture,
+  type Material, type Object3D,
 } from 'three';
 import { frameColors, postSections, postWidthMm } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
-import { elementHeightsMm, gswCheck, listFields, openingOf, type FieldElement } from '../../domain/fieldEquipment';
+import {
+  BEAM_DEPTH_MM, BEAM_MM, elementHeightsMm, GABLE_ROOM_MM, gswCheck, listFields, openingOf, sideClearMm, type FieldElement,
+} from '../../domain/fieldEquipment';
+import { buildAluminiumWall, buildBeamLying, buildBeamStanding, buildGable, createAusstattungMaterials } from './ausstattungScene';
 import type { GswLayout } from '../../domain/glassSlidingDoor';
 import { buildGlassSlidingWall, createGswMaterials, hasGswParts, type EquipmentParts } from './glassSlidingScene';
 
@@ -34,11 +37,35 @@ export function gswLayoutsFor(configuration: ConfigurationV1): (fieldId: string)
   };
 }
 
+/** What a 50×100 handle moves: the split of a field (rule 7) or a side divider (rule 2). */
+export type BeamHandle = { kind: 'split'; fieldId: string } | { kind: 'divider'; side: 'left' | 'right'; index: number };
+export const beamHandleKey = (handle: BeamHandle) => handle.kind === 'split' ? `split:${handle.fieldId}` : `divider:${handle.side}:${handle.index}`;
+
 /**
- * Ausstattung layer (V2). Glasschiebewand: the real profiles and glass when `parts` are loaded (3 Oct 2026),
- * otherwise a translucent stand-in. Other elements stay schematic until their models are built: one translucent panel per element in its field, framed in the frame
- * colour, with the split line where a field holds two elements. Front fields sit in the post centre plane
- * between the post faces, sides between the wall and the end post. Not a product model; never picked.
+ * Invisible box a little larger than a movable 50×100, in the builders' local frame. The viewer drags it like a
+ * post and tints it blue on hover (owner, 3 Oct 2026). Never exported.
+ */
+function beamHandleMesh(handle: BeamHandle, lengthMm: number, heightMm: number): Mesh {
+  const margin = 15;
+  const geometry = new BoxGeometry((lengthMm + 2 * margin) / 1000, (heightMm + 2 * margin) / 1000, (BEAM_DEPTH_MM + 2 * margin) / 1000);
+  geometry.translate(lengthMm / 2000, heightMm / 2000, BEAM_DEPTH_MM / 2000);
+  const mesh = new Mesh(geometry, new MeshBasicMaterial({ color: 0x2f9dff, transparent: true, opacity: 0, depthWrite: false }));
+  mesh.userData.beamHandle = handle;
+  mesh.userData.exportable = false;
+  mesh.renderOrder = 3;
+  return mesh;
+}
+
+/** How far each element's outer face sits inside the end post's outer face on a side (Referans 1/2, mm). */
+const SIDE_INSET_MM = { aluminiumwand: 10, glasschiebewand: 5, beam: 0, gable: 10 } as const;
+
+/**
+ * Ausstattung layer (V2). Real models where the parts are loaded (3 Oct 2026): Glasschiebewand, Aluminiumwand,
+ * the 50×100 between two elements, under the Giebeldreieck and between side parts, and the Giebeldreieck itself.
+ * Seitenwand lichtdurchlässig and Senkrechtmarkise stay schematic until their models are built (translucent panel
+ * framed in the frame colour), as does everything while the parts are still loading. Front elements sit centred on
+ * the post depth between the post faces; side elements run from the wall to the end post, flush towards its outer
+ * face. Not a product model; never picked.
  */
 export function createEquipmentGroup(configuration: ConfigurationV1, parts?: EquipmentParts | null): Group {
   const group = new Group();
@@ -46,11 +73,11 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
   group.userData.equipment = true;
   const { width, depth, rearHeight, frontHeight } = configuration.dimensionsMm;
   const posts = configuration.postCenters;
-  if (!configuration.fieldEquipment.length || width === null || depth === null || rearHeight === null || frontHeight === null || !posts?.length) return group;
+  if ((!configuration.fieldEquipment.length && !configuration.sideLayouts.length) || width === null || depth === null
+    || rearHeight === null || frontHeight === null || !posts?.length) return group;
   const toward = postSections[configuration.productId].towardsGardenMm;
   const half = postWidthMm(configuration.productId) / 2;
   const frontZ = -(depth - toward / 2);
-  const sideBackZ = -(depth - toward);
   const frameHex = frameColors[configuration.frameColor].hex;
   const frame = new LineBasicMaterial({ color: frameHex });
   const materials = new Map<string, MeshStandardMaterial>();
@@ -63,6 +90,8 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
     return found;
   };
   const gswMaterials = createGswMaterials(frameHex);
+  const profileMaterials = createAusstattungMaterials(frameHex);
+  const profiles = parts && ['beam50x100', 'fProfile', 'lamella', 'wd55'].every((id) => parts.has(id)) ? parts : null;
   const layoutsFor = gswLayoutsFor(configuration);
   const lookFor = (element: FieldElement) => {
     switch (element.type) {
@@ -85,11 +114,29 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
     mesh.add(outline);
     group.add(mesh);
   };
+  const sidePostX = (side: 'left' | 'right') => side === 'left' ? posts[posts.length - 1].xMm : posts[0].xMm;
+  /**
+   * Puts a builder's local frame (X along the field, Y up, Z depth) into the scene. Front: from the left post face,
+   * centred on the post depth. Side: local X runs from `startMm` (measured from the wall) to the garden; the
+   * outer face sits `insetMm` inside the end post's outer face.
+   */
+  const place = (object: Object3D, field: { kind: 'front' | 'side'; side?: 'left' | 'right'; insideIndex?: number }, startMm: number, baseMm: number, depthMm: number, insetMm: number) => {
+    if (field.kind === 'front') {
+      object.position.set((posts[field.insideIndex!].xMm + half + startMm) / 1000, baseMm / 1000, (frontZ - depthMm / 2) / 1000);
+    } else {
+      // rotation.y = π/2: local X → −Z (garden), local Z → +X.
+      object.rotation.y = Math.PI / 2;
+      const x = field.side === 'left' ? sidePostX('left') + half - insetMm - depthMm : sidePostX('right') - half + insetMm;
+      object.position.set(x / 1000, baseMm / 1000, -startMm / 1000);
+    }
+    group.add(object);
+  };
 
   for (const field of listFields(configuration)) {
     const entry = configuration.fieldEquipment.find((item) => item.fieldId === field.id);
     if (!entry) continue;
-    // Corner points of a band from height y0 to y1 in this field's plane.
+    const start = field.startMm ?? 0;
+    // Corner points of a band from height y0 to y1 in this field's plane (schematic stand-ins).
     let band: (y0: number, y1: number) => Point[];
     if (field.kind === 'front') {
       const index = field.insideIndex!;
@@ -97,14 +144,8 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
       const x1 = posts[index + 1].xMm - half;
       band = (y0, y1) => [[x0, y0, frontZ], [x1, y0, frontZ], [x1, y1, frontZ], [x0, y1, frontZ]];
     } else {
-      const x = field.side === 'left' ? posts[posts.length - 1].xMm : posts[0].xMm;
-      band = (y0, y1) => [[x, y0, 0], [x, y0, sideBackZ], [x, y1, sideBackZ], [x, y1, 0]];
-      if (entry.gable && rearHeight > frontHeight) {
-        // Between the side top, the wall profile and the roof line above the end post.
-        const roofAtPost = frontHeight + (rearHeight - frontHeight) * (toward / depth);
-        addPolygon([[x, frontHeight, 0], [x, frontHeight, sideBackZ], [x, roofAtPost, sideBackZ], [x, rearHeight, 0]],
-          material('gable', elementLook.gable.color, elementLook.gable.opacity));
-      }
+      const x = sidePostX(field.side!);
+      band = (y0, y1) => [[x, y0, -start], [x, y0, -(start + field.widthMm)], [x, y1, -(start + field.widthMm)], [x, y1, -start]];
     }
     const heights = elementHeightsMm(field, entry);
     const layouts = layoutsFor(field.id);
@@ -117,23 +158,44 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
         // left side → wall end (local X = 0).
         const wall = buildGlassSlidingWall(parts, gswMaterials, { lengthMm: field.widthMm, heightMm: height, layout, element,
           opening: openingOf(element, field), leftIsLocalMax: !(field.kind === 'side' && field.side === 'left') });
-        const depthMm = wall.userData.depthMm as number;
-        if (field.kind === 'front') {
-          // Between the post faces, centred on the post depth (owner decision 3 Oct 2026).
-          const index = field.insideIndex!;
-          wall.position.set((posts[index].xMm + half) / 1000, base / 1000, (frontZ - depthMm / 2) / 1000);
-        } else {
-          // From the wall to the back face of the end post, centred on the post width; local X runs to the garden.
-          const centre = field.side === 'left' ? posts[posts.length - 1].xMm : posts[0].xMm;
-          wall.rotation.y = Math.PI / 2;
-          wall.position.set((centre - depthMm / 2) / 1000, base / 1000, 0);
-        }
-        group.add(wall);
+        place(wall, field, start, base, wall.userData.depthMm as number, SIDE_INSET_MM.glasschiebewand);
+      } else if (element.type === 'aluminiumwand' && profiles) {
+        const wall = buildAluminiumWall(profiles, profileMaterials, { lengthMm: field.widthMm, heightMm: height });
+        place(wall, field, start, base, wall.userData.depthMm as number, SIDE_INSET_MM.aluminiumwand);
       } else {
         addPolygon(band(base, base + height), lookFor(element));
       }
       base += height;
+      // Rule 5: a 50×100 lies between two stacked elements (Referans 2).
+      if (index === 0 && entry.elements.length === 2) {
+        if (profiles) place(buildBeamLying(profiles, profileMaterials.frame, field.widthMm), field, start, base, BEAM_DEPTH_MM, SIDE_INSET_MM.beam);
+        place(beamHandleMesh({ kind: 'split', fieldId: field.id }, field.widthMm, BEAM_MM), field, start, base, BEAM_DEPTH_MM, SIDE_INSET_MM.beam);
+        base += BEAM_MM;
+      }
     });
+  }
+
+  // Per side: the 50×100 under the Giebeldreieck (rule 4), the standing 50×100 between parts (rule 2) and the gable.
+  const sideClear = sideClearMm(configuration);
+  const sideHeight = frontHeight - GABLE_ROOM_MM - BEAM_MM;
+  const roofAt = (fromWallMm: number) => rearHeight - (rearHeight - frontHeight) * (fromWallMm / depth);
+  for (const layout of configuration.sideLayouts) {
+    const field = { kind: 'side' as const, side: layout.side };
+    layout.dividersMm.forEach((centre, index) => {
+      if (profiles) place(buildBeamStanding(profiles, profileMaterials.frame, sideHeight), field, centre - BEAM_MM / 2, 0, BEAM_DEPTH_MM, SIDE_INSET_MM.beam);
+      place(beamHandleMesh({ kind: 'divider', side: layout.side, index }, BEAM_MM, sideHeight), field, centre - BEAM_MM / 2, 0, BEAM_DEPTH_MM, SIDE_INSET_MM.beam);
+    });
+    if (!layout.gable) continue;
+    const bottom = sideHeight + BEAM_MM;
+    if (profiles) {
+      place(buildBeamLying(profiles, profileMaterials.frame, sideClear), field, 0, sideHeight, BEAM_DEPTH_MM, SIDE_INSET_MM.beam);
+      const gable = buildGable(profiles, profileMaterials, { lengthMm: sideClear, bottomMm: 0, topAtWallMm: roofAt(0) - bottom, topAtPostMm: roofAt(sideClear) - bottom, variant: layout.gable });
+      place(gable, field, 0, bottom, gable.userData.depthMm as number, SIDE_INSET_MM.gable);
+    } else {
+      const x = sidePostX(layout.side);
+      addPolygon([[x, bottom, 0], [x, bottom, -sideClear], [x, roofAt(sideClear), -sideClear], [x, roofAt(0), 0]],
+        material('gable', elementLook.gable.color, elementLook.gable.opacity));
+    }
   }
   return group;
 }
