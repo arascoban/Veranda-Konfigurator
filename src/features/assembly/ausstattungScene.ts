@@ -2,7 +2,7 @@ import {
   Box3, BufferAttribute, BufferGeometry, DoubleSide, Group, Matrix4, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Shape, ShapeGeometry,
   Vector2, Vector3, type Material,
 } from 'three';
-import type { GableVariant } from '../../domain/fieldEquipment';
+import { LICHT_FRAME_FACE_MM, lichtWindows, type GableVariant, type LightFilling } from '../../domain/fieldEquipment';
 import type { EquipmentParts } from './glassSlidingScene';
 
 /**
@@ -20,7 +20,8 @@ const F_SPINE_MM = 1;
 const F_CHANNEL_Z_MM = 12;
 const LAMELLA_PITCH_MM = 146;
 const WD55_DEPTH_MM = 55;
-const WD55_FACE_MM = 45;
+/** Visible face of the WD-55 frame (the filling starts this far in); same value as the domain's pane rule. */
+const WD55_FACE_MM = LICHT_FRAME_FACE_MM;
 
 export type AusstattungMaterials = { frame: Material; fills: Record<Exclude<GableVariant, 'aluminium'>, Material> };
 
@@ -213,23 +214,46 @@ export function buildGable(parts: EquipmentParts, materials: AusstattungMaterial
     gable.userData.depthMm = F_DEPTH_MM;
     return gable;
   }
+  gable.add(...wdFrame(parts, materials, outline, options.variant, withinSide));
+  gable.userData.depthMm = WD55_DEPTH_MM;
+  return gable;
+}
+
+/** WD-55 profiles around a counter-clockwise outline (rebate inwards) and the filling inside their face. */
+function wdFrame(parts: EquipmentParts, materials: AusstattungMaterials, outline: [number, number][], fill: LightFilling, clip?: Clip[]): Mesh[] {
   const geometries = partGeometries(parts, 'wd55', AXES.wd55);
+  const meshes: Mesh[] = [];
   for (let index = 0; index < outline.length; index += 1) {
     const from = outline[index];
     const to = outline[(index + 1) % outline.length];
     const run = Math.hypot(to[0] - from[0], to[1] - from[1]);
-    gable.add(...meshesOf(geometries, materials.frame, along(geometries, run, Math.atan2(to[1] - from[1], to[0] - from[0]), from[0], from[1]), withinSide));
+    meshes.push(...meshesOf(geometries, materials.frame, along(geometries, run, Math.atan2(to[1] - from[1], to[0] - from[0]), from[0], from[1]), clip));
   }
   // Filling inside the profiles' face, in the middle of the depth.
   const inner = insetPolygon(outline, WD55_FACE_MM);
-  const shape = new Shape(inner.map(([x, y]) => new Vector2(x / 1000, y / 1000)));
-  const filling = new Mesh(new ShapeGeometry(shape), materials.fills[options.variant]);
+  const filling = new Mesh(new ShapeGeometry(new Shape(inner.map(([x, y]) => new Vector2(x / 1000, y / 1000)))), materials.fills[fill]);
   filling.position.z = WD55_DEPTH_MM / 2000;
   filling.raycast = () => undefined;
   filling.renderOrder = 2;
-  gable.add(filling);
-  gable.userData.depthMm = WD55_DEPTH_MM;
-  return gable;
+  meshes.push(filling);
+  return meshes;
+}
+
+/**
+ * Seitenwand lichtdurchlässig (4 Oct 2026): equal WD-55 windows side by side, each pane 11–110 cm wide
+ * (`lichtWindows`), with the chosen glass or polycarbonate. Depth 5,5 cm.
+ */
+export function buildLightWall(parts: EquipmentParts, materials: AusstattungMaterials, options: { lengthMm: number; heightMm: number; filling: LightFilling }): Group {
+  const wall = new Group();
+  wall.name = 'Seitenwand lichtdurchlässig';
+  const windows = lichtWindows(options.lengthMm) ?? { count: 1, windowMm: options.lengthMm, paneMm: options.lengthMm };
+  for (let index = 0; index < windows.count; index += 1) {
+    const x0 = index * windows.windowMm;
+    const x1 = x0 + windows.windowMm;
+    wall.add(...wdFrame(parts, materials, [[x0, 0], [x1, 0], [x1, options.heightMm], [x0, options.heightMm]], options.filling));
+  }
+  wall.userData.depthMm = WD55_DEPTH_MM;
+  return wall;
 }
 
 /** Counter-clockwise convex polygon moved inwards by `insetMm` on every edge. */

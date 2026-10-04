@@ -7,6 +7,8 @@
  */
 export const GSW_MIN_WIDTH_MM = 1200;
 export const GSW_MIN_HEIGHT_MM = 1000;
+/** docs/Masse.md and Ausstatungen_Kurallar.md rule 11 (4 Oct 2026). */
+export const GSW_MAX_HEIGHT_MM = 2400;
 export const GSW_MIN_OVERLAP_MM = 40;
 export const GSW_GLASS_WIDTHS_MM = [900, 980, 1030] as const;
 /** U profile at each end of the field (measured from the owner's U_Profil models: 2.0 cm); leaves run between them. */
@@ -34,7 +36,7 @@ export type GswLayout = {
   overlapMm: number;
 };
 
-export type GswCheck = { ok: true; layout: GswLayout } | { ok: false; reason: 'too_narrow' | 'too_wide' | 'too_low' };
+export type GswCheck = { ok: true; layout: GswLayout } | { ok: false; reason: 'too_narrow' | 'too_wide' | 'too_low' | 'too_high' };
 
 /** Rails and glass for a clear width; null outside 120–596 cm. */
 export function glassSlidingLayout(clearWidthMm: number): GswLayout | null {
@@ -58,6 +60,7 @@ export function checkGlassSliding(clearWidthMm: number, heightMm: number): GswCh
   if (clearWidthMm < GSW_MIN_WIDTH_MM) return { ok: false, reason: 'too_narrow' };
   if (clearWidthMm > GSW_MAX_WIDTH_MM) return { ok: false, reason: 'too_wide' };
   if (heightMm < GSW_MIN_HEIGHT_MM) return { ok: false, reason: 'too_low' };
+  if (heightMm > GSW_MAX_HEIGHT_MM) return { ok: false, reason: 'too_high' };
   const layout = glassSlidingLayout(clearWidthMm);
   return layout ? { ok: true, layout } : { ok: false, reason: 'too_wide' };
 }

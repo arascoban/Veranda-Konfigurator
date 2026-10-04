@@ -3,7 +3,7 @@ import { frameColors } from '../../../catalog/catalog';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import {
   addSideDivider, addToField, BEAM_MM, canPlace, dividerRange, divideSide, equalizeSide, elementNameDe, equipmentFor, fieldElementTypes, gableVariantDe, gableVariants, glassToneDe,
-  glassTones, listFields, MAX_SIDE_PARTS, MIN_SIDE_PART_MM, MIN_SPLIT_PART_MM, elementHeightsMm, gswCheck, openingDirectionDe, openingOf,
+  glassTones, lichtWindows, lightFillings, listFields, MAX_SIDE_PARTS, MIN_SIDE_PART_MM, MIN_SPLIT_PART_MM, elementHeightsMm, gswCheck, openingDirectionDe, openingOf,
   openingDirections, placeRefusalDe, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf, sideOfField, splitHorizontally, splitRange,
   swapElements, updateElement, type EquipmentKind, type FieldDescriptor, type FieldElement, type GableVariant,
 } from '../../../domain/fieldEquipment';
@@ -128,7 +128,11 @@ function FieldDetail({ configuration, field, onChange, onBack }: {
 
       {gsw && <GlassSlidingSettings configuration={configuration} field={field} element={gsw} onChange={onChange} />}
 
-      {elements.filter((element) => element.type !== 'glasschiebewand').map((element) => (
+      {elements.filter((element) => element.type === 'seitenwand_licht').map((element) => (
+        <LightWallSettings key={element.type} configuration={configuration} field={field} element={element} onChange={onChange} />
+      ))}
+
+      {elements.filter((element) => element.type !== 'glasschiebewand' && element.type !== 'seitenwand_licht').map((element) => (
         <div key={element.type} className="v2-collapsible">
           <button type="button" className="v2-collapsible__head" aria-expanded={openSettings === element.type}
             onClick={() => setOpenSettings(openSettings === element.type ? null : element.type)}>
@@ -195,6 +199,39 @@ function SideSettings({ configuration, field, onChange }: {
         );
       })}
       <p className="v2-hint">Jeder Klick teilt den breitesten Teil mit einem 50×100 (höchstens {MAX_SIDE_PARTS} Teile). Die 50×100 lassen sich im Modell ziehen oder hier einstellen; jeder Teil mindestens {cm(MIN_SIDE_PART_MM)} cm und ein eigenes Feld.</p>
+    </div>
+  );
+}
+
+/** Seitenwand lichtdurchlässig: filling and the resulting WD-55 windows (panes 11–110 cm). */
+function LightWallSettings({ configuration, field, element, onChange }: {
+  configuration: ConfigurationV1; field: FieldDescriptor; element: FieldElement; onChange: (next: ConfigurationV1) => void;
+}) {
+  const windows = lichtWindows(field.widthMm);
+  const frame = frameColors[configuration.frameColor];
+  return (
+    <div className="v2-stack">
+      <div className="v2-readonly-row">
+        <span className="v2-row-text"><strong>Fenster<InfoTip text="WD-55-Rahmen nebeneinander; jede Scheibe ist 11 bis 110 cm breit. Die Anzahl ergibt sich aus der lichten Weite des Feldes." /></strong>
+          <small>{windows ? `Scheibe je ${cm(windows.paneMm)} cm` : 'Feld zu schmal'}</small></span>
+        <strong className="v2-readonly-row__value">{windows?.count ?? '–'}</strong>
+      </div>
+      <div className="v2-stack v2-stack--tight">
+        <h3 className="v2-label">Füllung</h3>
+        <div className="v2-tone-grid v2-tone-grid--three" role="radiogroup" aria-label="Füllung">
+          {lightFillings.map((filling) => (
+            <button key={filling} type="button" role="radio" aria-checked={(element.filling ?? 'glas_klar') === filling} className="v2-tone-card"
+              onClick={() => onChange(updateElement(configuration, field.id, 'seitenwand_licht', { filling }))}>
+              <span className="v2-tone-card__disc" style={{ background: gableSwatch[filling] }} aria-hidden="true" />
+              {gableVariantDe[filling]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="v2-readonly-row">
+        <span className="v2-swatch-dot" style={{ background: frame.hex }} aria-hidden="true" />
+        <span className="v2-row-text"><strong>Profilfarbe wie Rahmen</strong><small>{frame.ral} {frame.nameDe}</small></span>
+      </div>
     </div>
   );
 }
@@ -268,7 +305,7 @@ function SplitEditor({ configuration, field, elements, lowerMm: savedLowerMm, on
   };
   const fill = (element: FieldElement) => element.type === 'aluminiumwand' ? frameColors[configuration.frameColor].hex
     : element.type === 'senkrechtmarkise' ? '#8c8676' : element.type === 'seitenwand_licht'
-      ? 'repeating-linear-gradient(90deg, #F7F7F4 0 24px, #ECEBE6 24px 25px)' : glassSwatch[element.glassTone ?? 'klar'];
+      ? gableSwatch[element.filling ?? 'glas_klar'] : glassSwatch[element.glassTone ?? 'klar'];
   return (
     <div className="v2-stack">
       <div className="v2-subhead"><h3>Aufteilung</h3>

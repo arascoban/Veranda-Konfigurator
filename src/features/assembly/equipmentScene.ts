@@ -8,7 +8,7 @@ import {
   BEAM_DEPTH_MM, BEAM_MM, elementHeightsMm, GABLE_ROOM_MM, gswCheck, listFields, openingOf, sideClearMm, type FieldElement,
 } from '../../domain/fieldEquipment';
 import { postFrame, rafterUndersideAt } from './placements';
-import { buildAluminiumWall, buildBeamLying, buildBeamStanding, buildGable, createAusstattungMaterials } from './ausstattungScene';
+import { buildAluminiumWall, buildLightWall, buildBeamLying, buildBeamStanding, buildGable, createAusstattungMaterials } from './ausstattungScene';
 import type { GswLayout } from '../../domain/glassSlidingDoor';
 import { buildGlassSlidingWall, createGswMaterials, hasGswParts, type EquipmentParts } from './glassSlidingScene';
 
@@ -65,7 +65,7 @@ const SIDE_INSET_MM = { aluminiumwand: 10, glasschiebewand: 5, beam: 0, gable: 1
 /**
  * Ausstattung layer (V2). Real models where the parts are loaded (3 Oct 2026): Glasschiebewand, Aluminiumwand,
  * the 50×100 between two elements, under the Giebeldreieck and between side parts, and the Giebeldreieck itself.
- * Seitenwand lichtdurchlässig and Senkrechtmarkise stay schematic until their models are built (translucent panel
+ * Seitenwand lichtdurchlässig from WD-55 windows (4 Oct 2026). Senkrechtmarkise stays schematic until its model is built (translucent panel
  * framed in the frame colour), as does everything while the parts are still loading. Front elements sit centred on
  * the post depth between the post faces; side elements run from the wall to the end post, flush towards its outer
  * face. Not a product model; never picked.
@@ -165,6 +165,9 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
         place(wall, field, start, base, wall.userData.depthMm as number, SIDE_INSET_MM.glasschiebewand);
       } else if (element.type === 'aluminiumwand' && profiles) {
         const wall = buildAluminiumWall(profiles, profileMaterials, { lengthMm: field.widthMm, heightMm: height });
+        place(wall, field, start, base, wall.userData.depthMm as number, SIDE_INSET_MM.aluminiumwand);
+      } else if (element.type === 'seitenwand_licht' && profiles) {
+        const wall = buildLightWall(profiles, profileMaterials, { lengthMm: field.widthMm, heightMm: height, filling: element.filling ?? 'glas_klar' });
         place(wall, field, start, base, wall.userData.depthMm as number, SIDE_INSET_MM.aluminiumwand);
       } else {
         addPolygon(band(base, base + height), lookFor(element));

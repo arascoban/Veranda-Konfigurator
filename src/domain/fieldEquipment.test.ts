@@ -3,7 +3,7 @@ import { createDefaultConfiguration, parseConfiguration } from './configuration'
 import { evaluateConfiguration } from './evaluateConfiguration';
 import {
   addSideDivider, addToField, applyKindToFields, BEAM_MM, equalizeSide, canPlace, divideSide, elementHeightsMm, equipmentRuleNotices, fieldEquipmentSummaryDe,
-  findField, listFields, reconcileFieldEquipment, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf,
+  findField, lichtWindows, listFields, reconcileFieldEquipment, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf,
   splitHorizontally, splitRange, swapElements, updateElement,
 } from './fieldEquipment';
 
@@ -258,5 +258,33 @@ describe('Ausstattung rules 1–7 (docs/Ausstatungen_Kurallar.md, 3 Oct 2026)', 
     const parsed = parseConfiguration(old);
     expect(parsed.ok && parsed.configuration.sideLayouts).toEqual([{ side: 'left', gable: 'glas_klar', dividersMm: [] }]);
     expect(parsed.ok && parsed.configuration.fieldEquipment).toEqual([]);
+  });
+});
+
+describe('rule 11 maxima and Seitenwand lichtdurchlässig (4 Oct 2026)', () => {
+  it('keeps every element under its maximum height', () => {
+    const tall = { ...base(), dimensionsMm: { ...base().dimensionsMm, frontHeight: 2800, rearHeight: 3220 } };
+    const field = listFields(tall)[0];
+    // 280 cm: a Glasschiebewand alone would be too high (max. 240 cm) …
+    expect(canPlace(tall, field, 'glasschiebewand')).toEqual({ ok: false, reason: 'too_high' });
+    // … but above an Aluminiumwand it fits: 280 − 5 − 240 = 35 cm at least below.
+    const split = addToField(addToField(tall, field.id, 'aluminiumwand')!, field.id, 'glasschiebewand')!;
+    expect(splitRange(field, split.fieldEquipment[0].elements)).toEqual({ minMm: 350, maxMm: 1750 });
+    expect(evaluateConfiguration(split).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
+    // A front height change that leaves a single Glasschiebewand too high removes it with a notice.
+    const withGsw = addToField(base(), field.id, 'glasschiebewand')!;
+    const raised = reconcileFieldEquipment(withGsw, { ...withGsw, dimensionsMm: { ...withGsw.dimensionsMm, frontHeight: 2500 } });
+    expect(raised.dropped).toEqual(['Vorne · Feld 1: Glasschiebewand']);
+  });
+
+  it('splits a translucent wall into equal WD-55 windows with panes of 11–110 cm', () => {
+    expect(lichtWindows(2890)).toMatchObject({ count: 3 });
+    expect(lichtWindows(2890)!.paneMm).toBeCloseTo(873.3, 1);
+    expect(lichtWindows(1190)).toMatchObject({ count: 1, paneMm: 1100 });
+    expect(lichtWindows(1191)!.count).toBe(2);
+    expect(lichtWindows(199)).toBeNull();
+    const configuration = addToField(base(), 'side:left', 'seitenwand_licht')!;
+    expect(configuration.fieldEquipment[0].elements[0]).toEqual({ type: 'seitenwand_licht', filling: 'glas_klar' });
+    expect(fieldEquipmentSummaryDe(configuration)[0].value).toContain('Glas Klar, 3 Fenster');
   });
 });

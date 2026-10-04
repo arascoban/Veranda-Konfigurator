@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { postFrame } from '../features/assembly/placements';
 import type { ConfigurationV1 } from './configuration';
 import { validatePostCenters } from './geometry/posts';
-import { checkGlassSliding, GSW_MIN_HEIGHT_MM, type GswCheck } from './glassSlidingDoor';
+import { checkGlassSliding, GSW_MAX_HEIGHT_MM, GSW_MIN_HEIGHT_MM, type GswCheck } from './glassSlidingDoor';
 
 /**
  * Ausstattung per Feld (V2 design, user decisions 2 Oct 2026). A front field lies between two posts, a side
@@ -41,6 +41,34 @@ export const MIN_SIDE_PART_MM = 150;
 /** Default lower part when a second element is added (design example: 100 cm Aluminium, rest glass). */
 export const DEFAULT_LOWER_HEIGHT_MM = 1000;
 export const MAX_ELEMENTS_PER_FIELD = 2;
+/**
+ * Rule 11 (4 Oct 2026): highest element per type, without the Giebeldreieck. Senkrechtmarkise has no limit yet;
+ * Zip-Markise (240 cm) follows with its model.
+ */
+/**
+ * Seitenwand lichtdurchlässig (4 Oct 2026): WD-55 windows, each pane 11–110 cm wide. With the 4,5 cm frame face on
+ * both sides a field needs at least 20 cm.
+ */
+export const LICHT_PANE_MIN_MM = 110;
+export const LICHT_PANE_MAX_MM = 1100;
+export const LICHT_FRAME_FACE_MM = 45;
+export const LICHT_MIN_FIELD_WIDTH_MM = LICHT_PANE_MIN_MM + 2 * LICHT_FRAME_FACE_MM;
+
+/** Equal windows across `widthMm`, as few as the 110 cm pane limit allows. */
+export function lichtWindows(widthMm: number): { count: number; windowMm: number; paneMm: number } | null {
+  if (widthMm < LICHT_MIN_FIELD_WIDTH_MM) return null;
+  const count = Math.max(1, Math.ceil(widthMm / (LICHT_PANE_MAX_MM + 2 * LICHT_FRAME_FACE_MM)));
+  const windowMm = widthMm / count;
+  return { count, windowMm, paneMm: windowMm - 2 * LICHT_FRAME_FACE_MM };
+}
+
+export const ELEMENT_MAX_HEIGHT_MM: Partial<Record<FieldElementType, number>> = {
+  glasschiebewand: GSW_MAX_HEIGHT_MM, aluminiumwand: 3000, seitenwand_licht: 2750,
+};
+
+/** Glass and polycarbonate fillings of WD-55 frames (Seitenwand lichtdurchlässig, Giebeldreieck), owner 3–4 Oct 2026. */
+export const lightFillings = ['glas_klar', 'glas_milch', 'glas_getoent', 'poly_opal', 'poly_klar', 'poly_bronze'] as const;
+export type LightFilling = typeof lightFillings[number];
 
 export const fieldElementSchema = z.object({
   type: z.enum(fieldElementTypes),
@@ -48,6 +76,8 @@ export const fieldElementSchema = z.object({
   // Drafts saved before 3 Oct 2026 may hold "satiniert" / "mittig": they open with Klar / the field's default.
   glassTone: z.preprocess((value) => value === 'satiniert' ? 'klar' : value, z.enum(glassTones).optional()),
   openingDirection: z.preprocess((value) => value === 'mittig' ? undefined : value, z.enum(openingDirections).optional()),
+  /** Seitenwand lichtdurchlässig only. */
+  filling: z.enum(lightFillings).optional(),
 }).strict();
 export type FieldElement = z.infer<typeof fieldElementSchema>;
 
@@ -65,7 +95,7 @@ export const fieldEquipmentSchema = z.object({
 export type FieldEquipment = z.infer<typeof fieldEquipmentSchema>;
 
 /** Giebeldreieck fillings (owner, 3 Oct 2026): Aluminium lamellas in F profiles, the rest in WD-55 frames. */
-export const gableVariants = ['aluminium', 'glas_klar', 'glas_milch', 'glas_getoent', 'poly_opal', 'poly_klar', 'poly_bronze'] as const;
+export const gableVariants = ['aluminium', ...lightFillings] as const;
 export type GableVariant = typeof gableVariants[number];
 export const gableVariantDe: Record<GableVariant, string> = {
   aluminium: 'Aluminium', glas_klar: 'Glas Klar', glas_milch: 'Glas Milch', glas_getoent: 'Glas Getönt',
@@ -314,11 +344,12 @@ export function equipmentFor(configuration: ConfigurationV1, fieldId: string): F
 }
 
 /** Whether `kind` may be placed on `field`, and why not. */
-export type PlaceRefusal = 'side_only' | 'already_present' | 'field_full' | 'too_low' | 'too_narrow' | 'too_wide';
+export type PlaceRefusal = 'side_only' | 'already_present' | 'field_full' | 'too_low' | 'too_narrow' | 'too_wide' | 'too_high';
 /** Short German reason for menus and checklists. */
 export const placeRefusalDe: Record<PlaceRefusal, string> = {
   side_only: 'nur seitlich', already_present: 'bereits gewählt', field_full: 'Feld voll (2 Elemente)',
-  too_low: 'Feld zu niedrig', too_narrow: 'Feld zu schmal (min. 120 cm)', too_wide: 'Feld zu breit (max. 596 cm)',
+  too_low: 'Feld zu niedrig', too_narrow: 'Feld zu schmal', too_wide: 'Feld zu breit (max. 596 cm)',
+  too_high: 'Feld zu hoch – erst unten ein anderes Element wählen',
 };
 
 export function canPlace(configuration: ConfigurationV1, field: FieldDescriptor, kind: EquipmentKind):
@@ -332,7 +363,13 @@ export function canPlace(configuration: ConfigurationV1, field: FieldDescriptor,
   if (entry.elements.length >= MAX_ELEMENTS_PER_FIELD) return { ok: false, reason: 'field_full' };
   // A second element needs room for itself plus the minimum of the element already there.
   const elements = [...entry.elements, newElement(kind, field)];
-  if (entry.elements.length === 1 && !splitRange(field, elements)) return { ok: false, reason: 'too_low' };
+  if (entry.elements.length === 1 && !splitRange(field, elements)) {
+    const tooLow = field.heightMm - BEAM_MM < minPartMm(elements[0]) + minPartMm(elements[1]);
+    return { ok: false, reason: tooLow ? 'too_low' : 'too_high' };
+  }
+  // Alone, an element fills the whole height: rule 11 maxima (the customer splits the field first).
+  if (entry.elements.length === 0 && field.heightMm > maxPartMm(elements[0])) return { ok: false, reason: 'too_high' };
+  if (kind === 'seitenwand_licht' && field.widthMm < LICHT_MIN_FIELD_WIDTH_MM) return { ok: false, reason: 'too_narrow' };
   if (kind === 'glasschiebewand') {
     // Full height alone; in a split field the Glasschiebewand part needs its own 100 cm (checked by splitRange).
     const check = gswCheck(field, entry.elements.length === 1 ? GSW_MIN_HEIGHT_MM : field.heightMm);
@@ -351,6 +388,11 @@ function minPartMm(element: FieldElement | undefined): number {
   return element?.type === 'glasschiebewand' ? GSW_MIN_HEIGHT_MM : MIN_SPLIT_PART_MM;
 }
 
+/** Highest an element may be (rule 11); unlimited where no maximum is known. */
+export function maxPartMm(element: FieldElement | undefined): number {
+  return (element && ELEMENT_MAX_HEIGHT_MM[element.type]) ?? Number.POSITIVE_INFINITY;
+}
+
 export function hasKind(configuration: ConfigurationV1, fieldId: string, kind: EquipmentKind): boolean {
   if (kind === 'giebeldreieck') {
     const side = sideOfField(fieldId);
@@ -360,7 +402,8 @@ export function hasKind(configuration: ConfigurationV1, fieldId: string, kind: E
 }
 
 export function newElement(type: FieldElementType, field?: Pick<FieldDescriptor, 'kind' | 'side'>): FieldElement {
-  return type === 'glasschiebewand' ? { type, glassTone: 'klar', openingDirection: field ? defaultOpening(field) : 'links' } : { type };
+  if (type === 'glasschiebewand') return { type, glassTone: 'klar', openingDirection: field ? defaultOpening(field) : 'links' };
+  return type === 'seitenwand_licht' ? { type, filling: 'glas_klar' } : { type };
 }
 
 /**
@@ -369,8 +412,9 @@ export function newElement(type: FieldElementType, field?: Pick<FieldDescriptor,
  * the separator's top (rule 7: 200 cm = 95 cm Aluminiumwand + 5 cm 50×100 + 100 cm Glasschiebewand).
  */
 export function splitRange(field: Pick<FieldDescriptor, 'heightMm'>, elements: readonly FieldElement[] = []): { minMm: number; maxMm: number } | null {
-  const minMm = minPartMm(elements[0]);
-  const maxMm = field.heightMm - BEAM_MM - minPartMm(elements[1]);
+  // Rule 11 maxima limit both parts too: the upper part may not grow past its maximum either.
+  const minMm = Math.max(minPartMm(elements[0]), field.heightMm - BEAM_MM - maxPartMm(elements[1]));
+  const maxMm = Math.min(field.heightMm - BEAM_MM - minPartMm(elements[1]), maxPartMm(elements[0]));
   return maxMm >= minMm ? { minMm, maxMm } : null;
 }
 
@@ -490,7 +534,7 @@ export function applyKindToFields(configuration: ConfigurationV1, kind: Equipmen
 
 export type FieldEquipmentIssue = 'field_equipment_unknown_field' | 'field_equipment_duplicate'
   | 'field_equipment_split_out_of_range' | 'field_equipment_duplicate_element' | 'field_equipment_gsw_size'
-  | 'field_equipment_gable_missing' | 'field_equipment_side_division';
+  | 'field_equipment_gable_missing' | 'field_equipment_side_division' | 'field_equipment_too_high';
 
 export function validateFieldEquipment(configuration: ConfigurationV1): FieldEquipmentIssue[] {
   const issues = new Set<FieldEquipmentIssue>();
@@ -514,6 +558,7 @@ export function validateFieldEquipment(configuration: ConfigurationV1): FieldEqu
     const heights = elementHeightsMm(field, entry);
     entry.elements.forEach((element, index) => {
       if (element.type === 'glasschiebewand' && !gswCheck(field, heights[index]).ok) issues.add('field_equipment_gsw_size');
+      if (heights[index] > maxPartMm(element)) issues.add('field_equipment_too_high');
     });
   }
   if (listed.length) {
@@ -574,11 +619,15 @@ export function reconcileFieldEquipment(previous: ConfigurationV1, rawCandidate:
       continue;
     }
     let next = entry;
-    // A Glasschiebewand that no longer fits the new width (120–596 cm) or height is removed with a notice.
-    const fitting = entry.elements.filter((element) => element.type !== 'glasschiebewand'
-      || gswCheck(field, entry.elements.length === 2 ? GSW_MIN_HEIGHT_MM : field.heightMm).ok);
+    // Elements that no longer fit the new width or height are removed with a notice: a Glasschiebewand outside
+    // 120–596 cm or 100–240 cm, a single element above its rule 11 maximum, a translucent wall under 20 cm.
+    const split = entry.elements.length === 2;
+    const fits = (element: FieldElement) => (element.type !== 'glasschiebewand' || gswCheck(field, split ? GSW_MIN_HEIGHT_MM : field.heightMm).ok)
+      && (split || field.heightMm <= maxPartMm(element))
+      && (element.type !== 'seitenwand_licht' || field.widthMm >= LICHT_MIN_FIELD_WIDTH_MM);
+    const fitting = entry.elements.filter(fits);
     if (fitting.length !== entry.elements.length) {
-      dropped.push(`${field.label}: Glasschiebewand`);
+      for (const element of entry.elements.filter((item) => !fits(item))) dropped.push(`${field.label}: ${elementNameDe[element.type]}`);
       next = { ...entry, elements: fitting, lowerHeightMm: null };
     }
     if (next.elements.length === 2) {
@@ -605,7 +654,8 @@ export function fieldEquipmentSummaryDe(configuration: ConfigurationV1): { label
         ? index === 0 ? `unten ${cm(entry.lowerHeightMm ?? 0)} cm` : `oben ${cm(field.heightMm - (entry.lowerHeightMm ?? 0) - BEAM_MM)} cm`
         : 'ganze Höhe';
       const options = element.type === 'glasschiebewand'
-        ? `, Glas ${glassToneDe[element.glassTone ?? 'klar']}, Öffnung ${openingDirectionDe[openingOf(element, field)].toLowerCase()}` : '';
+        ? `, Glas ${glassToneDe[element.glassTone ?? 'klar']}, Öffnung ${openingDirectionDe[openingOf(element, field)].toLowerCase()}`
+        : element.type === 'seitenwand_licht' ? `, ${gableVariantDe[element.filling ?? 'glas_klar']}, ${lichtWindows(field.widthMm)?.count ?? 1} Fenster` : '';
       return `${elementNameDe[element.type]} (${position}${options})`;
     });
     if (entry.elements.length === 2) parts.push('dazwischen 50×100');

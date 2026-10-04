@@ -53,6 +53,7 @@ export const issueTextDe: Record<string, string> = {
   field_equipment_unknown_field: 'Eine Ausstattung gehört zu einem Feld, das es nicht mehr gibt.',
   field_equipment_duplicate: 'Ein Feld ist doppelt mit Ausstattung belegt.',
   field_equipment_gable_missing: 'Eine ausgestattete oder geteilte Seite braucht ein Giebeldreieck.',
+  field_equipment_too_high: 'Ein Element ist höher als erlaubt (Glasschiebewand 240 cm, Aluminiumwand 300 cm, Seitenwand lichtdurchlässig 275 cm).',
   field_equipment_side_division: 'Die Teilung einer Seite lässt ein Teil unter 15 cm.',
   field_equipment_split_out_of_range: 'Die Aufteilung eines Feldes liegt außerhalb der zulässigen Höhe.',
   field_equipment_duplicate_element: 'Ein Element ist in einem Feld doppelt gewählt.',

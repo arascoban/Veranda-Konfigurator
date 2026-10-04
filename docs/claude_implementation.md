@@ -472,3 +472,20 @@ Doğrulama:
   - Prime köşesinde boşluk yok.
   - Bemaßungen önden, soldan ve sağdan çakışmasız.
   - Sürükleme sırasında "unten/oben" ve parça genişlikleri görünüyor.
+
+## 21. İş — Kural 11 (azami yükseklikler) ve Seitenwand lichtdurchlässig (4 Ekim)
+
+- **Kural 11** (`ELEMENT_MAX_HEIGHT_MM`): Glasschiebewand 240 cm (Masse.md'ye de eklendi: 100–240 cm), Aluminiumwand 300 cm, Seitenwand lichtdurchlässig 275 cm; Giebel dahil değil. Zip-Markise'nin 240 cm sınırı modeliyle gelecek.
+  - Tek eleman alanın tamamını doldurduğu için yüksek bir alanda "Feld zu hoch – erst unten ein anderes Element wählen" uyarısıyla reddediliyor (`too_high`).
+  - Yatay bölmede `splitRange` iki parçanın azamisini de hesaba katıyor. Örnek: 280 cm'de alu + GSW → alt parça en az 35 cm.
+  - Yükseklik değişince sınırı aşan eleman bildirimle kaldırılıyor; geçersizlik kodu `field_equipment_too_high`.
+- **Seitenwand lichtdurchlässig** (`buildLightWall`):
+  - Yan yana eşit WD-55 pencereler. Her cam 11–110 cm (`lichtWindows`). Çerçeve yüzü 4,5 cm varsayıldı; alanın en az 20 cm olması gerekiyor.
+  - Füllung: Glas Klar/Milch/Getönt, Polycarbonat Opal/Klar/Bronze (Anthrazit). Varsayılan Glas Klar; seçim Feld panelinde kartlarla.
+  - Panelde pencere sayısı ve cam genişliği gösteriliyor. Özet ve PDF'te "Glas Milch, 3 Fenster" gibi yazıyor.
+  - WD-55 çerçeve kodu Giebel ile ortak (`wdFrame`).
+- **Varsayım (vorläufig):**
+  - Pencereler eşit genişlikte ve olabildiğince az sayıda.
+  - Her pencerenin kendi çerçevesi var; aralarındaki dikme iki WD-55 yan yana.
+
+Doğrulama: 171 test (kural 11, pencere bölümü, eski kayıt) ve build. Playwright'ta solda alu + 50×100 + Milch pencereler (Referans 2 gibi), önde 2 pencereli Klar duvar görüldü.

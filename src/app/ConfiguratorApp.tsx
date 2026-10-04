@@ -56,7 +56,7 @@ export function ConfiguratorApp() {
     // Equipment on fields that vanished with a post change is dropped; the customer is told which fields.
     const equipment = reconcileFieldEquipment(current, laidOut);
     if (equipment.dropped.length) {
-      useNoticeStore.getState().push({ title: 'Ausstattung entfernt', message: `Felder oder Maße haben sich geändert; entfernt: ${equipment.dropped.join(', ')}. Eine Glasschiebewand braucht 120–596 cm lichte Weite und mindestens 100 cm Höhe.` });
+      useNoticeStore.getState().push({ title: 'Ausstattung entfernt', message: `Felder oder Maße haben sich geändert; entfernt: ${equipment.dropped.join(', ')}. Grenzen: Glasschiebewand 120–596 cm breit und 100–240 cm hoch, Aluminiumwand bis 300 cm, Seitenwand lichtdurchlässig bis 275 cm hoch.` });
     } else if (equipment.clamped) {
       useNoticeStore.getState().push({ title: 'Aufteilung angepasst', message: 'Die Feldhöhe hat sich geändert; die Aufteilung der Elemente wurde angepasst.' });
     }
