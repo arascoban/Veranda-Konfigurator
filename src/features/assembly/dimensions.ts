@@ -1,7 +1,6 @@
-import { postSections, postWidthMm } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { assemblySpecs } from './spec';
-import { listFields } from '../../domain/fieldEquipment';
+import { listFields, sideClearMm } from '../../domain/fieldEquipment';
 import type { Vec3 } from './placements';
 
 /**
@@ -38,42 +37,41 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
   const { width: W, depth: D, rearHeight: Hr, frontHeight: Hf } = configuration.dimensionsMm;
   if (W === null || D === null || Hr === null || Hf === null) return [];
   const spec = assemblySpecs[configuration.productId];
-  const gap = 350;           // distance of the main lines from the structure
-  // Depth behind the posts: from the post's wall-facing side to the wall, on the garden-left (x = W) and garden-right end.
-  const behindPost = D - postSections[configuration.productId].towardsGardenMm;
+  // Ground lines step outwards from the structure: fields/side depth at 35 cm, overall width/depth at 110 cm. Every
+  // label lies on the far side of its own line (labels are about 50 cm across), so no text crosses a line and none
+  // lies under the structure or its side walls (owner, 3 Oct 2026).
+  const gap = 350;
+  const outer = 1100;
+  const labelGap = 330;
+  const behindPost = sideClearMm(configuration);
   // A side divided by 50×100 profiles shows the clear width of every part instead of the side's whole clear depth,
-  // on the same line and with smaller text (owner, 3 Oct 2026).
+  // on the same line and with smaller text.
   const sideParts = listFields(configuration).filter((field) => field.kind === 'side' && field.partIndex);
   const divided = (side: 'left' | 'right') => sideParts.some((field) => field.side === side);
   const lines: DimensionLine[] = [
-    { id: 'width', label: `Breite (B)\n${cm(W)}`, fromMm: [0, 0, -D - gap - 450], toMm: [W, 0, -D - gap - 450], tick: [0, 0, 1], plane: 'ground' },
-    { id: 'depth', label: `Tiefe (A)\n${cm(D)}`, fromMm: [W + gap + 350, 0, 0], toMm: [W + gap + 350, 0, -D], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [200, 0, 0] },
-    { id: 'depthLeft', label: `Tiefe links\n${cm(behindPost)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, 0, -behindPost], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [-200, 0, 0] },
-    { id: 'depthRight', label: `Tiefe rechts\n${cm(behindPost)}`, fromMm: [-gap, 0, 0], toMm: [-gap, 0, -behindPost], tick: [1, 0, 0], plane: 'ground', labelOffsetMm: [200, 0, 0] },
+    { id: 'width', label: `Breite (B)\n${cm(W)}`, fromMm: [0, 0, -D - outer], toMm: [W, 0, -D - outer], tick: [0, 0, 1], plane: 'ground', labelOffsetMm: [0, 0, -labelGap] },
+    { id: 'depth', label: `Tiefe (A)\n${cm(D)}`, fromMm: [W + outer, 0, 0], toMm: [W + outer, 0, -D], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [labelGap, 0, 0] },
     // Both rear heights stand on the garden-left side (x = W end). Seen from the garden, "Höhe hinten" reads to
     // the right of its line (towards the structure) and "Gesamthöhe" to the left of its line (outwards), so the
     // two labels never overlap (user request 30 Sep 2026).
-    { id: 'rearHeight', label: `Höhe hinten (D)\n${cm(Hr)}`, fromMm: [W + 1250, 0, 0], toMm: [W + 1250, Hr, 0], tick: [-1, 0, 0], plane: 'wall', labelOffsetMm: [-700, 0, 0] },
-    { id: 'totalHeight', label: `Gesamthöhe (C)\n${cm(Hr + spec.wallProfileHeightMm)}`, fromMm: [W + 1550, 0, 0], toMm: [W + 1550, Hr + spec.wallProfileHeightMm, 0], tick: [1, 0, 0], plane: 'wall', labelOffsetMm: [700, 0, 0] },
-    { id: 'frontHeight', label: `Durchgangshöhe (E)\n${cm(Hf)}`, fromMm: [-gap, 0, -D], toMm: [-gap, Hf, -D], tick: [1, 0, 0], plane: 'wall', labelOffsetMm: [-560, 0, 0] },
+    { id: 'rearHeight', label: `Höhe hinten (D)\n${cm(Hr)}`, fromMm: [W + 1500, 0, 0], toMm: [W + 1500, Hr, 0], tick: [-1, 0, 0], plane: 'wall', labelOffsetMm: [-700, 0, 0] },
+    { id: 'totalHeight', label: `Gesamthöhe (C)\n${cm(Hr + spec.wallProfileHeightMm)}`, fromMm: [W + 1800, 0, 0], toMm: [W + 1800, Hr + spec.wallProfileHeightMm, 0], tick: [1, 0, 0], plane: 'wall', labelOffsetMm: [700, 0, 0] },
+    // In front of the post row, clear of the right side's depth line and its part labels.
+    { id: 'frontHeight', label: `Durchgangshöhe (E)\n${cm(Hf)}`, fromMm: [-outer, 0, -D - gap], toMm: [-outer, Hf, -D - gap], tick: [1, 0, 0], plane: 'wall', labelOffsetMm: [-560, 0, 0] },
   ];
+  if (!divided('left')) lines.push({ id: 'depthLeft', label: `Tiefe links\n${cm(behindPost)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, 0, -behindPost], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [labelGap, 0, 0] });
+  if (!divided('right')) lines.push({ id: 'depthRight', label: `Tiefe rechts\n${cm(behindPost)}`, fromMm: [-gap, 0, 0], toMm: [-gap, 0, -behindPost], tick: [1, 0, 0], plane: 'ground', labelOffsetMm: [-labelGap, 0, 0] });
+  // Front fields: the same clear widths as the Feld section (measured post faces).
+  const fronts = listFields(configuration).filter((field) => field.kind === 'front');
   const posts = configuration.postCenters ?? [];
-  const postWidth = postWidthMm(configuration.productId);
-  const fieldCount = Math.max(0, posts.length - 1);
-  for (let index = 0; index < fieldCount; index += 1) {
-    // Clear width between the facing sides of two posts (lichte Weite), decided 30 Sep 2026.
-    const left = posts[index].xMm + postWidth / 2;
-    const right = posts[index + 1].xMm - postWidth / 2;
+  for (const field of fronts) {
+    const left = posts[field.insideIndex!];
+    const right = posts[field.insideIndex! + 1];
+    const start = (left.xMm + right.xMm) / 2 - field.widthMm / 2;
     lines.push({
-      id: `field-${posts[index].id}-${posts[index + 1].id}`,
-      label: `${fieldName(index, fieldCount)}\n${cm(right - left)}`,
-      fromMm: [left, 0, -D - gap], toMm: [right, 0, -D - gap], tick: [0, 0, 1], plane: 'ground',
+      id: `field-${left.id}-${right.id}`, label: `${fieldName(field.insideIndex!, fronts.length)}\n${cm(field.widthMm)}`,
+      fromMm: [start, 0, -D - gap], toMm: [start + field.widthMm, 0, -D - gap], tick: [0, 0, 1], plane: 'ground', labelOffsetMm: [0, 0, -labelGap],
     });
-  }
-  for (const side of ['left', 'right'] as const) {
-    if (!divided(side)) continue;
-    const index = lines.findIndex((line) => line.id === (side === 'left' ? 'depthLeft' : 'depthRight'));
-    lines.splice(index, 1);
   }
   for (const part of sideParts) {
     const x = part.side === 'left' ? W + gap : -gap;
@@ -81,7 +79,7 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
     lines.push({
       id: `side-${part.id}`, label: `Teil ${part.partIndex}\n${cm(part.widthMm)}`,
       fromMm: [x, 0, -start], toMm: [x, 0, -(start + part.widthMm)], tick: [part.side === 'left' ? -1 : 1, 0, 0], plane: 'ground',
-      labelOffsetMm: [part.side === 'left' ? -170 : 170, 0, 0], labelHeightM: 0.17,
+      labelOffsetMm: [part.side === 'left' ? 250 : -250, 0, 0], labelHeightM: 0.17,
     });
   }
   return [...lines, ...extraLines];

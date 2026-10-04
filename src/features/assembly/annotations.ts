@@ -43,8 +43,8 @@ function textCanvas(text: string, options: { background?: string; color?: string
  * Text fixed in the scene (it does not turn with the camera): lying on the ground or standing parallel to
  * the wall, both readable from the garden side.
  */
-export function createFlatLabel(text: string, plane: 'ground' | 'wall', heightM = 0.28, color = '#111111', depthTest = false): Mesh {
-  const canvas = textCanvas(text, { bold: true, color });
+export function createFlatLabel(text: string, plane: 'ground' | 'wall', heightM = 0.28, color = '#111111', depthTest = false, background?: string): Mesh {
+  const canvas = textCanvas(text, { bold: true, color, background });
   heightM = heightM * (text.split('\n').length > 1 ? 1.75 : 1);
   const texture = new CanvasTexture(canvas);
   const mesh = new Mesh(new PlaneGeometry(heightM * canvas.width / canvas.height, heightM),
@@ -104,11 +104,12 @@ export function createDimensionGroup(lines: DimensionLine[]): Group {
     // Fixed in the scene like any part (owner, 3 Oct 2026): a post or wall in front hides the line and its label.
     const label = createFlatLabel(line.label, line.plane, line.labelHeightM, undefined, true);
     const mid = a.clone().add(b).multiplyScalar(0.5);
-    // Ground labels sit just above the floor beside their line; wall labels stand next to the height line.
-    if (line.plane === 'ground') label.position.copy(mid).add(new Vector3(0, 0.01, a.x === b.x ? 0 : -0.36));
+    // Ground labels lie just above the floor where the line asks (labelOffsetMm, beside the line); wall labels stand
+    // next to the height line.
+    if (line.plane === 'ground') label.position.copy(mid).add(new Vector3(0, 0.012, 0));
+    else label.position.copy(mid).add(new Vector3(line.tick[0] * 0.05, 0, 0));
     // Depth lines run along Z: their text runs along the line (reading towards the garden).
     if (line.plane === 'ground' && a.x === b.x) label.rotateOnWorldAxis(new Vector3(0, 1, 0), -Math.PI / 2);
-    else label.position.copy(mid).add(new Vector3(line.tick[0] * 0.05, 0, 0));
     if (line.labelOffsetMm) label.position.add(new Vector3(...line.labelOffsetMm.map(millimetresToMetres)));
     group.add(label);
   }

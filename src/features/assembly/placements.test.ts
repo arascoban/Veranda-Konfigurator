@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyConfiguration } from '../../domain/configuration';
-import { assemblyLayoutFromConfiguration, basisDeterminant, buildAssemblyLayout, type PartPlacement, type Vec3 } from './placements';
+import { assemblyLayoutFromConfiguration } from './layoutFromConfiguration';
+import { basisDeterminant, buildAssemblyLayout, type PartPlacement, type Vec3 } from './placements';
 import { assemblySpecs } from './spec';
 
 /** Scene-space bounding box of a placed part, from the measured local bounds. */

@@ -1,9 +1,5 @@
-import { listFields } from '../../domain/fieldEquipment';
-import { DRAIN_BOTH_SIDES_ABOVE_MM, postWidthMm, roofMaterials, type FrameColorId, type ProductId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
-import { awningSpans, type AwningType } from '../../domain/awning';
-import { resolveRoofFieldFinishes } from '../../domain/roofFinish';
-import type { ConfigurationV1 } from '../../domain/configuration';
-import { evaluateConfiguration } from '../../domain/evaluateConfiguration';
+import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type FrameColorId, type ProductId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
+import type { AwningType } from '../../domain/awning';
 import { assemblySpecs, type MeasuredPart, type PartRole, type ProductAssemblySpec } from './spec';
 
 export type Vec3 = readonly [number, number, number];
@@ -327,30 +323,50 @@ function premiumPlacements(spec: ProductAssemblySpec, input: AssemblyInput, g: D
   return out;
 }
 
-/** Layout for a complete, rule-valid configuration; null otherwise. */
-export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1): AssemblyLayout | null {
-  const { width, depth, rearHeight, frontHeight } = configuration.dimensionsMm;
-  if (width === null || depth === null || rearHeight === null || frontHeight === null || !configuration.postCenters?.length) return null;
-  const evaluation = evaluateConfiguration(configuration);
-  // An out-of-range slope is still drawn so the customer sees what the message describes.
-  const blocking = evaluation.issues.some((issue) => issue.kind === 'invalid' && issue.code !== 'roof_slope_outside_5_to_12_degrees');
-  if (!evaluation.roof?.valid || blocking) return null;
+/** Scene bounds (mm) of one placed part, from its measured local bounds. */
+export function placementBoundsMm(productId: ProductId, placement: PartPlacement): { min: Vec3; max: Vec3 } {
+  const bounds = mmBounds(assemblySpecs[productId].parts[placement.partId as keyof ProductAssemblySpec['parts']]);
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  for (const cx of [bounds.min[0], bounds.max[0]]) for (const cy of [bounds.min[1], bounds.max[1]]) for (const cz of [bounds.min[2], bounds.max[2]]) {
+    const local = [cx * placement.scale[0], cy * placement.scale[1], cz * placement.scale[2]];
+    for (let axis = 0; axis < 3; axis += 1) {
+      const value = placement.originMm[axis] + placement.basis.x[axis] * local[0] + placement.basis.y[axis] * local[1] + placement.basis.z[axis] * local[2];
+      min[axis] = Math.min(min[axis], value);
+      max[axis] = Math.max(max[axis], value);
+    }
+  }
+  return { min: min as unknown as Vec3, max: max as unknown as Vec3 };
+}
+
+/**
+ * Where the posts really stand, measured from the placed models (3 Oct 2026, owner: equipment must fit every
+ * product, also future ones, without per-model numbers). Relative to the depth line z = −D and the post axis:
+ * the garden face lies `frontBeyondDepthMm` in front of −D, the back face `backFromDepthMm` behind it; the post
+ * reaches `alongMinusMm` / `alongPlusMm` either side of its axis. Prime 2,5 cm / 11 cm, Premium 0 / 13,5 cm.
+ */
+export type PostFrame = { frontBeyondDepthMm: number; backFromDepthMm: number; alongMinusMm: number; alongPlusMm: number };
+const postFrames = new Map<ProductId, PostFrame>();
+
+export function postFrame(productId: ProductId): PostFrame {
+  const cached = postFrames.get(productId);
+  if (cached) return cached;
+  const D = 3000;
   const layout = buildAssemblyLayout({
-    productId: configuration.productId, roofMaterialId: configuration.roofMaterialId,
-    postCapStyle: configuration.postCapStyle, drainSide: configuration.drainSide, frameColor: configuration.frameColor,
-    widthMm: width, depthMm: depth, rearHeightMm: rearHeight, frontHeightMm: frontHeight,
-    bayCount: evaluation.roof.bayCount, capWidthsMm: evaluation.roof.capWidthsMm,
-    roofFinishes: resolveRoofFieldFinishes(configuration, evaluation.roof),
-    awnings: awningSpans(configuration),
-    postCentersMm: configuration.postCenters.map((post) => post.xMm),
-  });
-  // Pick areas of the sides lie just outside the end posts' outer faces, in front of any side element.
-  const posts = configuration.postCenters;
-  const half = postWidthMm(configuration.productId) / 2;
-  const sideOuterX = (side: 'left' | 'right') => side === 'left' ? posts[posts.length - 1].xMm + half + 3 : posts[0].xMm - half - 3;
-  layout.sideFields = listFields(configuration).flatMap((field) => field.kind === 'side'
-    ? [{ fieldId: field.id, side: field.side!, startMm: field.startMm ?? 0, outerXMm: sideOuterX(field.side!), widthMm: field.widthMm, heightMm: field.heightMm,
-      topStartMm: rafterUndersideAt(configuration.productId, depth, rearHeight, frontHeight, field.startMm ?? 0),
-      topEndMm: rafterUndersideAt(configuration.productId, depth, rearHeight, frontHeight, (field.startMm ?? 0) + field.widthMm) }] : []);
-  return layout;
+    productId, roofMaterialId: 'glass', widthMm: 5000, depthMm: D, rearHeightMm: 2720, frontHeightMm: 2300, bayCount: 6,
+    postCentersMm: [1000, 4000], drainSide: 'left', postCapStyle: 'gerade',
+  } as AssemblyInput);
+  let minZ = Infinity, maxZ = -Infinity, minX = Infinity, maxX = -Infinity;
+  // The plain post (index 0 here: the drain pipe sits on the other end) without the drain outlet.
+  for (const placement of layout.placements.filter((item) => item.role === 'post' && item.postIndex === 0)) {
+    const bounds = placementBoundsMm(productId, placement);
+    minZ = Math.min(minZ, bounds.min[2]); maxZ = Math.max(maxZ, bounds.max[2]);
+    minX = Math.min(minX, bounds.min[0]); maxX = Math.max(maxX, bounds.max[0]);
+  }
+  const frame = {
+    frontBeyondDepthMm: Math.round(-D - minZ), backFromDepthMm: Math.round(maxZ + D),
+    alongMinusMm: Math.round(1000 - minX), alongPlusMm: Math.round(maxX - 1000),
+  };
+  postFrames.set(productId, frame);
+  return frame;
 }

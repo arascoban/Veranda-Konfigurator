@@ -6,7 +6,7 @@ import type { ConfigurationV1 } from '../../../domain/configuration';
 import { createEquipmentGroup, gswLayoutsFor } from '../../assembly/equipmentScene';
 import { loadEquipmentParts } from '../../assembly/glassSlidingScene';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary } from '../../assembly/assemblyScene';
-import { assemblyLayoutFromConfiguration } from '../../assembly/placements';
+import { assemblyLayoutFromConfiguration } from '../../assembly/layoutFromConfiguration';
 import { disposeSchematicGroup } from '../../viewer/schematicGeometry';
 
 /** One rendered view for the PDF (ASTRA-GP-08). Titles are German; right/left follow the garden view. */

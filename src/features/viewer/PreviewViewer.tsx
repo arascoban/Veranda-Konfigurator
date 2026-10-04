@@ -8,13 +8,14 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { assemblyLayoutFromConfiguration, type AssemblyLayout } from '../assembly/placements';
+import { assemblyLayoutFromConfiguration } from '../assembly/layoutFromConfiguration';
+import { postFrame, type AssemblyLayout } from '../assembly/placements';
 import { createAssemblyGroup, loadLayoutParts, PartLibrary, peekLayoutParts, preloadProductParts } from '../assembly/assemblyScene';
-import { createDimensionGroup, disposeAnnotations, setMarkerLimits } from '../assembly/annotations';
+import { createDimensionGroup, createFlatLabel, disposeAnnotations, setMarkerLimits } from '../assembly/annotations';
 import { beamHandleKey, createEquipmentGroup, disposeEquipmentGroup, gswLayoutsFor, type BeamHandle } from '../assembly/equipmentScene';
 import { loadEquipmentParts, peekEquipmentParts, type EquipmentParts } from '../assembly/glassSlidingScene';
 import {
-  canPlace, elementNameDe, equipmentKinds, findField, frontFieldId, hasKind, placeRefusalDe, setDivider, setLowerHeight, sideLayoutOf, type EquipmentKind,
+  BEAM_MM, canPlace, elementHeightsMm, elementNameDe, equipmentKinds, findField, listFields, frontFieldId, hasKind, placeRefusalDe, setDivider, setLowerHeight, sideLayoutOf, type EquipmentKind,
 } from '../../domain/fieldEquipment';
 import { RadialMenu, type RadialOption } from './RadialMenu';
 import { postSections } from '../../catalog/catalog';
@@ -244,7 +245,11 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
           composer.addPass(new RenderPass(scene, camera));
           const gtao = new GTAOPass(scene, camera, host.clientWidth, host.clientHeight);
           gtao.output = GTAOPass.OUTPUT.Default;
-          gtao.updateGtaoMaterial({ radius: AO_RADIUS_M });
+          // More samples and a wider denoise: with the defaults thin, curved parts (the gutter's lower lip) kept a
+          // speckled band (owner, 4 Oct 2026). A slightly lower blend keeps the contact shading soft.
+          gtao.updateGtaoMaterial({ radius: AO_RADIUS_M, samples: 24 });
+          gtao.updatePdMaterial({ radius: 12, samples: 16 });
+          gtao.blendIntensity = 0.8;
           excludeHelpersFromAo(gtao);
           if (runtime.aoBox) gtao.setSceneClipBox(runtime.aoBox);
           composer.addPass(gtao);
@@ -570,7 +575,9 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
       return equipment ? [...runtime.group!.children, equipment] : runtime.group!.children;
     };
 
-    const frontZM = -(dimensions.depthM - postSections[configuration.productId].towardsGardenMm / 2000);
+    // Middle of the measured post depth: the plane the front 50×100 lies in.
+    const posted = postFrame(configuration.productId);
+    const frontZM = -dimensions.depthM + (posted.backFromDepthMm - posted.frontBeyondDepthMm) / 2000;
     const sidePostXM = (side: 'left' | 'right') => (side === 'left' ? posts[posts.length - 1].xMm : posts[0].xMm) / 1000;
     /** Current value of a handle (mm): lower part height or divider centre from the wall. */
     const beamValue = (handle: BeamHandle) => handle.kind === 'split'
@@ -664,6 +671,9 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
         beamDrag.next = next;
         replaceEquipment(runtime, next, peekEquipmentParts(next, runtime.library, gswLayoutsFor(next)));
         markBeams(runtime, beamHandleKey(handle), null);
+        // Live numbers like a dragged post: the sizes on both sides of the 50×100, and the Bemaßungen if shown.
+        showBeamLabels(runtime, next, handle);
+        if (showDimensions) applyDimensionLayer(runtime, next);
         event.preventDefault();
         return;
       }
@@ -732,6 +742,8 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
         runtime.controls.enabled = true;
         setActiveBeam(null);
         if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        showBeamLabels(runtime, null, finished.handle);
+        if (showDimensions && finished.next && cancelled) applyDimensionLayer(runtime, configuration);
         if (!cancelled && finished.next) callbacks.current.onConfigurationChange?.(finished.next);
         else if (finished.next) replaceEquipment(runtime, configuration, peekEquipmentParts(configuration, runtime.library, gswLayoutsFor(configuration)));
         event.preventDefault();
@@ -918,6 +930,53 @@ function replaceEquipment(runtime: ViewerRuntime, configuration: ConfigurationV1
   if (previous instanceof Group) { runtime.scene.remove(previous); disposeEquipmentGroup(previous); }
   if (configuration) runtime.scene.add(createEquipmentGroup(configuration, parts));
   markBeams(runtime, runtime.beamMarks?.active ?? null, runtime.beamMarks?.hovered ?? null);
+}
+
+/**
+ * Sizes either side of a dragged 50×100, standing in the field's plane: the two side parts (divider) or the lower
+ * and upper element (split). Null configuration removes them.
+ */
+function showBeamLabels(runtime: ViewerRuntime, configuration: ConfigurationV1 | null, handle: BeamHandle): void {
+  const previous = runtime.scene.getObjectByName('Teilungsmaße');
+  if (previous instanceof Group) { runtime.scene.remove(previous); disposeAnnotations(previous); }
+  if (!configuration?.postCenters?.length || configuration.dimensionsMm.depth === null) { runtime.render(); return; }
+  const group = new Group();
+  group.name = 'Teilungsmaße';
+  group.userData.exportable = false;
+  const cmText = (mm: number) => `${millimetresToCentimetres(mm)} cm`;
+  const frame = postFrame(configuration.productId);
+  const posts = configuration.postCenters;
+  const depth = configuration.dimensionsMm.depth;
+  const sideX = (side: 'left' | 'right') => (side === 'left' ? posts[posts.length - 1].xMm + frame.alongPlusMm + 60 : posts[0].xMm - frame.alongMinusMm - 60) / 1000;
+  const place = (text: string, field: { kind: 'front' | 'side'; side?: 'left' | 'right'; insideIndex?: number; startMm?: number; widthMm: number }, alongMm: number, yMm: number) => {
+    const label = createFlatLabel(text, 'wall', 0.2, '#0b4f8a', false, 'rgba(255,255,255,0.92)');
+    if (field.kind === 'front') {
+      const left = posts[field.insideIndex!].xMm + frame.alongPlusMm;
+      label.position.set((left + alongMm) / 1000, yMm / 1000, (-depth - frame.frontBeyondDepthMm - 60) / 1000);
+    } else {
+      // Readable from outside the side: turned towards +X (left side) or −X (right side).
+      label.rotateOnWorldAxis(new Vector3(0, 1, 0), field.side === 'left' ? -Math.PI / 2 : Math.PI / 2);
+      label.position.set(sideX(field.side!), yMm / 1000, -((field.startMm ?? 0) + alongMm) / 1000);
+    }
+    group.add(label);
+  };
+  const fields = listFields(configuration);
+  if (handle.kind === 'divider') {
+    const parts = fields.filter((field) => field.kind === 'side' && field.side === handle.side);
+    for (const part of [parts[handle.index], parts[handle.index + 1]]) {
+      if (part) place(cmText(part.widthMm), part, part.widthMm / 2, Math.min(1200, part.heightMm / 2));
+    }
+  } else {
+    const field = fields.find((item) => item.id === handle.fieldId);
+    const entry = configuration.fieldEquipment.find((item) => item.fieldId === handle.fieldId);
+    if (field && entry && entry.elements.length === 2) {
+      const [lower, upper] = elementHeightsMm(field, entry);
+      place(`unten ${cmText(lower)}`, field, field.widthMm / 2, lower / 2);
+      place(`oben ${cmText(upper)}`, field, field.widthMm / 2, lower + BEAM_MM + upper / 2);
+    }
+  }
+  runtime.scene.add(group);
+  runtime.render();
 }
 
 /** Blue glow around the dragged (strong) or hovered 50×100, like a selected post. */

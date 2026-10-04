@@ -20,8 +20,8 @@ describe('field equipment', () => {
     expect(fields[0].id).toBe(`front:${posts[1].id}:${posts[2].id}`);
     expect(fields[0].insideIndex).toBe(1);
     expect(fields[0].heightMm).toBe(2300);
-    // Side clear width: depth minus the post depth (13,5 cm).
-    expect(fields[2].widthMm).toBe(2865);
+    // Side clear width: wall to the measured back face of the Prime post (11 cm behind the depth line).
+    expect(fields[2].widthMm).toBe(2890);
   });
 
   it('adds up to two different elements and splits the field with a default lower height', () => {
@@ -190,10 +190,10 @@ describe('Ausstattung rules 1–7 (docs/Ausstatungen_Kurallar.md, 3 Oct 2026)', 
 
   it('rule 2: divides a side into up to 3 equal parts with standing 50×100 profiles, each part its own field', () => {
     const configuration = divideSide(base(), 'right', 3)!;
-    // 286,5 cm clear − 2 × 5 cm = 276,5 cm → three parts of about 92,2 cm (dividers on whole mm).
+    // 289 cm clear − 2 × 5 cm = 279 cm → three parts of 93 cm.
     const parts = listFields(configuration).filter((field) => field.side === 'right');
     expect(parts.map((field) => field.id)).toEqual(['side:right:1', 'side:right:2', 'side:right:3']);
-    expect(parts.map((field) => Math.round(field.widthMm))).toEqual([922, 921, 922]);
+    expect(parts.map((field) => Math.round(field.widthMm))).toEqual([930, 930, 930]);
     expect(parts.map((field) => field.label)).toEqual(['Seite rechts · Teil 1', 'Seite rechts · Teil 2', 'Seite rechts · Teil 3']);
     // A divided side needs the Giebeldreieck (aluminium by default).
     expect(sideLayoutOf(configuration, 'right').gable).toBe('aluminium');
@@ -217,16 +217,16 @@ describe('Ausstattung rules 1–7 (docs/Ausstatungen_Kurallar.md, 3 Oct 2026)', 
   it('rule 2 like posts: each "Feld unterteilen" adds one 50×100 in the widest part, "gleich" equalises', () => {
     let configuration = addToField(base(), 'side:left', 'aluminiumwand')!;
     configuration = addSideDivider(configuration, 'left')!;
-    // 286,5 cm clear: the divider sits in the middle.
-    expect(sideLayoutOf(configuration, 'left').dividersMm).toEqual([1433]);
+    // 289 cm clear: the divider sits in the middle.
+    expect(sideLayoutOf(configuration, 'left').dividersMm).toEqual([1445]);
     expect(configuration.fieldEquipment.map((entry) => entry.fieldId).sort()).toEqual(['side:left:1', 'side:left:2']);
     configuration = setDivider(configuration, 'left', 0, 600)!;
     configuration = addSideDivider(configuration, 'left')!;
     // The wider part (by the post) is split; three parts, every one with the Aluminiumwand.
-    expect(sideLayoutOf(configuration, 'left').dividersMm).toEqual([600, 1745]);
+    expect(sideLayoutOf(configuration, 'left').dividersMm).toEqual([600, 1758]);
     expect(configuration.fieldEquipment).toHaveLength(3);
     expect(addSideDivider(configuration, 'left')).toBeNull();
-    expect(sideLayoutOf(equalizeSide(configuration, 'left')!, 'left').dividersMm).toEqual([947, 1918]);
+    expect(sideLayoutOf(equalizeSide(configuration, 'left')!, 'left').dividersMm).toEqual([955, 1935]);
     expect(divideSide(configuration, 'left', 1)!.sideLayouts).toEqual([{ side: 'left', gable: 'aluminium', dividersMm: [] }]);
   });
 
@@ -250,7 +250,7 @@ describe('Ausstattung rules 1–7 (docs/Ausstatungen_Kurallar.md, 3 Oct 2026)', 
     const shallower = { ...divided, dimensionsMm: { ...divided.dimensionsMm, depth: 2500 } };
     const result = reconcileFieldEquipment(divided, shallower);
     expect(result.clamped).toBe(true);
-    expect(sideLayoutOf(result.configuration, 'left').dividersMm).toEqual([1183]);
+    expect(sideLayoutOf(result.configuration, 'left').dividersMm).toEqual([1195]);
   });
 
   it('opens drafts with the former gable flag as a clear glass Giebeldreieck', () => {

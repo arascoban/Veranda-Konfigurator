@@ -990,3 +990,13 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
   - Bu geçişte `exportable === false` olan nesneler ve Bemaßungen de gizleniyor (`excludeHelpersFromAo`).
   - AO kutusu zeminden yarıçap + 1 cm yukarıda başlıyor.
 - Doğrulama: Playwright — "Mittel" ve "Hoch" kalitede pfosten ayakları temiz, ölçü çizgisi mavi, gölge kenarında iz yok.
+
+## CLAUDE-AUS-004 — Prime'da yan elemanla pfosten arasında boşluk kalıyordu
+
+- Durum: Çözüldü
+- Tarih: 4 Ekim 2026. Görev/model: Ausstattung yerleşimi, kullanıcı testi, Claude.
+- Gerçek: Yan elemanlar pfostenin 2,5 cm gerisinde bitiyordu.
+- Neden: Yan lichte Tiefe katalogdaki kesitten (Tiefe − 13,5 cm) hesaplanıyordu; bu Premium'a uyuyordu. Prime pfosteni rinneye göre 2,5 cm önde duruyor ve arka yüzü derinlik çizgisinin 11 cm arkasında.
+- Etkilenen dosyalar: `src/domain/fieldEquipment.ts`, `src/features/assembly/{placements,equipmentScene,dimensions,layoutFromConfiguration,fieldPlanes}.ts`, `src/features/viewer/PreviewViewer.tsx`.
+- Tek çözüm denemesi: Pfosten yüzleri yerleştirilmiş modelin ölçülmüş sınırlarından hesaplanıyor (`postFrame`); bütün Ausstattung hesapları bunu kullanıyor.
+- Doğrulama: Testler güncellendi (Prime yan 289 cm); Playwright'ta pfosten ayağı ve köşe boşluksuz.

@@ -2,12 +2,12 @@ import {
   BoxGeometry, BufferGeometry, DoubleSide, MeshBasicMaterial, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, Texture,
   type Material, type Object3D,
 } from 'three';
-import { frameColors, postSections, postWidthMm } from '../../catalog/catalog';
+import { frameColors } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import {
   BEAM_DEPTH_MM, BEAM_MM, elementHeightsMm, GABLE_ROOM_MM, gswCheck, listFields, openingOf, sideClearMm, type FieldElement,
 } from '../../domain/fieldEquipment';
-import { rafterUndersideAt } from './placements';
+import { postFrame, rafterUndersideAt } from './placements';
 import { buildAluminiumWall, buildBeamLying, buildBeamStanding, buildGable, createAusstattungMaterials } from './ausstattungScene';
 import type { GswLayout } from '../../domain/glassSlidingDoor';
 import { buildGlassSlidingWall, createGswMaterials, hasGswParts, type EquipmentParts } from './glassSlidingScene';
@@ -78,9 +78,10 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
   const posts = configuration.postCenters;
   if ((!configuration.fieldEquipment.length && !configuration.sideLayouts.length) || width === null || depth === null
     || rearHeight === null || frontHeight === null || !posts?.length) return group;
-  const toward = postSections[configuration.productId].towardsGardenMm;
-  const half = postWidthMm(configuration.productId) / 2;
-  const frontZ = -(depth - toward / 2);
+  // Post faces measured on the product model (Prime posts stand 2,5 cm further out than Premium ones).
+  const posted = postFrame(configuration.productId);
+  // Middle of the post depth, where front elements stand.
+  const frontZ = -depth + (posted.backFromDepthMm - posted.frontBeyondDepthMm) / 2;
   const frameHex = frameColors[configuration.frameColor].hex;
   const frame = new LineBasicMaterial({ color: frameHex });
   const materials = new Map<string, MeshStandardMaterial>();
@@ -125,11 +126,11 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
    */
   const place = (object: Object3D, field: { kind: 'front' | 'side'; side?: 'left' | 'right'; insideIndex?: number }, startMm: number, baseMm: number, depthMm: number, insetMm: number) => {
     if (field.kind === 'front') {
-      object.position.set((posts[field.insideIndex!].xMm + half + startMm) / 1000, baseMm / 1000, (frontZ - depthMm / 2) / 1000);
+      object.position.set((posts[field.insideIndex!].xMm + posted.alongPlusMm + startMm) / 1000, baseMm / 1000, (frontZ - depthMm / 2) / 1000);
     } else {
       // rotation.y = π/2: local X → −Z (garden), local Z → +X.
       object.rotation.y = Math.PI / 2;
-      const x = field.side === 'left' ? sidePostX('left') + half - insetMm - depthMm : sidePostX('right') - half + insetMm;
+      const x = field.side === 'left' ? sidePostX('left') + posted.alongPlusMm - insetMm - depthMm : sidePostX('right') - posted.alongMinusMm + insetMm;
       object.position.set(x / 1000, baseMm / 1000, -startMm / 1000);
     }
     group.add(object);
@@ -143,8 +144,8 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
     let band: (y0: number, y1: number) => Point[];
     if (field.kind === 'front') {
       const index = field.insideIndex!;
-      const x0 = posts[index].xMm + half;
-      const x1 = posts[index + 1].xMm - half;
+      const x0 = posts[index].xMm + posted.alongPlusMm;
+      const x1 = posts[index + 1].xMm - posted.alongMinusMm;
       band = (y0, y1) => [[x0, y0, frontZ], [x1, y0, frontZ], [x1, y1, frontZ], [x0, y1, frontZ]];
     } else {
       const x = sidePostX(field.side!);

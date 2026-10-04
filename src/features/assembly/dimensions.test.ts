@@ -9,6 +9,6 @@ describe('Bemaßungen of divided sides', () => {
     const lines = buildDimensionLines(configuration);
     expect(lines.map((line) => line.id)).toContain('depthLeft');
     expect(lines.map((line) => line.id)).not.toContain('depthRight');
-    expect(lines.filter((line) => line.id.startsWith('side-')).map((line) => line.label)).toEqual(['Teil 1\n140,8 cm', 'Teil 2\n140,7 cm']);
+    expect(lines.filter((line) => line.id.startsWith('side-')).map((line) => line.label)).toEqual(['Teil 1\n142 cm', 'Teil 2\n142 cm']);
   });
 });

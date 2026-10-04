@@ -3,7 +3,7 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
 import { parseConfiguration, type ConfigurationV1 } from '../../domain/configuration';
 import { evaluateConfiguration } from '../../domain/evaluateConfiguration';
-import { assemblyLayoutFromConfiguration } from '../assembly/placements';
+import { assemblyLayoutFromConfiguration } from '../assembly/layoutFromConfiguration';
 import { createAssemblyGroup, loadLayoutParts, type PartLibrary } from '../assembly/assemblyScene';
 import { createEquipmentGroup, gswLayoutsFor } from '../assembly/equipmentScene';
 import { loadEquipmentParts } from '../assembly/glassSlidingScene';

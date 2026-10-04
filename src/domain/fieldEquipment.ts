@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { postSections, postWidthMm } from '../catalog/catalog';
+import { postFrame } from '../features/assembly/placements';
 import type { ConfigurationV1 } from './configuration';
 import { validatePostCenters } from './geometry/posts';
 import { checkGlassSliding, GSW_MIN_HEIGHT_MM, type GswCheck } from './glassSlidingDoor';
@@ -141,12 +141,13 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
   const posts = configuration.postCenters ?? [];
   if (posts.length >= 2 && validatePostCenters(configuration.productId, width, posts).length === 0) {
     const count = posts.length - 1;
-    const postWidth = postWidthMm(configuration.productId);
+    // Clear width between the measured post faces of the product model (works for every product).
+    const frame = postFrame(configuration.productId);
     for (let gardenNumber = 1; gardenNumber <= count; gardenNumber += 1) {
       const insideIndex = count - gardenNumber;
       const left = posts[insideIndex];
       const right = posts[insideIndex + 1];
-      const clear = right.xMm - left.xMm - postWidth;
+      const clear = (right.xMm - frame.alongMinusMm) - (left.xMm + frame.alongPlusMm);
       fields.push({
         id: frontFieldId(left.id, right.id), kind: 'front', insideIndex,
         label: `Vorne · Feld ${gardenNumber}`,
@@ -179,9 +180,9 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
   return fields;
 }
 
-/** Clear depth of a side: wall to the back face of the end post; null while the depth is missing. */
+/** Clear depth of a side: wall to the back face of the end post, measured on the product model. */
 export function sideClearMm(configuration: ConfigurationV1): number {
-  return (configuration.dimensionsMm.depth ?? 0) - postSections[configuration.productId].towardsGardenMm;
+  return (configuration.dimensionsMm.depth ?? 0) - postFrame(configuration.productId).backFromDepthMm;
 }
 
 export function sideLayoutOf(configuration: ConfigurationV1, side: Side): SideLayout {

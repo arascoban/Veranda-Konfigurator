@@ -452,3 +452,23 @@ Doğrulama:
   - Yamuk hover alanı üçgeni de kaplıyor.
   - Parça ölçüleri üst üste binmiyor.
   - Feld unterteilen 2 basışta 3 parça veriyor, 3. basış devre dışı; "Teilung entfernen" sonrası başlık yine "Seite links".
+
+## 20. İş — İkinci test düzeltmeleri (4 Ekim)
+
+- **Model geometrisi otomatik** (kullanıcı: "her model için tek tek ayar olmamalı"): `postFrame(productId)` (`placements.ts`) pfostenin yüzlerini yerleştirilmiş modelin ölçülmüş sınırlarından hesaplar. Yeni bir ürün eklenince ek ayar gerekmez.
+  - Prime'da pfostenin bahçe yüzü derinlik çizgisinin 2,5 cm önünde, arka yüzü 11 cm arkasında; Premium'da 0 / 13,5 cm.
+  - Prime'daki boşluğun nedeni buydu: yan genişlik iki modelde de "Tiefe − 13,5 cm" alınıyordu. Prime'ın gerçek lichte Tiefe'si 289 cm.
+  - Feld genişlikleri, yan elemanların yeri, ön elemanların derinlik ortası, seçim alanları, Bemaßungen ve 50×100 sürükleme düzlemi artık aynı kaynaktan geliyor.
+  - `assemblyLayoutFromConfiguration` yeni modüle taşındı (`layoutFromConfiguration.ts`). Böylece saf yerleşim kodunun domain bağımlılığı kalmadı ve domain ölçülmüş geometriyi kullanabiliyor.
+- **Bemaßungen yerleşimi:** Her yazı kendi çizgisinin dış tarafında, sonraki çizgiye çarpmadan duruyor; hiçbir yazı yapının ya da yan elemanların altında kalmıyor.
+  - İç sıra 35 cm'de: Feld'ler, Tiefe links/rechts ya da yan parçalar. Dış sıra 110 cm'de: Breite, Tiefe (A). Durchgangshöhe pfosten sırasının önünde.
+  - Daha önce yazılar çizginin üstüne biniyordu, "Tiefe links" de yan duvarın altında kalıyordu.
+- **AO:** Rinne alt kenarındaki noktalı bant için GTAO örnek sayısı 24'e, denoise yarıçapı 12'ye çıkarıldı; harmanlama 0,8.
+- **50×100 sürüklerken canlı sayılar:** İki yandaki ölçüler (yan parçaların lichte Breite'si ya da alt/üst yükseklik) mavi yazıyla düzlemde görünüyor. Bemaßungen açıksa ölçü katmanı da canlı güncelleniyor.
+
+Doğrulama:
+- 169 test ve build.
+- Playwright:
+  - Prime köşesinde boşluk yok.
+  - Bemaßungen önden, soldan ve sağdan çakışmasız.
+  - Sürükleme sırasında "unten/oben" ve parça genişlikleri görünüyor.
