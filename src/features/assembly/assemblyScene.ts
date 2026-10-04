@@ -129,8 +129,7 @@ function applyPlacement(object: Object3D, placement: PartPlacement, offsetMm: re
  * Editing helpers for one post, positioned relative to the post centre: an invisible hit cylinder plus
  * the ground marker (ring and flat move arrows) shown while the post is selected.
  */
-export function createPostControls(postIndex: number, frontHeightM: number, depthM: number, towardsGardenM: number, alongGutterM = 0.13): Object3D[] {
-  const zCentre = -depthM + towardsGardenM / 2;
+export function createPostControls(postIndex: number, frontHeightM: number, zCentre: number, alongGutterM = 0.13): Object3D[] {
   const hitArea = new Mesh(new CylinderGeometry(0.14, 0.14, frontHeightM, 12),
     new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
   hitArea.position.set(0, frontHeightM / 2, zCentre);
@@ -234,7 +233,9 @@ export function createAssemblyGroup(
       holder.add(clone);
       if (options.includePostControls && !controlsAdded.has(placement.postIndex)) {
         controlsAdded.add(placement.postIndex);
-        holder.add(...createPostControls(placement.postIndex, frontHeightM, depthM, millimetresToMetres(spec.postSectionMm.towardsGarden), millimetresToMetres(spec.postSectionMm.alongGutter)));
+        // Controls stand at the real post line (moved in with the static carrier when chosen).
+        const line = layout.postLine;
+        holder.add(...createPostControls(placement.postIndex, frontHeightM, millimetresToMetres((line.frontZ + line.backZ) / 2), millimetresToMetres(spec.postSectionMm.alongGutter)));
       }
       // Posts come in three slices; register each post centre once.
       if (!postCentersM.includes(millimetresToMetres(centreMm))) postCentersM.push(millimetresToMetres(centreMm));
@@ -245,7 +246,11 @@ export function createAssemblyGroup(
     }
   }
 
-  if (options.includePostControls) group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM, layout.sideFields));
+  if (options.includePostControls) {
+    const line = layout.postLine;
+    group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM, layout.sideFields,
+      { frontZM: millimetresToMetres(line.frontZ) - 0.003, heightM: millimetresToMetres(line.carrier?.bottomMm ?? layout.frontHeightMm) }));
+  }
   for (const slab of layout.awnings) group.add(createAwningPlaceholder(layout, slab, finishes));
   if (options.includeGroundGuide) {
     group.add(createGround(widthM, depthM));

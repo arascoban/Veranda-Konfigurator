@@ -73,7 +73,7 @@ export function createSchematicGroup(
     post.userData.postIndex = index;
     post.userData.postVisual = true;
     holder.add(post);
-    if (options.includePostControls) holder.add(...createPostControls(index, frontHeightM, depthM, postSectionM.towardsGardenM));
+    if (options.includePostControls) holder.add(...createPostControls(index, frontHeightM, -depthM + postSectionM.towardsGardenM / 2));
     group.add(holder);
   });
   if (options.includePostControls) group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM));

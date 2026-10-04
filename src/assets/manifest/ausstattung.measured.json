@@ -131,6 +131,164 @@
       "materials": [
         "M_1k_Aluminium"
       ]
+    },
+    "staticCarrier": {
+      "source": "Models/Ausstatungen/Parcalar/StatikTrage.fbx",
+      "sourceSha256": "45ab11b5f9ca04caff1afd6939e1e4a640abe6777bd7dc24ccf6bde2bc116dd6",
+      "glb": "models/ausstattung/staticCarrier.glb",
+      "glbBytes": 22948,
+      "glbSha256": "b60e2668e49d1d5abcb12fa49cc759b005b5e584839e0f15562550fac9505b43",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        100.0,
+        18.0,
+        14.3
+      ],
+      "sizeCm": [
+        100.0,
+        18.0,
+        14.3
+      ],
+      "triangles": 740,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "staticCarrierCap": {
+      "source": "Models/Ausstatungen/Parcalar/StatikTrage_Kapak.fbx",
+      "sourceSha256": "50efaa82c07f1a8ee0d653ee91e0173dde51f8f5f38f1f4b2a154f582c74cea4",
+      "glb": "models/ausstattung/staticCarrierCap.glb",
+      "glbBytes": 6788,
+      "glbSha256": "eb25dedb8429fccf5faf653f2d5ca1097efbb1af9a253b95fabf31bdb98d4655",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        0.4,
+        18.0,
+        14.3
+      ],
+      "sizeCm": [
+        0.4,
+        18.0,
+        14.3
+      ],
+      "triangles": 196,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "drainExtension": {
+      "source": "Models/Ausstatungen/Parcalar/Ek_Boru.fbx",
+      "sourceSha256": "5c2f5fb487345616ca3e3a521da0ce6405bbab9b8f45ab241b3552ea94c24125",
+      "glb": "models/ausstattung/drainExtension.glb",
+      "glbBytes": 51520,
+      "glbSha256": "81363f3f1ecc4ec6f3fb2c17a324cfe91dc8519fda7c7a0d2731ad6a996777d6",
+      "converterWarnings": [
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        7.6,
+        14.221,
+        63.543
+      ],
+      "sizeCm": [
+        7.6,
+        14.221,
+        63.543
+      ],
+      "triangles": 1440,
+      "meshes": 1,
+      "materials": [
+        "FrontColor"
+      ]
+    },
+    "aProfile": {
+      "source": "Models/Ausstatungen/Parcalar/A_Profil.fbx",
+      "sourceSha256": "7d1d6edd25c373d89c23af32f86e9f414cc3efd2d2d79d647938b32d054d78fa",
+      "glb": "models/ausstattung/aProfile.glb",
+      "glbBytes": 32100,
+      "glbSha256": "f782df8a3357a57123df0dda527431b67677675c5871fc8bcd98abd47e7f0f35",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        100.093,
+        15.5,
+        6.2
+      ],
+      "sizeCm": [
+        100.093,
+        15.5,
+        6.2
+      ],
+      "triangles": 1000,
+      "meshes": 3,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
+    },
+    "lCap": {
+      "source": "Models/Ausstatungen/Parcalar/L_Kapak.fbx",
+      "sourceSha256": "52676e96793f5a2f647a5d77ea32f72a062b1a2f3c30c3bc8a2b55f3bf3bdf8c",
+      "glb": "models/ausstattung/lCap.glb",
+      "glbBytes": 7960,
+      "glbSha256": "156005876b5c38dc0e7d11d4faa8aa1fa1d34c48b1803f6fa6dc3cab6b8f4859",
+      "converterWarnings": [
+        "Warning: Couldn't open file , skipping file.",
+        "Warning: could not find a image file for texture: M_1k_Aluminium_texture.",
+        "Warning: node /RootNode/Model uses unsupported transform inheritance type 'eInheritRrSs'."
+      ],
+      "boundsMinCm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "boundsMaxCm": [
+        62.0,
+        155.0,
+        22.0
+      ],
+      "sizeCm": [
+        62.0,
+        155.0,
+        22.0
+      ],
+      "triangles": 236,
+      "meshes": 1,
+      "materials": [
+        "M_1k_Aluminium"
+      ]
     }
   }
 }

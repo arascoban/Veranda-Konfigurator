@@ -996,7 +996,7 @@ Kontrol görüntüleri bu oturumdaki tarayıcı çıktılarında görüldü; kal
 - Durum: Çözüldü
 - Tarih: 4 Ekim 2026. Görev/model: Ausstattung yerleşimi, kullanıcı testi, Claude.
 - Gerçek: Yan elemanlar pfostenin 2,5 cm gerisinde bitiyordu.
-- Neden: Yan lichte Tiefe katalogdaki kesitten (Tiefe − 13,5 cm) hesaplanıyordu; bu Premium'a uyuyordu. Prime pfosteni rinneye göre 2,5 cm önde duruyor ve arka yüzü derinlik çizgisinin 11 cm arkasında.
+- Neden: Yan lichte Tiefe katalogdaki kesitten (Tiefe − 13,5 cm) hesaplanıyordu; bu Premium'a uyuyordu. Prime pfosten modeli ise 11 × 11 cm, arka yüzü derinlik çizgisinin 11 cm arkasında. Katalogdaki 13,5 cm kesit modelle uyuşmuyor; sahibine soruldu.
 - Etkilenen dosyalar: `src/domain/fieldEquipment.ts`, `src/features/assembly/{placements,equipmentScene,dimensions,layoutFromConfiguration,fieldPlanes}.ts`, `src/features/viewer/PreviewViewer.tsx`.
 - Tek çözüm denemesi: Pfosten yüzleri yerleştirilmiş modelin ölçülmüş sınırlarından hesaplanıyor (`postFrame`); bütün Ausstattung hesapları bunu kullanıyor.
 - Doğrulama: Testler güncellendi (Prime yan 289 cm); Playwright'ta pfosten ayağı ve köşe boşluksuz.

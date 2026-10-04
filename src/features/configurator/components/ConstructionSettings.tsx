@@ -1,5 +1,6 @@
 import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, type FrameColorId, type ProductId } from '../../../catalog/catalog';
 import { assemblySpecs } from '../../../features/assembly/spec';
+import { MAX_POST_INSET_MM } from '../../../features/assembly/placements';
 import { dimensionRange, withDimension, type DimensionKey } from '../../../domain/adjustDimensions';
 import type { ConfigurationV1 } from '../../../domain/configuration';
 import type { ConfigurationEvaluation } from '../../../domain/evaluateConfiguration';
@@ -28,6 +29,8 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onPr
   selectedPostId?: string | null;
   onSelectPost?: (postId: string | null) => void;
 }) {
+  // At most 100 cm, and the sides keep at least 100 cm of clear depth behind the posts (provisional).
+  const maxInset = Math.max(0, Math.min(MAX_POST_INSET_MM, (configuration.dimensionsMm.depth ?? 0) - 1000 - 135));
   const firstInvalid = evaluation.issues.find((issue) => issue.kind === 'invalid');
   const fieldError = (field: DimensionKey) => {
     const issue = evaluation.issues.find((item) => item.kind === 'invalid' && item.field === `dimensionsMm.${field}`);
@@ -141,6 +144,12 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onPr
         <Button size="small" disabled={widthMm === null || !createMinimumPostLayout(configuration.productId, widthMm)}
           onClick={() => widthMm !== null && commitPosts(createMinimumPostLayout(configuration.productId, widthMm))}>Mindestanordnung</Button>
       </div>
+
+      {/* Posts moved in towards the wall (4 Oct 2026): up to 100 cm, then a static carrier runs under the rafters. */}
+      <div className="v2-subhead"><h3>Pfosten nach innen<InfoTip text="Alle Pfosten rücken gemeinsam bis zu 100 cm in Richtung Wand. Ein Statikträger über die ganze Breite trägt dann die Sparren; ein Zusatzrohr führt das Wasser von der Rinne zum Ablaufpfosten. Die Felder vorne enden unter dem Statikträger." /></h3>
+        <span>{configuration.postInsetMm ? 'mit Statikträger' : 'an der Rinne'}</span></div>
+      <DimensionField label="Einzug ab Rinne" valueMm={configuration.postInsetMm} minimumMm={0} maximumMm={maxInset}
+        onValueChange={(value) => { if (value !== null) onChange({ ...configuration, postInsetMm: Math.max(0, Math.min(maxInset, Math.round(value))) }); }} />
 
       {configuration.productId === 'prime' && <div className="option-row">
         <span className="option-row__label">Pfostendeckel<InfoTip text="Gerader oder halber Deckel am Prime-Pfosten." /></span>

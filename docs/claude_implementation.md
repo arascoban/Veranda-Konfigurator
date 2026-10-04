@@ -456,7 +456,7 @@ Doğrulama:
 ## 20. İş — İkinci test düzeltmeleri (4 Ekim)
 
 - **Model geometrisi otomatik** (kullanıcı: "her model için tek tek ayar olmamalı"): `postFrame(productId)` (`placements.ts`) pfostenin yüzlerini yerleştirilmiş modelin ölçülmüş sınırlarından hesaplar. Yeni bir ürün eklenince ek ayar gerekmez.
-  - Prime'da pfostenin bahçe yüzü derinlik çizgisinin 2,5 cm önünde, arka yüzü 11 cm arkasında; Premium'da 0 / 13,5 cm.
+  - Prime'da pfosten modeli 11 × 11 cm (katalogda 11 × 13,5 yazıyor); Premium 13 × 13,5 cm. Bahçe yüzü ikisinde de derinlik çizgisinde.
   - Prime'daki boşluğun nedeni buydu: yan genişlik iki modelde de "Tiefe − 13,5 cm" alınıyordu. Prime'ın gerçek lichte Tiefe'si 289 cm.
   - Feld genişlikleri, yan elemanların yeri, ön elemanların derinlik ortası, seçim alanları, Bemaßungen ve 50×100 sürükleme düzlemi artık aynı kaynaktan geliyor.
   - `assemblyLayoutFromConfiguration` yeni modüle taşındı (`layoutFromConfiguration.ts`). Böylece saf yerleşim kodunun domain bağımlılığı kalmadı ve domain ölçülmüş geometriyi kullanabiliyor.
@@ -489,3 +489,36 @@ Doğrulama:
   - Her pencerenin kendi çerçevesi var; aralarındaki dikme iki WD-55 yan yana.
 
 Doğrulama: 171 test (kural 11, pencere bölümü, eski kayıt) ve build. Playwright'ta solda alu + 50×100 + Milch pencereler (Referans 2 gibi), önde 2 pencereli Klar duvar görüldü.
+
+## 22. İş — Pfostenları içeri alma (StatikTrage, Ek Boru) (4 Ekim)
+
+Kaynak: kullanıcının cevabı (en fazla 100 cm; Feld hesabı aynı, pfosten statik taşıyıcının içinde "Premium gibi" bündig) ve Referans 3 analizi.
+
+Referans 3'ten okunanlar:
+- Pfosten bahçe yüzü derinlik çizgisinin yaklaşık 70 cm gerisinde.
+- StatikTrage 18 × 14,3 cm, tüm genişlik boyunca, iki uçta 4 mm kapak. Pfostenların iki yüzünden 4 mm taşıyor, alt kenarı pfosten tepesinin 6,2 cm altında, üstü Sparren'in altında.
+- Ek Boru 63,5 cm: rinne çıkışından (derinlik çizgisinin 6,9 cm gerisi) ablauf pfostenine gidiyor.
+
+Uygulama:
+- Konfigürasyonda `postInsetMm` (0–1000, varsayılan 0; eski taslaklar 0 ile açılır).
+- `postLine()` (`placements.ts`) pfosten hattını, taşıyıcıyı ve pfosten tepesini tek yerden hesaplıyor:
+  - Taşıyıcı üstü, Sparren altının taşıyıcı bahçe kenarındaki yüksekliğinde; Sparren'ler ona oturuyor.
+  - Pfostenlar `movePostsIn` ile kaydırılıyor; orta dilim uzatılıp kısaltılıyor, üst dilim yükseliyor.
+- **Feld'ler:**
+  - Yan lichte Tiefe = duvar → pfosten arka yüzü (70 cm'de Prime için 219 cm).
+  - Ön Feld'ler taşıyıcının altında bitiyor.
+  - Seçim alanları, pfosten okları ve sürükleme düzlemi kaydırılan hatta.
+- **3D:** StatikTrage gövdesi ve kapakları, her ablauf pfostenine Ek Boru (boy = einzug − 6,9 cm, model boyuna uzatılıyor). Rinne yerinde kalıyor.
+- **Bemaßungen:** Sağ tarafta "Einzug" ölçüsü.
+- **UI:** Konstruktion → Pfosten → "Pfosten nach innen · Einzug ab Rinne" (cm).
+- Parçalar `tools/prepare_models.py ausstattung` ile dönüştürüldü: `staticCarrier`, `staticCarrierCap`, `drainExtension`, ayrıca Freistehend için `aProfile` ve `lCap`.
+- Not: L_Kapak modeli 10 kat büyük çizilmiş (62 × 155 × 22 cm, A-Profil kesiti 15,5 × 6,2 cm); kullanırken 1/10 ölçeklenecek.
+
+**Varsayımlar (vorläufig, sahibine soruldu):**
+- Pfosten modeli her üründe kendi pfosteni (Referans 3'te 11,2 cm genişlik görülüyor), konumu ise "Premium gibi": bahçe yüzü taşıyıcının içinde bündig. Kullanıcı "Premium pfosteni giriyor" dedi; Referans 3 ile çeliştiği için soruldu.
+- Bütün pfostenlar birlikte içeri alınıyor (taşıyıcı düz).
+- 1 cm'den itibaren taşıyıcı geliyor.
+- Yanlarda en az 100 cm lichte Tiefe kalıyor.
+- Durchgangshöhe (E) hâlâ rinne altını gösteriyor; ön Feld yüksekliği taşıyıcı altı.
+
+Doğrulama: 172 test ve build. Playwright'ta Prime + 70 cm: pfostenlar taşıyıcının içinde, Ek Boru rinne çıkışından pfostene, GSW taşıyıcı altında, yan Tiefe 219 cm.

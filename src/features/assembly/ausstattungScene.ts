@@ -256,6 +256,44 @@ export function buildLightWall(parts: EquipmentParts, materials: AusstattungMate
   return wall;
 }
 
+/** The carrier and pipe models were drawn with the garden at +Z (Referans 3): half a turn brings it to local z = 0. */
+const GARDEN_AT_ZERO = new Matrix4().makeRotationY(Math.PI);
+
+/**
+ * Static carrier (StatikTrage) over `widthMm` with its end caps outside both ends, garden face at local z = 0,
+ * underside at y = 0 (posts moved in, 4 Oct 2026).
+ */
+export function buildStaticCarrier(parts: EquipmentParts, material: Material, widthMm: number): Group {
+  const group = new Group();
+  group.name = 'Statikträger';
+  const body = partGeometries(parts, 'staticCarrier', GARDEN_AT_ZERO);
+  group.add(...meshesOf(body, material, along(body, widthMm, 0, 0, 0)));
+  const cap = partGeometries(parts, 'staticCarrierCap', GARDEN_AT_ZERO);
+  const box = new Box3();
+  for (const geometry of cap) { geometry.computeBoundingBox(); box.union(geometry.boundingBox!); }
+  const capMm = (box.max.x - box.min.x) * 1000;
+  group.add(...meshesOf(cap, material, new Matrix4().makeTranslation(-capMm / 1000, 0, 0)));
+  group.add(...meshesOf(cap, material, new Matrix4().makeTranslation(widthMm / 1000, 0, 0)));
+  return group;
+}
+
+/**
+ * Extra drain pipe (Ek Boru) from the gutter outlet back to the moved-in drain post: local z = 0 at the gutter end,
+ * stretched to `lengthMm`, top at y = height of the model.
+ */
+export function buildDrainExtension(parts: EquipmentParts, material: Material, lengthMm: number): Group {
+  const group = new Group();
+  group.name = 'Ek Boru';
+  const pipe = partGeometries(parts, 'drainExtension', GARDEN_AT_ZERO);
+  const box = new Box3();
+  for (const geometry of pipe) { geometry.computeBoundingBox(); box.union(geometry.boundingBox!); }
+  const length = (box.max.z - box.min.z) * 1000;
+  group.add(...meshesOf(pipe, material, new Matrix4().makeScale(1, 1, Math.max(0.05, lengthMm / length))));
+  group.userData.heightMm = (box.max.y - box.min.y) * 1000;
+  group.userData.widthMm = (box.max.x - box.min.x) * 1000;
+  return group;
+}
+
 /** Counter-clockwise convex polygon moved inwards by `insetMm` on every edge. */
 export function insetPolygon(points: readonly [number, number][], insetMm: number): [number, number][] {
   const count = points.length;

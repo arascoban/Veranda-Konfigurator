@@ -14,7 +14,7 @@ export const GSW_RAIL_PROFILES = [3, 4, 5, 6] as const;
 const railPart = (rails: number, piece: 'Top' | 'Bottom' | 'Side') => `rail${rails}${piece}`;
 export const gswPartPath = (partId: string) => `models/glasschiebewand/${partId}.glb`;
 /** Ausstattung profiles (50×100, F profile, lamella, WD-55) live next to the Glasschiebewand parts. */
-const AUSSTATTUNG_IDS = new Set(['beam50x100', 'fProfile', 'lamella', 'wd55']);
+const AUSSTATTUNG_IDS = new Set(['beam50x100', 'fProfile', 'lamella', 'wd55', 'staticCarrier', 'staticCarrierCap', 'drainExtension', 'aProfile', 'lCap']);
 export const equipmentPartPath = (partId: string) => AUSSTATTUNG_IDS.has(partId) ? `models/ausstattung/${partId}.glb` : gswPartPath(partId);
 
 /** Measured from the models (prepare_models.py): glass from 7.8 cm, top 2.2 cm below the rail top; tracks 2.2 cm apart, first at 0.6 cm. */
@@ -32,7 +32,7 @@ export type EquipmentParts = Map<string, Group>;
 function neededPartIds(configuration: ConfigurationV1, layoutFor: (fieldId: string) => (GswLayout | null)[]): string[] {
   const ids = new Set<string>();
   // Every equipped field or side may need the 50×100, the Aluminiumwand or a Giebeldreieck: all four are small.
-  if (configuration.fieldEquipment.length || configuration.sideLayouts.length) for (const id of AUSSTATTUNG_IDS) ids.add(id);
+  if (configuration.fieldEquipment.length || configuration.sideLayouts.length || configuration.postInsetMm > 0) for (const id of AUSSTATTUNG_IDS) ids.add(id);
   for (const entry of configuration.fieldEquipment) {
     for (const layout of layoutFor(entry.fieldId)) {
       if (!layout) continue;

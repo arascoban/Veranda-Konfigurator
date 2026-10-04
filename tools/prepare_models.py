@@ -81,6 +81,13 @@ PARTS['ausstattung'] = {
     'fProfile': 'Models/Ausstatungen/Parcalar/F_Profil.fbx',
     'lamella': 'Models/Ausstatungen/Parcalar/Lamellen.fbx',
     'wd55': 'Models/Ausstatungen/Parcalar/WD-55.fbx',
+    # Posts moved in up to 1 m (4 Oct 2026): static carrier under the rafters with its end cap, extra drain pipe.
+    'staticCarrier': 'Models/Ausstatungen/Parcalar/StatikTrage.fbx',
+    'staticCarrierCap': 'Models/Ausstatungen/Parcalar/StatikTrage_Kapak.fbx',
+    'drainExtension': 'Models/Ausstatungen/Parcalar/Ek_Boru.fbx',
+    # Freistehend: A profile behind the wall profile and its L end caps.
+    'aProfile': 'Models/Ausstatungen/Parcalar/A_Profil.fbx',
+    'lCap': 'Models/Ausstatungen/Parcalar/L_Kapak.fbx',
 }
 NORMALISE = {'glasschiebewand': {'keepY': ['glassLeaf', 'glassLeafEdge']}, 'ausstattung': {}}
 

@@ -55,6 +55,11 @@ export const configurationV1Schema = z.object({
   ledControl: z.enum(['schaltbar', 'dimmbar']).default('schaltbar'),
   /** Ausstattung per front/side field (V2, 2 Oct 2026); older drafts open without equipment. */
   fieldEquipment: z.array(fieldEquipmentSchema).default([]),
+  /**
+   * Posts moved in towards the wall (4 Oct 2026, owner): 0 = at the gutter, up to 100 cm with a static carrier
+   * (StatikTrage) under the rafters and an extra drain pipe.
+   */
+  postInsetMm: z.number().int().min(0).max(1000).default(0),
   /** Giebeldreieck and 50×100 division per side (3 Oct 2026); missing sides are open and undivided. */
   sideLayouts: z.array(sideLayoutSchema).max(2).default([]),
 }).strict();
@@ -126,6 +131,7 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     ledControl: 'schaltbar',
     fieldEquipment: [],
     sideLayouts: [],
+    postInsetMm: 0,
   };
 }
 

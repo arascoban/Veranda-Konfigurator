@@ -5,10 +5,10 @@ import {
 import { frameColors } from '../../catalog/catalog';
 import type { ConfigurationV1 } from '../../domain/configuration';
 import {
-  BEAM_DEPTH_MM, BEAM_MM, elementHeightsMm, GABLE_ROOM_MM, gswCheck, listFields, openingOf, sideClearMm, type FieldElement,
+  BEAM_DEPTH_MM, BEAM_MM, elementHeightsMm, GABLE_ROOM_MM, gswCheck, listFields, openingOf, postLineOf, sideClearMm, type FieldElement,
 } from '../../domain/fieldEquipment';
-import { postFrame, rafterUndersideAt } from './placements';
-import { buildAluminiumWall, buildLightWall, buildBeamLying, buildBeamStanding, buildGable, createAusstattungMaterials } from './ausstattungScene';
+import { drainPostIndices, postFrame, rafterUndersideAt } from './placements';
+import { buildAluminiumWall, buildDrainExtension, buildLightWall, buildStaticCarrier, buildBeamLying, buildBeamStanding, buildGable, createAusstattungMaterials } from './ausstattungScene';
 import type { GswLayout } from '../../domain/glassSlidingDoor';
 import { buildGlassSlidingWall, createGswMaterials, hasGswParts, type EquipmentParts } from './glassSlidingScene';
 
@@ -58,6 +58,7 @@ function beamHandleMesh(handle: BeamHandle, lengthMm: number, heightMm: number):
 }
 
 const GABLE_INTO_RAFTER_MM = 15;
+const DRAIN_OUTLET_BEHIND_DEPTH_MM = 69;
 
 /** How far each element's outer face sits inside the end post's outer face on a side (Referans 1/2, mm). */
 const SIDE_INSET_MM = { aluminiumwand: 10, glasschiebewand: 5, beam: 0, gable: 10 } as const;
@@ -76,12 +77,13 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
   group.userData.equipment = true;
   const { width, depth, rearHeight, frontHeight } = configuration.dimensionsMm;
   const posts = configuration.postCenters;
-  if ((!configuration.fieldEquipment.length && !configuration.sideLayouts.length) || width === null || depth === null
+  if ((!configuration.fieldEquipment.length && !configuration.sideLayouts.length && !configuration.postInsetMm) || width === null || depth === null
     || rearHeight === null || frontHeight === null || !posts?.length) return group;
-  // Post faces measured on the product model (Prime posts stand 2,5 cm further out than Premium ones).
+  // Post faces measured on the product model (Prime 11 × 11 cm, Premium 13 × 13,5 cm).
   const posted = postFrame(configuration.productId);
   // Middle of the post depth, where front elements stand.
-  const frontZ = -depth + (posted.backFromDepthMm - posted.frontBeyondDepthMm) / 2;
+  const line = postLineOf(configuration)!;
+  const frontZ = (line.frontZ + line.backZ) / 2;
   const frameHex = frameColors[configuration.frameColor].hex;
   const frame = new LineBasicMaterial({ color: frameHex });
   const materials = new Map<string, MeshStandardMaterial>();
@@ -180,6 +182,23 @@ export function createEquipmentGroup(configuration: ConfigurationV1, parts?: Equ
         base += BEAM_MM;
       }
     });
+  }
+
+  // Posts moved in (4 Oct 2026): the static carrier over the whole width and the extra drain pipe from the gutter
+  // outlet to every drain post.
+  if (line.carrier && parts?.has('staticCarrier') && parts.has('staticCarrierCap') && parts.has('drainExtension')) {
+    const carrier = buildStaticCarrier(parts, profileMaterials.frame, width);
+    carrier.position.set(0, line.carrier.bottomMm / 1000, line.carrier.frontZ / 1000);
+    group.add(carrier);
+    const pipeMaterial = material('drain-pipe', 0x9aa1a6, 1);
+    pipeMaterial.metalness = 0.6;
+    // Gutter outlet 6,9 cm behind the depth line (Referans 3); the pipe ends at the post's garden face.
+    const outletZ = -depth + DRAIN_OUTLET_BEHIND_DEPTH_MM;
+    for (const index of drainPostIndices(width, configuration.drainSide, posts.length)) {
+      const pipe = buildDrainExtension(parts, pipeMaterial, Math.max(50, line.frontZ - outletZ));
+      pipe.position.set((posts[index].xMm - (pipe.userData.widthMm as number) / 2) / 1000, (line.postTopMm - (pipe.userData.heightMm as number)) / 1000, outletZ / 1000);
+      group.add(pipe);
+    }
   }
 
   // Per side: the 50×100 under the Giebeldreieck (rule 4), the standing 50×100 between parts (rule 2) and the gable.

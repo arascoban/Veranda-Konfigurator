@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { postFrame } from '../features/assembly/placements';
+import { postFrame, postLine, type PostLine } from '../features/assembly/placements';
 import type { ConfigurationV1 } from './configuration';
 import { validatePostCenters } from './geometry/posts';
 import { checkGlassSliding, GSW_MAX_HEIGHT_MM, GSW_MIN_HEIGHT_MM, type GswCheck } from './glassSlidingDoor';
@@ -169,6 +169,8 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
   if (width === null || depth === null || frontHeight === null) return [];
   const fields: FieldDescriptor[] = [];
   const posts = configuration.postCenters ?? [];
+  const carrierBottom = postLineOf(configuration)?.carrier?.bottomMm;
+  const frontFieldHeight = carrierBottom === undefined ? frontHeight : Math.round(carrierBottom);
   if (posts.length >= 2 && validatePostCenters(configuration.productId, width, posts).length === 0) {
     const count = posts.length - 1;
     // Clear width between the measured post faces of the product model (works for every product).
@@ -182,7 +184,8 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
         id: frontFieldId(left.id, right.id), kind: 'front', insideIndex,
         label: `Vorne · Feld ${gardenNumber}`,
         detail: `Pfosten ${gardenNumber}–${gardenNumber + 1} · lichte Weite ${cm(clear)} cm`,
-        widthMm: clear, heightMm: frontHeight,
+        // Moved-in posts: the front fields end under the static carrier.
+        widthMm: clear, heightMm: frontFieldHeight,
       });
     }
   }
@@ -212,7 +215,15 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
 
 /** Clear depth of a side: wall to the back face of the end post, measured on the product model. */
 export function sideClearMm(configuration: ConfigurationV1): number {
-  return (configuration.dimensionsMm.depth ?? 0) - postFrame(configuration.productId).backFromDepthMm;
+  const line = postLineOf(configuration);
+  return line ? -line.backZ : (configuration.dimensionsMm.depth ?? 0) - postFrame(configuration.productId).backFromDepthMm;
+}
+
+/** Post line of the draft (posts at the gutter or moved in with the static carrier); null while measurements miss. */
+export function postLineOf(configuration: ConfigurationV1): PostLine | null {
+  const { depth, rearHeight, frontHeight } = configuration.dimensionsMm;
+  if (depth === null || rearHeight === null || frontHeight === null) return null;
+  return postLine(configuration.productId, depth, rearHeight, frontHeight, configuration.postInsetMm);
 }
 
 export function sideLayoutOf(configuration: ConfigurationV1, side: Side): SideLayout {

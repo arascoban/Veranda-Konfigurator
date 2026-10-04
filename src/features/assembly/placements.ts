@@ -1,5 +1,6 @@
 import { DRAIN_BOTH_SIDES_ABOVE_MM, roofMaterials, type FrameColorId, type ProductId, type RoofFinishId, type RoofMaterialId } from '../../catalog/catalog';
 import type { AwningType } from '../../domain/awning';
+import ausstattungMeasured from '../../assets/manifest/ausstattung.measured.json';
 import { assemblySpecs, type MeasuredPart, type PartRole, type ProductAssemblySpec } from './spec';
 
 export type Vec3 = readonly [number, number, number];
@@ -40,6 +41,8 @@ export type AssemblyLayout = {
   /** Rafter underside line at the wall end plus the roof directions, for things laid onto the roof plane. */
   roofPlane: { rearMm: Vec3; d: Vec3; nrm: Vec3; lengthMm: number; rafterHeightMm: number };
   placements: PartPlacement[];
+  /** Post line (garden and wall face z, mm) and the static carrier when the posts are moved in. */
+  postLine: PostLine;
   /** Side fields for the pick planes (whole side or its 50×100 parts), from the wall; set from the configuration. */
   sideFields?: SideFieldSpan[];
 };
@@ -108,6 +111,8 @@ export type AssemblyInput = {
   roofFinishes?: readonly RoofFinishId[];
   awnings?: readonly AwningSlab[];
   postCentersMm: readonly number[];
+  /** Posts moved in towards the wall (mm, 0 = at the gutter); see `postLine`. */
+  postInsetMm?: number;
 };
 
 /** Rafter underside line from the garden end to the wall end (mm, scene z and y). */
@@ -147,9 +152,9 @@ export function buildAssemblyLayout(input: AssemblyInput): AssemblyLayout {
   const nrm: Vec3 = [0, run / length, -rise / length];     // perpendicular to the roof, upwards
   const slopeDegrees = Math.atan2(rise, run) * 180 / Math.PI;
 
-  const placements = input.productId === 'prime'
+  const placements = movePostsIn(input, input.productId === 'prime'
     ? primePlacements(spec, input, { c, n, bayLeft, supportLeft, front, rear, length, d, nrm, allowance })
-    : premiumPlacements(spec, input, { c, n, bayLeft, supportLeft, front, rear, length, d, nrm, allowance });
+    : premiumPlacements(spec, input, { c, n, bayLeft, supportLeft, front, rear, length, d, nrm, allowance }));
 
   return {
     productId: input.productId, roofMaterialId: input.roofMaterialId, frameColor: input.frameColor ?? 'ral7016', widthMm: W, depthMm: D,
@@ -157,6 +162,8 @@ export function buildAssemblyLayout(input: AssemblyInput): AssemblyLayout {
     roofFinishes: input.roofFinishes && input.roofFinishes.length === n ? [...input.roofFinishes] : Array.from({ length: n }, () => 'vsg_klar' as RoofFinishId),
     awnings: [...(input.awnings ?? [])],
     roofPlane: { rearMm: [0, rear.y, rear.z], d, nrm, lengthMm: length, rafterHeightMm: spec.rafterHeightMm },
+    // While `postFrame` measures the posts the line is not known yet (and not needed).
+    postLine: measuringPostFrame ? { frontZ: -D, backZ: -D, carrier: null, postTopMm: Hf } : postLine(input.productId, D, Hr, Hf, input.postInsetMm ?? 0),
     placements,
   };
 }
@@ -343,19 +350,26 @@ export function placementBoundsMm(productId: ProductId, placement: PartPlacement
  * Where the posts really stand, measured from the placed models (3 Oct 2026, owner: equipment must fit every
  * product, also future ones, without per-model numbers). Relative to the depth line z = −D and the post axis:
  * the garden face lies `frontBeyondDepthMm` in front of −D, the back face `backFromDepthMm` behind it; the post
- * reaches `alongMinusMm` / `alongPlusMm` either side of its axis. Prime 2,5 cm / 11 cm, Premium 0 / 13,5 cm.
+ * reaches `alongMinusMm` / `alongPlusMm` either side of its axis. Prime 0 / 11 cm (model 11 × 11 cm), Premium 0 / 13,5 cm.
  */
 export type PostFrame = { frontBeyondDepthMm: number; backFromDepthMm: number; alongMinusMm: number; alongPlusMm: number };
 const postFrames = new Map<ProductId, PostFrame>();
+let measuringPostFrame = false;
 
 export function postFrame(productId: ProductId): PostFrame {
   const cached = postFrames.get(productId);
   if (cached) return cached;
   const D = 3000;
-  const layout = buildAssemblyLayout({
-    productId, roofMaterialId: 'glass', widthMm: 5000, depthMm: D, rearHeightMm: 2720, frontHeightMm: 2300, bayCount: 6,
-    postCentersMm: [1000, 4000], drainSide: 'left', postCapStyle: 'gerade',
-  } as AssemblyInput);
+  measuringPostFrame = true;
+  let layout: AssemblyLayout;
+  try {
+    layout = buildAssemblyLayout({
+      productId, roofMaterialId: 'glass', widthMm: 5000, depthMm: D, rearHeightMm: 2720, frontHeightMm: 2300, bayCount: 6,
+      postCentersMm: [1000, 4000], drainSide: 'left', postCapStyle: 'gerade',
+    } as AssemblyInput);
+  } finally {
+    measuringPostFrame = false;
+  }
   let minZ = Infinity, maxZ = -Infinity, minX = Infinity, maxX = -Infinity;
   // The plain post (index 0 here: the drain pipe sits on the other end) without the drain outlet.
   for (const placement of layout.placements.filter((item) => item.role === 'post' && item.postIndex === 0)) {
@@ -369,4 +383,70 @@ export function postFrame(productId: ProductId): PostFrame {
   };
   postFrames.set(productId, frame);
   return frame;
+}
+
+/**
+ * Posts moved in towards the wall (4 Oct 2026, owner + Referans 3): up to 100 cm. The posts then stand flush inside
+ * a static carrier (StatikTrage) running under the rafters over the whole width; its top carries the rafters, the
+ * posts reach 6,2 cm into it. Sizes measured on the carrier model (18 × 14,3 cm, 4 mm proud of the post faces).
+ */
+export const MAX_POST_INSET_MM = 1000;
+const carrierMeasured = ausstattungMeasured.parts.staticCarrier;
+export const STATIC_CARRIER = {
+  heightMm: carrierMeasured.sizeCm[1] * 10,
+  depthMm: carrierMeasured.sizeCm[2] * 10,
+  capMm: ausstattungMeasured.parts.staticCarrierCap.sizeCm[0] * 10,
+  postIntoMm: 62,
+};
+
+export type PostLine = {
+  /** Scene z (mm) of the posts' garden and wall faces. */
+  frontZ: number;
+  backZ: number;
+  /** Static carrier when the posts are moved in (null otherwise). */
+  carrier: { frontZ: number; backZ: number; topMm: number; bottomMm: number } | null;
+  /** Height of the post top (mm). */
+  postTopMm: number;
+};
+
+/** Where the posts stand for a draft: at the gutter (inset 0) or moved in with the static carrier. */
+export function postLine(productId: ProductId, D: number, Hr: number, Hf: number, insetMm = 0): PostLine {
+  const frame = postFrame(productId);
+  const postDepth = frame.frontBeyondDepthMm + frame.backFromDepthMm;
+  if (insetMm <= 0) {
+    return { frontZ: -D - frame.frontBeyondDepthMm, backZ: -D + frame.backFromDepthMm, carrier: null, postTopMm: Hf + assemblySpecs[productId].postIntoGutterMm };
+  }
+  const frontZ = -D + insetMm;
+  const backZ = frontZ + postDepth;
+  const overhang = (STATIC_CARRIER.depthMm - postDepth) / 2;
+  // The rafters rest on the carrier's garden edge (their lowest point over it).
+  const topMm = rafterUndersideAt(productId, D, Hr, Hf, D - insetMm + overhang);
+  const bottomMm = topMm - STATIC_CARRIER.heightMm;
+  return { frontZ, backZ, carrier: { frontZ: frontZ - overhang, backZ: backZ + overhang, topMm, bottomMm }, postTopMm: bottomMm + STATIC_CARRIER.postIntoMm };
+}
+
+/**
+ * Moves the post slices to the inset post line and shortens them to reach into the static carrier: the bottom
+ * slice keeps its place on the floor, the middle slice is stretched to the new height, the top slice follows.
+ */
+function movePostsIn(input: AssemblyInput, placements: PartPlacement[]): PartPlacement[] {
+  const inset = input.postInsetMm ?? 0;
+  if (inset <= 0) return placements;
+  const at = postLine(input.productId, input.depthMm, input.rearHeightMm, input.frontHeightMm, 0);
+  const moved = postLine(input.productId, input.depthMm, input.rearHeightMm, input.frontHeightMm, inset);
+  const shiftZ = moved.frontZ - at.frontZ;
+  const lift = moved.postTopMm - at.postTopMm;
+  return placements.map((placement) => {
+    if (placement.role !== 'post') return placement;
+    const origin: [number, number, number] = [placement.originMm[0], placement.originMm[1], placement.originMm[2] + shiftZ];
+    if (placement.partId.endsWith('Mid')) {
+      const oldScale = placement.scale[1];
+      const newScale = Math.max(0.01, oldScale + lift / 500);
+      // The slice starts at 250 mm; its origin lies 250 · scale below that point.
+      origin[1] = 250 - 250 * newScale;
+      return { ...placement, originMm: origin, scale: [placement.scale[0], newScale, placement.scale[2]] };
+    }
+    if (placement.partId.endsWith('Top')) origin[1] += lift;
+    return { ...placement, originMm: origin };
+  });
 }

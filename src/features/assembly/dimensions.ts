@@ -1,6 +1,6 @@
 import type { ConfigurationV1 } from '../../domain/configuration';
 import { assemblySpecs } from './spec';
-import { listFields, sideClearMm } from '../../domain/fieldEquipment';
+import { listFields, postLineOf, sideClearMm } from '../../domain/fieldEquipment';
 import type { Vec3 } from './placements';
 
 /**
@@ -61,6 +61,11 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
   ];
   if (!divided('left')) lines.push({ id: 'depthLeft', label: `Tiefe links\n${cm(behindPost)}`, fromMm: [W + gap, 0, 0], toMm: [W + gap, 0, -behindPost], tick: [-1, 0, 0], plane: 'ground', labelOffsetMm: [labelGap, 0, 0] });
   if (!divided('right')) lines.push({ id: 'depthRight', label: `Tiefe rechts\n${cm(behindPost)}`, fromMm: [-gap, 0, 0], toMm: [-gap, 0, -behindPost], tick: [1, 0, 0], plane: 'ground', labelOffsetMm: [-labelGap, 0, 0] });
+  // Posts moved in: from the depth line to the posts' garden face, on the right-hand side in front of its depth line.
+  const line = postLineOf(configuration);
+  if (line?.carrier) {
+    lines.push({ id: 'postInset', label: `Einzug\n${cm(line.frontZ + D)}`, fromMm: [-gap, 0, -D], toMm: [-gap, 0, line.frontZ], tick: [1, 0, 0], plane: 'ground', labelOffsetMm: [-labelGap, 0, 0], labelHeightM: 0.17 });
+  }
   // Front fields: the same clear widths as the Feld section (measured post faces).
   const fronts = listFields(configuration).filter((field) => field.kind === 'front');
   const posts = configuration.postCenters ?? [];

@@ -20,6 +20,7 @@ export function assemblyLayoutFromConfiguration(configuration: ConfigurationV1):
     roofFinishes: resolveRoofFieldFinishes(configuration, evaluation.roof),
     awnings: awningSpans(configuration),
     postCentersMm: configuration.postCenters.map((post) => post.xMm),
+    postInsetMm: configuration.postInsetMm,
   });
   // Pick areas of the sides lie just outside the end posts' outer faces, in front of any side element.
   const posts = configuration.postCenters;

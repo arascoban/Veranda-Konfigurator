@@ -3,7 +3,7 @@ import { createDefaultConfiguration, parseConfiguration } from './configuration'
 import { evaluateConfiguration } from './evaluateConfiguration';
 import {
   addSideDivider, addToField, applyKindToFields, BEAM_MM, equalizeSide, canPlace, divideSide, elementHeightsMm, equipmentRuleNotices, fieldEquipmentSummaryDe,
-  findField, lichtWindows, listFields, reconcileFieldEquipment, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf,
+  findField, lichtWindows, listFields, postLineOf, reconcileFieldEquipment, removeFromField, setDivider, setGable, setLowerHeight, sideLayoutOf,
   splitHorizontally, splitRange, swapElements, updateElement,
 } from './fieldEquipment';
 
@@ -20,7 +20,7 @@ describe('field equipment', () => {
     expect(fields[0].id).toBe(`front:${posts[1].id}:${posts[2].id}`);
     expect(fields[0].insideIndex).toBe(1);
     expect(fields[0].heightMm).toBe(2300);
-    // Side clear width: wall to the measured back face of the Prime post (11 cm behind the depth line).
+    // Side clear width: wall to the measured back face of the Prime post (its model is 11 × 11 cm).
     expect(fields[2].widthMm).toBe(2890);
   });
 
@@ -286,5 +286,25 @@ describe('rule 11 maxima and Seitenwand lichtdurchlässig (4 Oct 2026)', () => {
     const configuration = addToField(base(), 'side:left', 'seitenwand_licht')!;
     expect(configuration.fieldEquipment[0].elements[0]).toEqual({ type: 'seitenwand_licht', filling: 'glas_klar' });
     expect(fieldEquipmentSummaryDe(configuration)[0].value).toContain('Glas Klar, 3 Fenster');
+  });
+});
+
+describe('posts moved in with the static carrier (4 Oct 2026)', () => {
+  it('shortens the sides and ends the front fields under the carrier', () => {
+    const configuration = { ...base(), postInsetMm: 700 };
+    const line = postLineOf(configuration)!;
+    expect(line.frontZ).toBe(-2300);
+    expect(line.carrier!.frontZ).toBeLessThan(line.frontZ);
+    expect(line.carrier!.topMm - line.carrier!.bottomMm).toBe(180);
+    const fields = listFields(configuration);
+    // Wall to the post's back face: 300 − 70 − 11 cm (Prime post model 11 cm deep, flush in the carrier).
+    expect(fields.find((field) => field.id === 'side:left')!.widthMm).toBe(2190);
+    expect(fields[0].heightMm).toBe(Math.round(line.carrier!.bottomMm));
+    expect(fields[0].heightMm).toBeGreaterThan(2300 - 180);
+    expect(parseConfiguration(configuration).ok).toBe(true);
+    // Older drafts open with the posts at the gutter.
+    const { postInsetMm: _, ...old } = base();
+    const parsed = parseConfiguration(old);
+    expect(parsed.ok && parsed.configuration.postInsetMm).toBe(0);
   });
 });

@@ -15,7 +15,7 @@ import { createDimensionGroup, createFlatLabel, disposeAnnotations, setMarkerLim
 import { beamHandleKey, createEquipmentGroup, disposeEquipmentGroup, gswLayoutsFor, type BeamHandle } from '../assembly/equipmentScene';
 import { loadEquipmentParts, peekEquipmentParts, type EquipmentParts } from '../assembly/glassSlidingScene';
 import {
-  BEAM_MM, canPlace, elementHeightsMm, elementNameDe, equipmentKinds, findField, listFields, frontFieldId, hasKind, placeRefusalDe, setDivider, setLowerHeight, sideLayoutOf, type EquipmentKind,
+  BEAM_MM, canPlace, postLineOf, elementHeightsMm, elementNameDe, equipmentKinds, findField, listFields, frontFieldId, hasKind, placeRefusalDe, setDivider, setLowerHeight, sideLayoutOf, type EquipmentKind,
 } from '../../domain/fieldEquipment';
 import { RadialMenu, type RadialOption } from './RadialMenu';
 import { postSections } from '../../catalog/catalog';
@@ -484,7 +484,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
       runtime.group.traverse((object) => {
         if (object.userData.moveArrows && object.userData.postIndex === selectedIndex) {
           setMarkerLimits(object, (selectedRange.maxMm - posts[selectedIndex].xMm) / 10, (posts[selectedIndex].xMm - selectedRange.minMm) / 10,
-            -dimensions.depthM + section.towardsGardenMm / 2000, section.alongGutterMm / 2000);
+            postZCentreM(configuration, dimensions.depthM, section.towardsGardenMm), section.alongGutterMm / 2000);
         }
       });
     }
@@ -564,7 +564,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     const raycaster = new Raycaster();
     const pointer = new Vector2();
     // Posts move along the gutter in the plane of their garden-facing faces (z = −depth).
-    const dragPlane = new Plane(new Vector3(0, 0, 1), dimensions.depthM);
+    const dragPlane = new Plane(new Vector3(0, 0, 1), -(postLineOf(configuration)?.frontZ ?? -dimensions.depthM * 1000) / 1000);
     let drag: { pointerId: number; index: number; initialMm: number; currentMm: number; started: boolean; startX: number } | null = null;
     let press: { x: number; y: number } | null = null;
     // 50×100 drag (rules 2 and 7): the split line moves up/down, a side divider along the side; the equipment
@@ -576,8 +576,8 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     };
 
     // Middle of the measured post depth: the plane the front 50×100 lies in.
-    const posted = postFrame(configuration.productId);
-    const frontZM = -dimensions.depthM + (posted.backFromDepthMm - posted.frontBeyondDepthMm) / 2000;
+    const line = postLineOf(configuration);
+    const frontZM = line ? (line.frontZ + line.backZ) / 2000 : -dimensions.depthM;
     const sidePostXM = (side: 'left' | 'right') => (side === 'left' ? posts[posts.length - 1].xMm : posts[0].xMm) / 1000;
     /** Current value of a handle (mm): lower part height or divider centre from the wall. */
     const beamValue = (handle: BeamHandle) => handle.kind === 'split'
@@ -728,7 +728,7 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
       runtime.group.traverse((object) => {
         if (object.userData.moveArrows && object.userData.postIndex === drag!.index) {
           setMarkerLimits(object, (range.maxMm - xMm) / 10, (xMm - range.minMm) / 10,
-            -dimensions.depthM + section.towardsGardenMm / 2000, section.alongGutterMm / 2000);
+            postZCentreM(configuration, dimensions.depthM, section.towardsGardenMm), section.alongGutterMm / 2000);
         }
       });
       event.preventDefault();
@@ -924,6 +924,12 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
   );
 }
 
+/** Centre of the post depth (m): at the gutter or on the moved-in post line. */
+function postZCentreM(configuration: ConfigurationV1, depthM: number, towardsGardenMm: number): number {
+  const line = postLineOf(configuration);
+  return line ? (line.frontZ + line.backZ) / 2000 : -depthM + towardsGardenMm / 2000;
+}
+
 /** Replaces the Ausstattung layer (null configuration: none) and keeps the 50×100 tint. */
 function replaceEquipment(runtime: ViewerRuntime, configuration: ConfigurationV1 | null, parts: EquipmentParts | null): void {
   const previous = runtime.scene.getObjectByName('Ausstattung');
@@ -952,7 +958,7 @@ function showBeamLabels(runtime: ViewerRuntime, configuration: ConfigurationV1 |
     const label = createFlatLabel(text, 'wall', 0.2, '#0b4f8a', false, 'rgba(255,255,255,0.92)');
     if (field.kind === 'front') {
       const left = posts[field.insideIndex!].xMm + frame.alongPlusMm;
-      label.position.set((left + alongMm) / 1000, yMm / 1000, (-depth - frame.frontBeyondDepthMm - 60) / 1000);
+      label.position.set((left + alongMm) / 1000, yMm / 1000, ((postLineOf(configuration)?.frontZ ?? -depth) - 60) / 1000);
     } else {
       // Readable from outside the side: turned towards +X (left side) or −X (right side).
       label.rotateOnWorldAxis(new Vector3(0, 1, 0), field.side === 'left' ? -Math.PI / 2 : Math.PI / 2);

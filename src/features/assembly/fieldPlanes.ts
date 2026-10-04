@@ -6,15 +6,17 @@ import { BufferGeometry, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMate
  * (`openingIndex`, inside-left order) and one per side between the wall and the end post (`sideField`,
  * garden view: the garden-left side lies at the inside x = W end). The viewer tints them on hover/selection.
  */
-export function createFieldPickPlanes(postCentersM: readonly number[], depthM: number, frontHeightM: number, sideFields?: readonly SideFieldSpan[]): Object3D[] {
+export function createFieldPickPlanes(postCentersM: readonly number[], depthM: number, frontHeightM: number, sideFields?: readonly SideFieldSpan[],
+  front: { frontZM: number; heightM: number } = { frontZM: -depthM + 0.003, heightM: frontHeightM }): Object3D[] {
   const sorted = [...postCentersM].sort((a, b) => a - b);
   const material = () => new MeshBasicMaterial({ color: 0x2f9dff, transparent: true, opacity: 0, depthWrite: false, side: DoubleSide });
   const planes: Object3D[] = [];
   for (let index = 0; index < sorted.length - 1; index += 1) {
     const left = sorted[index];
     const right = sorted[index + 1];
-    const field = new Mesh(new PlaneGeometry(right - left, frontHeightM), material());
-    field.position.set((left + right) / 2, frontHeightM / 2, -depthM + 0.003);
+    // Just in front of the posts' garden faces, up to the gutter or the static carrier.
+    const field = new Mesh(new PlaneGeometry(right - left, front.heightM), material());
+    field.position.set((left + right) / 2, front.heightM / 2, front.frontZM);
     field.userData.openingIndex = index;
     field.userData.exportable = false;
     planes.push(field);
