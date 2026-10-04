@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { postFrame, postLine, type PostLine } from '../features/assembly/placements';
+import { FREESTANDING, postFrame, postLine, rafterUndersideAt, wallProfileTopAboveRearMm, type PostLine } from '../features/assembly/placements';
 import type { ConfigurationV1 } from './configuration';
 import { validatePostCenters } from './geometry/posts';
 import { checkGlassSliding, GSW_MAX_HEIGHT_MM, GSW_MIN_HEIGHT_MM, type GswCheck } from './glassSlidingDoor';
@@ -86,7 +86,7 @@ export const fieldEquipmentSchema = z.object({
    * `front:<postId>:<postId>` (inside order, stable post ids), `side:left` / `side:right` (garden view) or, on a
    * divided side, `side:left:<part>` with part 1 at the wall.
    */
-  fieldId: z.string().regex(/^(front:[^:]+:[^:]+|side:(left|right)(:[1-3])?)$/),
+  fieldId: z.string().regex(/^((front|rear):[^:]+:[^:]+|side:(left|right)(:[1-3])?)$/),
   /** Bottom to top; one element covers the whole height. */
   elements: z.array(fieldElementSchema).max(MAX_ELEMENTS_PER_FIELD),
   /** Height of the lower element when there are two (the 50×100 separator sits on top of it); null otherwise. */
@@ -116,7 +116,8 @@ export type Side = SideLayout['side'];
 
 export type FieldDescriptor = {
   id: string;
-  kind: 'front' | 'side';
+  /** `rear`: between the 50×100 legs of a free-standing roof, seen from behind. */
+  kind: 'front' | 'side' | 'rear';
   /** Garden view. */
   side?: 'left' | 'right';
   /** Inside-left index of a front field (0 = between the first two posts of `postCenters`). */
@@ -192,13 +193,14 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
   // Side clear width: from the wall to the back face of the end post (owner rule, docs/Ausstatungen_Kurallar.md).
   // Side elements end under the 50×100 below the Giebeldreieck (rules 1 and 4).
   const sideClear = sideClearMm(configuration);
+  const sideStart = sideStartMm(configuration);
   const sideHeight = frontHeight - GABLE_ROOM_MM - BEAM_MM;
   for (const side of ['left', 'right'] as const) {
     const name = side === 'left' ? 'Seite links' : 'Seite rechts';
     const parts = sideParts(sideClear, sideLayoutOf(configuration, side).dividersMm);
     if (parts.length === 1) {
       fields.push({ id: `side:${side}`, kind: 'side', side, label: name, detail: `lichte Tiefe ${cm(sideClear)} cm`,
-        widthMm: sideClear, heightMm: sideHeight, startMm: 0 });
+        widthMm: sideClear, heightMm: sideHeight, startMm: sideStart });
       continue;
     }
     parts.forEach((part, index) => {
@@ -206,24 +208,71 @@ export function listFields(configuration: ConfigurationV1): FieldDescriptor[] {
       fields.push({
         id: `side:${side}:${index + 1}`, kind: 'side', side, label: `${name} · Teil ${index + 1}`,
         detail: `${where} · lichte Breite ${cm(part.widthMm)} cm`, widthMm: part.widthMm, heightMm: sideHeight,
-        partIndex: index + 1, partCount: parts.length, startMm: part.startMm,
+        partIndex: index + 1, partCount: parts.length, startMm: sideStart + part.startMm,
       });
     });
   }
+  // Free-standing: fields between the rear 50×100 legs, up to the A profile, numbered like the front (garden-left first).
+  const legs = configuration.freestanding ? configuration.rearPostCenters ?? [] : [];
+  if (legs.length >= 2 && validatePostCenters('prime', width, legs).length === 0 && configuration.dimensionsMm.rearHeight !== null) {
+    const count = legs.length - 1;
+    const rearTop = rearFieldTopMm(configuration);
+    for (let number = 1; number <= count; number += 1) {
+      const insideIndex = count - number;
+      const left = legs[insideIndex];
+      const right = legs[insideIndex + 1];
+      const clear = right.xMm - left.xMm - FREESTANDING.legWidthMm;
+      fields.push({
+        id: `rear:${left.id}:${right.id}`, kind: 'rear', insideIndex, label: `Hinten · Feld ${number}`,
+        detail: `Stütze ${number}–${number + 1} · lichte Weite ${cm(clear)} cm`, widthMm: clear, heightMm: rearTop,
+      });
+    }
+  }
   return fields;
+}
+
+/** Roof moved forward by the A profile of a free-standing draft (0 against a wall). */
+export function rearOffsetMm(configuration: ConfigurationV1): number {
+  return configuration.freestanding ? FREESTANDING.aProfileDepthMm : 0;
+}
+
+/** Where the side fields start, measured from z = 0: behind the rear legs of a free-standing draft, else at the wall. */
+export function sideStartMm(configuration: ConfigurationV1): number {
+  return configuration.freestanding ? FREESTANDING.legDepthMm : 0;
+}
+
+/** Rear fields end under the A profile (its top is level with the wall profile's top). */
+export function rearFieldTopMm(configuration: ConfigurationV1): number {
+  const rear = configuration.dimensionsMm.rearHeight ?? 0;
+  return Math.round(rear + wallProfileTopAboveRearMm(configuration.productId) - FREESTANDING.aProfileHeightMm);
+}
+
+/** Rafter underside at `fromWallMm` from z = 0 (the wall, or the back of the A profile). */
+export function rafterUndersideOf(configuration: ConfigurationV1, fromWallMm: number): number {
+  const { depth, rearHeight, frontHeight } = configuration.dimensionsMm;
+  const offset = rearOffsetMm(configuration);
+  return rafterUndersideAt(configuration.productId, (depth ?? 0) - offset, rearHeight ?? 0, frontHeight ?? 0, fromWallMm - offset);
 }
 
 /** Clear depth of a side: wall to the back face of the end post, measured on the product model. */
 export function sideClearMm(configuration: ConfigurationV1): number {
   const line = postLineOf(configuration);
-  return line ? -line.backZ : (configuration.dimensionsMm.depth ?? 0) - postFrame(configuration.productId).backFromDepthMm;
+  const back = line ? -line.backZ : (configuration.dimensionsMm.depth ?? 0) - postFrame(configuration.productId).backFromDepthMm;
+  return back - sideStartMm(configuration);
 }
 
 /** Post line of the draft (posts at the gutter or moved in with the static carrier); null while measurements miss. */
 export function postLineOf(configuration: ConfigurationV1): PostLine | null {
   const { depth, rearHeight, frontHeight } = configuration.dimensionsMm;
   if (depth === null || rearHeight === null || frontHeight === null) return null;
-  return postLine(configuration.productId, depth, rearHeight, frontHeight, configuration.postInsetMm);
+  // A free-standing roof is the same roof, built for the depth without the A profile and moved forward by it.
+  const offset = rearOffsetMm(configuration);
+  const line = postLine(configuration.productId, depth - offset, rearHeight, frontHeight, configuration.postInsetMm);
+  if (!offset) return line;
+  return {
+    ...line, frontZ: line.frontZ - offset, backZ: line.backZ - offset,
+    carrier: line.carrier && { ...line.carrier, frontZ: line.carrier.frontZ - offset, backZ: line.carrier.backZ - offset },
+  };
 }
 
 export function sideLayoutOf(configuration: ConfigurationV1, side: Side): SideLayout {
@@ -545,7 +594,7 @@ export function applyKindToFields(configuration: ConfigurationV1, kind: Equipmen
 
 export type FieldEquipmentIssue = 'field_equipment_unknown_field' | 'field_equipment_duplicate'
   | 'field_equipment_split_out_of_range' | 'field_equipment_duplicate_element' | 'field_equipment_gsw_size'
-  | 'field_equipment_gable_missing' | 'field_equipment_side_division' | 'field_equipment_too_high';
+  | 'field_equipment_gable_missing' | 'field_equipment_side_division' | 'field_equipment_too_high' | 'field_equipment_rear_posts';
 
 export function validateFieldEquipment(configuration: ConfigurationV1): FieldEquipmentIssue[] {
   const issues = new Set<FieldEquipmentIssue>();
@@ -572,6 +621,10 @@ export function validateFieldEquipment(configuration: ConfigurationV1): FieldEqu
       if (heights[index] > maxPartMm(element)) issues.add('field_equipment_too_high');
     });
   }
+  // Free-standing: the rear legs follow the Prime post rules.
+  const width = configuration.dimensionsMm.width;
+  if (configuration.freestanding && width !== null
+    && (!configuration.rearPostCenters || validatePostCenters('prime', width, configuration.rearPostCenters).length)) issues.add('field_equipment_rear_posts');
   if (listed.length) {
     for (const side of ['left', 'right'] as const) {
       const layout = sideLayoutOf(configuration, side);

@@ -60,6 +60,13 @@ export const configurationV1Schema = z.object({
    * (StatikTrage) under the rafters and an extra drain pipe.
    */
   postInsetMm: z.number().int().min(0).max(1000).default(0),
+  /**
+   * Freistehend (4 Oct 2026): no wall; an A profile carries the wall profile on 50×100 legs. The overall depth stays,
+   * the roof moves forward by the A profile and the legs take 5 cm of the side fields (Ausstatungen_Kurallar.md).
+   */
+  freestanding: z.boolean().default(false),
+  /** Centres of the rear 50×100 legs from the inside-left end (Prime post rules); null when not free-standing. */
+  rearPostCenters: z.array(z.object({ id: z.string().min(1), xMm: z.number().int().safe() }).strict()).nullable().default(null),
   /** Giebeldreieck and 50×100 division per side (3 Oct 2026); missing sides are open and undivided. */
   sideLayouts: z.array(sideLayoutSchema).max(2).default([]),
 }).strict();
@@ -132,6 +139,8 @@ export function createEmptyConfiguration(): ConfigurationV1 {
     fieldEquipment: [],
     sideLayouts: [],
     postInsetMm: 0,
+    freestanding: false,
+    rearPostCenters: null,
   };
 }
 

@@ -45,6 +45,8 @@ export type AssemblyLayout = {
   postLine: PostLine;
   /** Side fields for the pick planes (whole side or its 50×100 parts), from the wall; set from the configuration. */
   sideFields?: SideFieldSpan[];
+  /** Rear fields of a free-standing roof (from the inside-left leg face, mm). */
+  rearFields?: { fieldId: string; xMm: number; widthMm: number; heightMm: number }[];
 };
 
 /** `topStartMm` / `topEndMm`: rafter underside above the part's start and end, so the pick area covers the triangle too. */
@@ -449,4 +451,52 @@ function movePostsIn(input: AssemblyInput, placements: PartPlacement[]): PartPla
     if (placement.partId.endsWith('Top')) origin[1] += lift;
     return { ...placement, originMm: origin };
   });
+}
+
+/**
+ * Freistehend (4 Oct 2026, Referans 1/2, Ausstatungen_Kurallar.md): the A profile (5,5 cm deep, 15,5 cm high) stands
+ * behind the wall profile, the rear 50×100 legs (10 cm along the width, 5 cm deep) reach 5,8 cm into it, L caps close
+ * its ends. The overall depth stays: the roof moves forward by the A profile, the legs take 5 cm of the sides.
+ */
+export const FREESTANDING = {
+  aProfileDepthMm: 55,
+  aProfileHeightMm: ausstattungMeasured.parts.aProfile.sizeCm[1] * 10,
+  legDepthMm: 50,
+  legWidthMm: 100,
+  legIntoAProfileMm: 58,
+};
+
+/** Top of the wall profile above the rear height (mm), measured on the placed model. */
+const wallTops = new Map<ProductId, number>();
+export function wallProfileTopAboveRearMm(productId: ProductId): number {
+  const cached = wallTops.get(productId);
+  if (cached !== undefined) return cached;
+  measuringPostFrame = true;
+  let top = 0;
+  try {
+    const layout = buildAssemblyLayout({
+      productId, roofMaterialId: 'glass', widthMm: 5000, depthMm: 3000, rearHeightMm: 2720, frontHeightMm: 2300, bayCount: 6,
+      postCentersMm: [1000, 4000], drainSide: 'left', postCapStyle: 'gerade',
+    } as AssemblyInput);
+    top = Math.max(...layout.placements.filter((item) => item.role === 'wallProfile').map((item) => placementBoundsMm(productId, item).max[1])) - 2720;
+  } finally {
+    measuringPostFrame = false;
+  }
+  wallTops.set(productId, top);
+  return top;
+}
+
+/** Moves a whole layout along z (the roof of a free-standing draft sits in front of the A profile). */
+export function shiftLayoutZ(layout: AssemblyLayout, shiftMm: number): AssemblyLayout {
+  if (!shiftMm) return layout;
+  const line = layout.postLine;
+  return {
+    ...layout,
+    placements: layout.placements.map((item) => ({ ...item, originMm: [item.originMm[0], item.originMm[1], item.originMm[2] + shiftMm] as Vec3 })),
+    roofPlane: { ...layout.roofPlane, rearMm: [layout.roofPlane.rearMm[0], layout.roofPlane.rearMm[1], layout.roofPlane.rearMm[2] + shiftMm] },
+    postLine: {
+      ...line, frontZ: line.frontZ + shiftMm, backZ: line.backZ + shiftMm,
+      carrier: line.carrier && { ...line.carrier, frontZ: line.carrier.frontZ + shiftMm, backZ: line.carrier.backZ + shiftMm },
+    },
+  };
 }

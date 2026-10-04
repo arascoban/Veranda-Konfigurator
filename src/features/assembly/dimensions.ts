@@ -78,6 +78,15 @@ export function buildDimensionLines(configuration: ConfigurationV1, extraLines: 
       fromMm: [start, 0, -D - gap], toMm: [start + field.widthMm, 0, -D - gap], tick: [0, 0, 1], plane: 'ground', labelOffsetMm: [0, 0, -labelGap],
     });
   }
+  // Free-standing: the rear fields' clear widths behind the legs.
+  const legs = configuration.rearPostCenters ?? [];
+  for (const field of listFields(configuration).filter((item) => item.kind === 'rear')) {
+    const start = legs[field.insideIndex!].xMm + 50;
+    lines.push({
+      id: `rear-${field.id}`, label: `${field.label}\n${cm(field.widthMm)}`, fromMm: [start, 0, gap], toMm: [start + field.widthMm, 0, gap],
+      tick: [0, 0, 1], plane: 'ground', labelOffsetMm: [0, 0, labelGap], labelHeightM: 0.17,
+    });
+  }
   for (const part of sideParts) {
     const x = part.side === 'left' ? W + gap : -gap;
     const start = part.startMm ?? 0;

@@ -249,7 +249,7 @@ export function createAssemblyGroup(
   if (options.includePostControls) {
     const line = layout.postLine;
     group.add(...createFieldPickPlanes(postCentersM, depthM, frontHeightM, layout.sideFields,
-      { frontZM: millimetresToMetres(line.frontZ) - 0.003, heightM: millimetresToMetres(line.carrier?.bottomMm ?? layout.frontHeightMm) }));
+      { frontZM: millimetresToMetres(line.frontZ) - 0.003, heightM: millimetresToMetres(line.carrier?.bottomMm ?? layout.frontHeightMm) }, layout.rearFields));
   }
   for (const slab of layout.awnings) group.add(createAwningPlaceholder(layout, slab, finishes));
   if (options.includeGroundGuide) {

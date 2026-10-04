@@ -294,6 +294,38 @@ export function buildDrainExtension(parts: EquipmentParts, material: Material, l
   return group;
 }
 
+/** A profile of a free-standing roof over `widthMm`: garden face at local z = 0, underside at y = 0. */
+export function buildAProfile(parts: EquipmentParts, material: Material, widthMm: number): Group {
+  const group = new Group();
+  group.name = 'A-Profil';
+  const profile = partGeometries(parts, 'aProfile', GARDEN_AT_ZERO);
+  group.add(...meshesOf(profile, material, along(profile, widthMm, 0, 0, 0)));
+  return group;
+}
+
+/**
+ * L cap closing an end of the A profile. The source model is drawn ten times too large (62 × 155 × 22 cm for a
+ * 6,2 × 15,5 × 2,2 cm cap) and turned a quarter: scaled and turned so it is 2,2 cm wide along X.
+ */
+export function buildLCap(parts: EquipmentParts, material: Material): Group {
+  const group = new Group();
+  group.name = 'L-Kappe';
+  const cap = partGeometries(parts, 'lCap', new Matrix4().makeRotationY(Math.PI / 2).multiply(new Matrix4().makeScale(0.1, 0.1, 0.1)));
+  group.add(...meshesOf(cap, material, new Matrix4()));
+  return group;
+}
+
+/** Rear 50×100 leg of a free-standing roof: 10 cm along X, 5 cm deep, from the floor up to `heightMm`. */
+export function buildRearLeg(parts: EquipmentParts, material: Material, heightMm: number): Group {
+  const geometries = partGeometries(parts, 'beam50x100');
+  const box = new Box3();
+  for (const geometry of geometries) { geometry.computeBoundingBox(); box.union(geometry.boundingBox!); }
+  const group = new Group();
+  group.name = '50×100 Stütze';
+  group.add(...meshesOf(geometries, material, new Matrix4().makeScale(1, heightMm / 1000 / (box.max.y - box.min.y), 1)));
+  return group;
+}
+
 /** Counter-clockwise convex polygon moved inwards by `insetMm` on every edge. */
 export function insetPolygon(points: readonly [number, number][], insetMm: number): [number, number][] {
   const count = points.length;

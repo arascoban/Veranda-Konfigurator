@@ -36,6 +36,7 @@ export function FieldSettings({ configuration, onChange, selectedFieldId, onSele
   const groups = [
     { title: 'Vorne', rows: fields.filter((field) => field.kind === 'front') },
     { title: 'Seiten', rows: fields.filter((field) => field.kind === 'side') },
+    { title: 'Hinten', rows: fields.filter((field) => field.kind === 'rear') },
   ];
   return (
     <div className="v2-field-list">

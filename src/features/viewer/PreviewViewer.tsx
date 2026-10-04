@@ -15,7 +15,7 @@ import { createDimensionGroup, createFlatLabel, disposeAnnotations, setMarkerLim
 import { beamHandleKey, createEquipmentGroup, disposeEquipmentGroup, gswLayoutsFor, type BeamHandle } from '../assembly/equipmentScene';
 import { loadEquipmentParts, peekEquipmentParts, type EquipmentParts } from '../assembly/glassSlidingScene';
 import {
-  BEAM_MM, canPlace, postLineOf, elementHeightsMm, elementNameDe, equipmentKinds, findField, listFields, frontFieldId, hasKind, placeRefusalDe, setDivider, setLowerHeight, sideLayoutOf, type EquipmentKind,
+  BEAM_MM, canPlace, postLineOf, sideStartMm, elementHeightsMm, elementNameDe, equipmentKinds, findField, listFields, frontFieldId, hasKind, placeRefusalDe, setDivider, setLowerHeight, sideLayoutOf, type EquipmentKind,
 } from '../../domain/fieldEquipment';
 import { RadialMenu, type RadialOption } from './RadialMenu';
 import { postSections } from '../../catalog/catalog';
@@ -582,14 +582,18 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
     /** Current value of a handle (mm): lower part height or divider centre from the wall. */
     const beamValue = (handle: BeamHandle) => handle.kind === 'split'
       ? configuration.fieldEquipment.find((entry) => entry.fieldId === handle.fieldId)?.lowerHeightMm ?? 0
-      : sideLayoutOf(configuration, handle.side).dividersMm[handle.index] ?? 0;
+      : handle.kind === 'rearLeg' ? configuration.rearPostCenters?.[handle.index]?.xMm ?? 0
+        // Dividers are stored from the side's start (behind the rear legs of a free-standing roof).
+        : (sideLayoutOf(configuration, handle.side).dividersMm[handle.index] ?? 0) + sideStartMm(configuration);
     const beamPlane = (handle: BeamHandle): Plane | null => {
       if (handle.kind === 'divider') return new Plane(new Vector3(1, 0, 0), -sidePostXM(handle.side));
+      if (handle.kind === 'rearLeg') return new Plane(new Vector3(0, 0, 1), 0.025);
       const field = findField(configuration, handle.fieldId);
       if (!field) return null;
+      if (field.kind === 'rear') return new Plane(new Vector3(0, 0, 1), 0.025);
       return field.kind === 'front' ? new Plane(new Vector3(0, 0, 1), -frontZM) : new Plane(new Vector3(1, 0, 0), -sidePostXM(field.side!));
     };
-    const beamAt = (handle: BeamHandle, hit: Vector3) => handle.kind === 'split' ? hit.y * 1000 : -hit.z * 1000;
+    const beamAt = (handle: BeamHandle, hit: Vector3) => handle.kind === 'split' ? hit.y * 1000 : handle.kind === 'rearLeg' ? hit.x * 1000 : -hit.z * 1000;
     const setRay = (event: PointerEvent) => {
       const bounds = canvas.getBoundingClientRect();
       pointer.set(((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -665,9 +669,12 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
         if (!hit) return;
         const handle = beamDrag.handle;
         const wanted = Math.round((beamAt(handle, hit) - beamDrag.grabMm) / 10) * 10;
-        const next = handle.kind === 'split' ? setLowerHeight(configuration, handle.fieldId, wanted) : setDivider(configuration, handle.side, handle.index, wanted);
+        const next = handle.kind === 'split' ? setLowerHeight(configuration, handle.fieldId, wanted)
+          : handle.kind === 'rearLeg' ? moveRearLeg(configuration, handle.index, wanted)
+            : setDivider(configuration, handle.side, handle.index, wanted - sideStartMm(configuration));
         if (!next || (beamDrag.next && JSON.stringify(next.fieldEquipment) === JSON.stringify(beamDrag.next.fieldEquipment)
-          && JSON.stringify(next.sideLayouts) === JSON.stringify(beamDrag.next.sideLayouts))) return;
+          && JSON.stringify(next.sideLayouts) === JSON.stringify(beamDrag.next.sideLayouts)
+          && JSON.stringify(next.rearPostCenters) === JSON.stringify(beamDrag.next.rearPostCenters))) return;
         beamDrag.next = next;
         replaceEquipment(runtime, next, peekEquipmentParts(next, runtime.library, gswLayoutsFor(next)));
         markBeams(runtime, beamHandleKey(handle), null);
@@ -924,6 +931,17 @@ export function PreviewViewer({ configuration, resetViewToken = 0, view = { pres
   );
 }
 
+/** A rear leg moved along the width, clamped to the Prime post rules; null when it cannot move. */
+function moveRearLeg(configuration: ConfigurationV1, index: number, xMm: number): ConfigurationV1 | null {
+  const legs = configuration.rearPostCenters;
+  const width = configuration.dimensionsMm.width;
+  if (!legs || width === null) return null;
+  const range = postMoveRange('prime', width, legs, index);
+  if (!range) return null;
+  const clamped = Math.max(range.minMm, Math.min(range.maxMm, Math.round(xMm)));
+  return { ...configuration, rearPostCenters: legs.map((leg, at) => at === index ? { ...leg, xMm: clamped } : leg) };
+}
+
 /** Centre of the post depth (m): at the gutter or on the moved-in post line. */
 function postZCentreM(configuration: ConfigurationV1, depthM: number, towardsGardenMm: number): number {
   const line = postLineOf(configuration);
@@ -949,14 +967,19 @@ function showBeamLabels(runtime: ViewerRuntime, configuration: ConfigurationV1 |
   const group = new Group();
   group.name = 'Teilungsmaße';
   group.userData.exportable = false;
-  const cmText = (mm: number) => `${millimetresToCentimetres(mm)} cm`;
+  const cmText = (mm: number) => `${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(mm / 10)} cm`;
   const frame = postFrame(configuration.productId);
   const posts = configuration.postCenters;
   const depth = configuration.dimensionsMm.depth;
   const sideX = (side: 'left' | 'right') => (side === 'left' ? posts[posts.length - 1].xMm + frame.alongPlusMm + 60 : posts[0].xMm - frame.alongMinusMm - 60) / 1000;
-  const place = (text: string, field: { kind: 'front' | 'side'; side?: 'left' | 'right'; insideIndex?: number; startMm?: number; widthMm: number }, alongMm: number, yMm: number) => {
+  const place = (text: string, field: { kind: 'front' | 'side' | 'rear'; side?: 'left' | 'right'; insideIndex?: number; startMm?: number; widthMm: number }, alongMm: number, yMm: number) => {
     const label = createFlatLabel(text, 'wall', 0.2, '#0b4f8a', false, 'rgba(255,255,255,0.92)');
-    if (field.kind === 'front') {
+    if (field.kind === 'rear') {
+      // Behind the rear legs, readable from behind.
+      const legs = configuration.rearPostCenters ?? [];
+      label.rotateOnWorldAxis(new Vector3(0, 1, 0), Math.PI);
+      label.position.set((legs[field.insideIndex!].xMm + 50 + alongMm) / 1000, yMm / 1000, 0.06);
+    } else if (field.kind === 'front') {
       const left = posts[field.insideIndex!].xMm + frame.alongPlusMm;
       label.position.set((left + alongMm) / 1000, yMm / 1000, ((postLineOf(configuration)?.frontZ ?? -depth) - 60) / 1000);
     } else {
@@ -967,7 +990,12 @@ function showBeamLabels(runtime: ViewerRuntime, configuration: ConfigurationV1 |
     group.add(label);
   };
   const fields = listFields(configuration);
-  if (handle.kind === 'divider') {
+  if (handle.kind === 'rearLeg') {
+    // The rear fields on both sides of the dragged leg.
+    for (const field of fields.filter((item) => item.kind === 'rear' && (item.insideIndex === handle.index - 1 || item.insideIndex === handle.index))) {
+      place(cmText(field.widthMm), field, field.widthMm / 2, 1200);
+    }
+  } else if (handle.kind === 'divider') {
     const parts = fields.filter((field) => field.kind === 'side' && field.side === handle.side);
     for (const part of [parts[handle.index], parts[handle.index + 1]]) {
       if (part) place(cmText(part.widthMm), part, part.widthMm / 2, Math.min(1200, part.heightMm / 2));
@@ -1043,7 +1071,7 @@ function markFields(group: Group, idOf: (data: Record<string, unknown>) => strin
   highlighted: readonly string[]): void {
   group.traverse((object) => {
     if (!(object instanceof Mesh) || !(object.material instanceof MeshBasicMaterial)) return;
-    if (object.userData.openingIndex === undefined && object.userData.sideField === undefined) return;
+    if (object.userData.openingIndex === undefined && object.userData.sideField === undefined && object.userData.fieldId === undefined) return;
     const id = idOf(object.userData);
     object.material.color.setHex(FIELD_BLUE);
     object.material.opacity = id === null ? 0 : id === selected ? 0.24 : highlighted.includes(id) ? 0.2 : id === hovered ? 0.16 : 0;
@@ -1056,14 +1084,14 @@ function markFields(group: Group, idOf: (data: Record<string, unknown>) => strin
  */
 function pickNearest<T extends { object: Object3D; distance: number }>(hits: T[]): T | undefined {
   const nearest = hits.find((entry) => isPickable(entry.object.userData));
-  const isFieldPlane = nearest && (Number.isInteger(nearest.object.userData.openingIndex) || nearest.object.userData.sideField !== undefined);
+  const isFieldPlane = nearest && (Number.isInteger(nearest.object.userData.openingIndex) || nearest.object.userData.sideField !== undefined || typeof nearest.object.userData.fieldId === 'string');
   const beam = isFieldPlane ? hits.find((entry) => entry.object.userData.beamHandle && entry.distance - nearest.distance < 0.2) : undefined;
   return beam ?? nearest;
 }
 
 function isPickable(data: Record<string, unknown>): boolean {
   return (Number.isInteger(data.postIndex) && !data.moveArrows) || Number.isInteger(data.roofFieldIndex)
-    || Number.isInteger(data.openingIndex) || data.sideField === 'left' || data.sideField === 'right' || Boolean(data.beamHandle);
+    || Number.isInteger(data.openingIndex) || data.sideField === 'left' || data.sideField === 'right' || typeof data.fieldId === 'string' || Boolean(data.beamHandle);
 }
 
 /** Equipment field id of a pick plane: front planes via the post pair of their gap, sides directly. */

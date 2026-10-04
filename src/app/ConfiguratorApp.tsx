@@ -6,6 +6,7 @@ import { useNoticeStore } from '../state/noticeStore';
 import { evaluateConfiguration } from '../domain/evaluateConfiguration';
 import { addToField, equipmentRuleNotices, hasKind, reconcileFieldEquipment, type EquipmentKind } from '../domain/fieldEquipment';
 import { cornerRafterPitches } from '../domain/cornerRafters';
+import { validatePostCenters } from '../domain/geometry/posts';
 import type { Backdrop, ViewPreset } from '../features/viewer/PreviewViewer';
 import { ConfiguratorShell, type ConfiguratorActionStatus } from '../features/configurator';
 import { createPdfDraft, downloadPdf } from '../features/pdf/service/pdfExport';
@@ -16,6 +17,21 @@ import { useConfiguratorStore } from '../state/configuratorStore';
 
 const PreviewViewer = lazy(() => import('../features/viewer/PreviewViewer').then(({ PreviewViewer: Component }) => ({ default: Component })));
 const ProfileViewer = lazy(() => import('../features/viewer/ProfileViewer').then(({ ProfileViewer: Component }) => ({ default: Component })));
+
+/**
+ * Free-standing rear legs follow the Prime post rules (owner, 4 Oct 2026): when the roof becomes free-standing or the
+ * width no longer fits the legs, they start from the minimum layout again.
+ */
+function rearLegLayout(candidate: ConfigurationV1): ConfigurationV1 {
+  const width = candidate.dimensionsMm.width;
+  if (!candidate.freestanding) return candidate.rearPostCenters ? { ...candidate, rearPostCenters: null } : candidate;
+  if (width === null) return candidate;
+  const legs = candidate.rearPostCenters;
+  if (legs && !validatePostCenters('prime', width, legs).length) return candidate;
+  const fresh = createMinimumPostLayout('prime', width)?.map((post, index) => ({ id: `leg-${index + 1}`, xMm: post.xMm })) ?? null;
+  if (legs) useNoticeStore.getState().push({ title: 'Stützen neu angeordnet', message: 'Die hinteren Stützen passten nicht mehr zur Breite und stehen jetzt in der Mindestanordnung.' });
+  return { ...candidate, rearPostCenters: fresh };
+}
 
 export function ConfiguratorApp() {
   const configuration = useConfiguratorStore((state) => state.configuration);
@@ -52,7 +68,7 @@ export function ConfiguratorApp() {
       const notice = awningChangeNotice(candidate.awning, reconciled.awning, reconciled);
       if (notice) useNoticeStore.getState().push(notice);
     }
-    const laidOut = preserveAuto ? preserveAutomaticPostLayout(current, reconciled) : reconciled;
+    const laidOut = rearLegLayout(preserveAuto ? preserveAutomaticPostLayout(current, reconciled) : reconciled);
     // Equipment on fields that vanished with a post change is dropped; the customer is told which fields.
     const equipment = reconcileFieldEquipment(current, laidOut);
     if (equipment.dropped.length) {

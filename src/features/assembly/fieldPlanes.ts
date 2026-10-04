@@ -7,7 +7,8 @@ import { BufferGeometry, DoubleSide, Float32BufferAttribute, Mesh, MeshBasicMate
  * garden view: the garden-left side lies at the inside x = W end). The viewer tints them on hover/selection.
  */
 export function createFieldPickPlanes(postCentersM: readonly number[], depthM: number, frontHeightM: number, sideFields?: readonly SideFieldSpan[],
-  front: { frontZM: number; heightM: number } = { frontZM: -depthM + 0.003, heightM: frontHeightM }): Object3D[] {
+  front: { frontZM: number; heightM: number } = { frontZM: -depthM + 0.003, heightM: frontHeightM },
+  rearFields: readonly { fieldId: string; xMm: number; widthMm: number; heightMm: number }[] = []): Object3D[] {
   const sorted = [...postCentersM].sort((a, b) => a - b);
   const material = () => new MeshBasicMaterial({ color: 0x2f9dff, transparent: true, opacity: 0, depthWrite: false, side: DoubleSide });
   const planes: Object3D[] = [];
@@ -50,6 +51,14 @@ export function createFieldPickPlanes(postCentersM: readonly number[], depthM: n
       field.userData.exportable = false;
       planes.push(field);
     }
+  }
+  // Rear fields of a free-standing roof, just behind the legs.
+  for (const span of rearFields) {
+    const field = new Mesh(new PlaneGeometry(span.widthMm / 1000, span.heightMm / 1000), material());
+    field.position.set((span.xMm + span.widthMm / 2) / 1000, span.heightMm / 2000, 0.003);
+    field.userData.fieldId = span.fieldId;
+    field.userData.exportable = false;
+    planes.push(field);
   }
   return planes;
 }

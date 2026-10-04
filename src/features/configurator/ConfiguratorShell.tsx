@@ -103,7 +103,7 @@ export function ConfiguratorShell({
     construction: [productName, measurementSummary, configuration.postCenters ? `${configuration.postCenters.length} Pfosten` : ''].filter(Boolean).join(' · '),
     roof: [materialName, roofFinishes[configuration.roofFinish].toneDe, evaluation.roof ? `${evaluation.roof.bayCount} Dachfelder` : ''].filter(Boolean).join(' · '),
     equipment: elementCount ? `${elementCount} ${elementCount === 1 ? 'Element' : 'Elemente'} · ${equippedFields} ${equippedFields === 1 ? 'Feld' : 'Felder'}` : 'Noch nichts gewählt',
-    field: `${fields.filter((field) => field.kind === 'front').length} vorne · ${fields.filter((field) => field.kind === 'side').length} seitlich`,
+    field: `${fields.filter((field) => field.kind === 'front').length} vorne · ${fields.filter((field) => field.kind === 'side').length} seitlich${fields.some((field) => field.kind === 'rear') ? ` · ${fields.filter((field) => field.kind === 'rear').length} hinten` : ''}`,
   };
 
   const update = (next: ConfigurationV1) => onConfigurationChange(structuredClone(next));

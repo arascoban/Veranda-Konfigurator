@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DRAIN_BOTH_SIDES_ABOVE_MM, frameColors, type FrameColorId, type ProductId } from '../../../catalog/catalog';
 import { assemblySpecs } from '../../../features/assembly/spec';
 import { MAX_POST_INSET_MM } from '../../../features/assembly/placements';
@@ -151,6 +152,8 @@ export function ConstructionSettings({ configuration, evaluation, onChange, onPr
       <DimensionField label="Einzug ab Rinne" valueMm={configuration.postInsetMm} minimumMm={0} maximumMm={maxInset}
         onValueChange={(value) => { if (value !== null) onChange({ ...configuration, postInsetMm: Math.max(0, Math.min(maxInset, Math.round(value))) }); }} />
 
+      <FreestandingSettings configuration={configuration} widthMm={widthMm} onChange={onChange} />
+
       {configuration.productId === 'prime' && <div className="option-row">
         <span className="option-row__label">Pfostendeckel<InfoTip text="Gerader oder halber Deckel am Prime-Pfosten." /></span>
         <div className="product-switch" role="group" aria-label="Pfostendeckel">
@@ -188,6 +191,63 @@ function ReadOnlyValue({ label, value, limit, info, tone }: { label: string; val
       <div className="dimension-field__control readonly-value__control" aria-readonly="true">
         <output className="dimension-field__input">{value}</output>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Freistehend (4 Oct 2026): no house wall. A profile and 50×100 legs at the back; the legs follow the Prime post rules
+ * and are placed like posts (from the garden-left end), the fields between them take equipment.
+ */
+function FreestandingSettings({ configuration, widthMm, onChange }: {
+  configuration: ConfigurationV1; widthMm: number | null; onChange: (next: ConfigurationV1) => void;
+}) {
+  const [selected, setSelected] = useState(-1);
+  const legs = configuration.rearPostCenters ?? [];
+  const commit = (next: ConfigurationV1['rearPostCenters']) => { if (next) onChange({ ...configuration, rearPostCenters: next }); };
+  const fromGardenLeft = (xMm: number) => (widthMm ?? 0) - xMm;
+  const order = legs.map((leg, index) => ({ leg, index })).reverse();
+  return (
+    <div className="v2-stack">
+      <label className={`v2-check-row ${configuration.freestanding ? 'v2-check-row--on' : ''}`}>
+        <input type="checkbox" checked={configuration.freestanding}
+          onChange={() => onChange({ ...configuration, freestanding: !configuration.freestanding, rearPostCenters: null })} />
+        <span className="v2-check-row__box" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6" /></svg>
+        </span>
+        <span className="v2-row-text"><strong>Freistehend</strong>
+          <small>Ohne Hauswand: A-Profil hinter dem Wandprofil auf 50×100-Stützen. Die Gesamttiefe bleibt, die Seiten werden 5 cm kürzer.</small></span>
+      </label>
+      {configuration.freestanding && widthMm !== null && <>
+        <div className="post-list">
+          {order.map(({ leg, index }, number) => (
+            <div className={`post-row ${index === selected ? 'post-row--selected' : ''}`} key={leg.id}>
+              <button type="button" className="post-row__name" aria-pressed={index === selected}
+                onClick={() => setSelected(index === selected ? -1 : index)}>Stütze {number + 1}</button>
+              <span className="post-row__control">
+                <input type="text" inputMode="decimal" aria-label={`Position von Stütze ${number + 1} ab links in cm`}
+                  key={`${leg.id}:${leg.xMm}`} defaultValue={formatNumber(fromGardenLeft(leg.xMm) / 10)}
+                  onFocus={() => setSelected(index)}
+                  onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+                  onBlur={(event) => {
+                    const entered = Number(event.currentTarget.value.trim().replace(',', '.'));
+                    const insideCm = Number.isFinite(entered) ? (widthMm / 10 - entered).toFixed(1) : event.currentTarget.value;
+                    const next = movePostFromCentimetres('prime', widthMm, legs, index, insideCm);
+                    event.currentTarget.value = formatNumber(fromGardenLeft((next ?? legs)[index].xMm) / 10);
+                    if (next) commit(next);
+                  }} />
+                <span>cm</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="post-actions">
+          <Button size="small" disabled={!addPost('prime', widthMm, legs)} onClick={() => commit(addPost('prime', widthMm, legs))}>Stütze hinzufügen</Button>
+          <Button size="small" disabled={selected < 0 || !removePost('prime', widthMm, legs, selected)}
+            onClick={() => { commit(removePost('prime', widthMm, legs, selected)); setSelected(-1); }}>Stütze entfernen</Button>
+          <Button size="small" disabled={!distributePostsEvenly('prime', widthMm, legs)} onClick={() => commit(distributePostsEvenly('prime', widthMm, legs))}>Gleichmäßig verteilen</Button>
+        </div>
+      </>}
     </div>
   );
 }

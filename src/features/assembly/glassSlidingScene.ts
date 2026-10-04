@@ -32,7 +32,7 @@ export type EquipmentParts = Map<string, Group>;
 function neededPartIds(configuration: ConfigurationV1, layoutFor: (fieldId: string) => (GswLayout | null)[]): string[] {
   const ids = new Set<string>();
   // Every equipped field or side may need the 50×100, the Aluminiumwand or a Giebeldreieck: all four are small.
-  if (configuration.fieldEquipment.length || configuration.sideLayouts.length || configuration.postInsetMm > 0) for (const id of AUSSTATTUNG_IDS) ids.add(id);
+  if (configuration.fieldEquipment.length || configuration.sideLayouts.length || configuration.postInsetMm > 0 || configuration.freestanding) for (const id of AUSSTATTUNG_IDS) ids.add(id);
   for (const entry of configuration.fieldEquipment) {
     for (const layout of layoutFor(entry.fieldId)) {
       if (!layout) continue;

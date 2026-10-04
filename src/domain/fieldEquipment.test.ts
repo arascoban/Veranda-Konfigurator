@@ -308,3 +308,24 @@ describe('posts moved in with the static carrier (4 Oct 2026)', () => {
     expect(parsed.ok && parsed.configuration.postInsetMm).toBe(0);
   });
 });
+
+describe('Freistehend (4 Oct 2026)', () => {
+  it('keeps the overall depth, shortens the sides by the legs and adds rear fields between the legs', () => {
+    const legs = [{ id: 'leg-1', xMm: 55 }, { id: 'leg-2', xMm: 2500 }, { id: 'leg-3', xMm: 4945 }];
+    const configuration = { ...base(), productId: 'premium' as const, postCenters: [{ id: 'post-1', xMm: 65 }, { id: 'post-2', xMm: 2500 }, { id: 'post-3', xMm: 4935 }], freestanding: true, rearPostCenters: legs };
+    const fields = listFields(configuration);
+    // Owner's example: 300 cm Premium → 300 − 13,5 − 5 = 281,5 cm, starting behind the legs.
+    const side = fields.find((field) => field.id === 'side:left')!;
+    expect(side.widthMm).toBe(2815);
+    expect(side.startMm).toBe(50);
+    expect(fields.filter((field) => field.kind === 'rear').map((field) => [field.label, field.widthMm])).toEqual([
+      ['Hinten · Feld 1', 2345], ['Hinten · Feld 2', 2345],
+    ]);
+    // The posts still stand at the full depth.
+    expect(postLineOf(configuration)!.frontZ).toBe(-3000);
+    const withRear = addToField(configuration, fields.find((field) => field.kind === 'rear')!.id, 'aluminiumwand')!;
+    expect(evaluateConfiguration(withRear).issues.filter((issue) => issue.field === 'fieldEquipment')).toEqual([]);
+    expect(evaluateConfiguration({ ...configuration, rearPostCenters: [legs[0], legs[2]] }).issues)
+      .toContainEqual({ kind: 'invalid', field: 'fieldEquipment', code: 'field_equipment_rear_posts' });
+  });
+});

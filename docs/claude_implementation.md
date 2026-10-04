@@ -522,3 +522,38 @@ Uygulama:
 - Durchgangshöhe (E) hâlâ rinne altını gösteriyor; ön Feld yüksekliği taşıyıcı altı.
 
 Doğrulama: 172 test ve build. Playwright'ta Prime + 70 cm: pfostenlar taşıyıcının içinde, Ek Boru rinne çıkışından pfostene, GSW taşıyıcı altında, yan Tiefe 219 cm.
+
+## 23. İş — Freistehend (4 Ekim)
+
+Kaynak: kullanıcının cevabı, Ausstatungen_Kurallar.md (Freistehend kuralı) ve Referans 1/2 analizi.
+- Referanslarda A-Profil 5,5 × 15,5 cm, wandprofilin arkasında; üst kenarı wandprofilin üstüyle aynı.
+- 50×100 stützen 10 cm genişlik × 5 cm derinlik, A-Profil'e 5,8 cm giriyor.
+- L-Kapak 2,2 × 15,5 × 6,2 cm, A-Profil'in iki ucunda.
+
+Geometri kararı:
+- Kural "ana derinlik azalmaz, Feld daralır; 300 cm Premium → 281,5 cm" diyor. Bunun için Gesamttiefe aynı kalıyor ve çatı A-Profil kadar (5,5 cm) bahçeye doğru kayıyor (`rearOffsetMm`, `shiftLayoutZ`).
+- Stützen z = 0…−5 cm arasında; yan Feld'ler stützenin önünden başlıyor (`sideStartMm`, 300 − 13,5 − 5 = 281,5 cm, testli).
+- Referanslarda yan duvarlar stützenin önünden başlıyor; bu kurala uyuyor.
+
+Uygulama:
+- Konfigürasyonda `freestanding` ve `rearPostCenters`. Eski taslaklar freistehend değil.
+- Stützen Prime pfosten kurallarına uyuyor (`validatePostCenters('prime', …)`, sahibinin kararı).
+  - Konstruktion'da "Freistehend" kutusu. Stütze listesi bahçeden soldan cm olarak; ekle, kaldır ve eşit dağıt düğmeleri var.
+  - Stützen modelde ziehbar: pfosten gibi mavi vurgu, iki yandaki hinten-Feld genişlikleri canlı gösteriliyor.
+  - Genişlik değişip stützen kurala uymazsa Mindestanordnung'a dönüyorlar ve "Stützen neu angeordnet" bildirimi çıkıyor.
+- **Hinten Feld'leri** (`rear:<id>:<id>`, "Hinten · Feld n"):
+  - Ön Feld'lerle aynı kurallar ve elemanlar geçerli; yükseklik A-Profil'in altına kadar.
+  - Kural 11 de geçerli: varsayılanda 274 cm olduğu için Glasschiebewand tek başına konamıyor, önce alta bir eleman gerekiyor.
+  - Glasschiebewand arkadan bakılarak "links/rechts".
+  - Seçim alanları stützenin arkasında; Bemaßungen'de hinten-Feld genişlikleri var.
+- **3D:** A-Profil, iki L-Kapak (model 10 kat büyük çizildiği için 1/10 ölçek ve çeyrek tur) ve 50×100 stützen; hepsi gerçek profillerden.
+
+**Varsayımlar (vorläufig):**
+- A-Profil derinliği referanstaki 5,5 cm; parça modeli 6,2 cm ölçülüyor (dudaklar dahil).
+- Hinten Feld'lerde Giebel ya da 50×100 ayrımı yok, yan kuralları uygulanmıyor.
+- Durchgangshöhe ve Gesamthöhe ölçüleri değişmedi.
+
+Doğrulama: 173 test (281,5 cm kuralı, hinten-Feld'ler, stütze kuralı), build. Playwright:
+- Freistehend açıldı; 3 stütze ve 2 hinten Feld oluştu.
+- Hinten alu + GSW ve alu, yan alu + Giebel görüntülendi.
+- Stütze ziehen: 250 → 214 cm, canlı genişlikler gösterildi; sayfa hatası yok.
